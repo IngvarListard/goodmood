@@ -25,8 +25,8 @@
   nil)
 
 (defmethod ig/init-key :app.core/server
-  [_ {:keys [port]}]
-  (jetty/run-jetty routes/app {:port port :join? false}))
+  [_ {:keys [port connection]}]
+  (jetty/run-jetty (routes/->app connection) {:port port :join? false}))
 
 (defmethod ig/halt-key! :app.core/server
   [_ server]
@@ -35,7 +35,8 @@
 (def system-config
   {:db/connection {:path "resources/goodmood.db"}
    :db/migrate {:connection (ig/ref :db/connection)}
-   :app.core/server {:port 3000}})
+   :app.core/server {:port 3000
+                     :connection (ig/ref :db/connection)}})
 
 (defn start-system []
   (ig/init system-config))

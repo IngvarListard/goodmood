@@ -4,6 +4,8 @@
         ring/ring-core {:mvn/version "1.15.5"}
         ring/ring-jetty-adapter {:mvn/version "1.15.5"}
         metosin/reitit {:mvn/version "0.10.1"}
+        metosin/malli {:mvn/version "0.20.1"}
+        metosin/muuntaja {:mvn/version "0.6.11"}
         integrant/integrant {:mvn/version "1.0.1"}
         org.xerial/sqlite-jdbc {:mvn/version "3.53.2.1"}
         com.github.seancorfield/next.jdbc {:mvn/version "1.3.1118"}
@@ -11,5 +13,5 @@
         migratus/migratus {:mvn/version "1.6.7"}}
  
  :aliases {:run {:main-opts ["-m" "app.core"]}
-           :test {:extra-paths ["test"]
-                  :main-opts ["-e" "(require '[clojure.test :as t] '[app.domains.entries.db-test])(t/run-tests 'app.domains.entries.db-test)"]}}}
+            :test {:extra-paths ["test"]
+                   :main-opts ["-e" "(require '[clojure.test :as t] '[app.domains.entries.db-test] '[app.routes-test])(t/run-tests 'app.domains.entries.db-test 'app.routes-test)"]}}}

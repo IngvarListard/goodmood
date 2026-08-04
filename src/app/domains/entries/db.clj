@@ -15,7 +15,8 @@
                           :activity activity
                           :effect effect
                           :mood_score mood-score
-                          :sleep_hours sleep-hours}]})
+                          :sleep_hours sleep-hours}]
+                :returning [:*]})
    default-opts))
 
 (defn get-entries

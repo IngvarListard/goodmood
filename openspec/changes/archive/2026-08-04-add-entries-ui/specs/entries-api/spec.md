@@ -1,9 +1,4 @@
-# Entries Api Specification
-
-## Purpose
-Expose HTTP endpoints for creating and listing diary entries.
-
-## Requirements
+## MODIFIED Requirements
 
 ### Requirement: Create entry via API
 The system SHALL provide an HTTP endpoint `POST /entries` that creates a diary entry. For requests without an `HX-Request` header the endpoint returns the created entry as JSON with HTTP status 201; for htmx requests (header `HX-Request: true`) it returns an HTML fragment of the new list item with HTTP status 201.

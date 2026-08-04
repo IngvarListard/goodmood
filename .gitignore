@@ -5,3 +5,5 @@
 .qwen
 .cpcache
 *.db
+.clj-kondo
+.lsp

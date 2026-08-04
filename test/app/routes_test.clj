@@ -1,6 +1,7 @@
 (ns app.routes-test
   (:require [app.domains.entries.db :as db]
             [app.routes :as routes]
+            [clojure.string :as str]
             [clojure.test :refer [deftest is testing use-fixtures]]
             [jsonista.core :as json]
             [migratus.core :as migratus]
@@ -55,6 +56,46 @@
     :uri "/entries"
     :headers {"accept" "application/json"}
     :body nil}))
+
+(defn- post-entries-hx
+  [payload]
+  ((app)
+   {:request-method :post
+    :uri "/entries"
+    :headers {"content-type" "application/json"
+              "accept" "application/json"
+              "hx-request" "true"}
+    :body (java.io.ByteArrayInputStream. (.getBytes (json-body payload)))}))
+
+(defn- post-entries-hx-strings
+  [payload]
+  ((app)
+   {:request-method :post
+    :uri "/entries"
+    :headers {"content-type" "application/json"
+              "accept" "text/html"
+              "hx-request" "true"}
+    :body (java.io.ByteArrayInputStream. (.getBytes (json-body payload)))}))
+
+(defn- get-entries-html
+  []
+  ((app)
+   {:request-method :get
+    :uri "/entries"
+    :headers {"accept" "text/html"}
+    :body nil}))
+
+(defn- body-text
+  [response]
+  (let [body (:body response)]
+    (if (instance? java.io.InputStream body)
+      (slurp body)
+      (str body))))
+
+(defn- content-type
+  [response]
+  (or (get-in response [:headers "content-type"])
+      (get-in response [:headers "Content-Type"])))
 
 (def ^:private keyword-keys
   (json/object-mapper {:decode-key-fn true}))
@@ -119,3 +160,72 @@
           elapsed-ms (/ (- (System/nanoTime) start) 1e6)]
       (is (= 200 (:status response)))
       (is (< elapsed-ms 200) (str "GET /entries took " elapsed-ms "ms")))))
+
+(deftest get-entries-html-returns-page
+  (testing "GET /entries with text/html accept returns HTML page with form and empty state"
+    (let [response (get-entries-html)]
+      (is (= 200 (:status response)))
+      (is (some? (content-type response)))
+      (is (str/includes? (content-type response) "text/html"))
+      (let [body (body-text response)]
+        (is (str/starts-with? body "<html"))
+        (is (str/includes? body ">Новая запись"))
+        (is (str/includes? body "id=\"form-error\""))
+        (is (str/includes? body "id=\"entries-list\""))
+        (is (str/includes? body "Записей пока нет"))))))
+
+(deftest get-entries-html-lists-entries
+  (testing "GET /entries html page shows stored entries in the list"
+    (post-entries {:activity "walk" :effect "calm" :mood_score 7 :sleep_hours 8.0})
+    (post-entries {:activity "run" :effect "energetic" :mood_score 6 :sleep_hours 7.5})
+    (let [body (body-text (get-entries-html))]
+      (is (str/includes? body "walk"))
+      (is (str/includes? body "run"))
+      (is (str/includes? body "Настроение 7/10"))
+      (is (not (str/includes? body "Записей пока нет"))))))
+
+(deftest post-hx-returns-html-fragment
+  (testing "POST /entries with HX-Request returns 201 HTML li fragment"
+    (let [response (post-entries-hx {:activity "walk"
+                                     :effect "calm"
+                                     :mood_score 7
+                                     :sleep_hours 8.0})]
+      (is (= 201 (:status response)))
+      (is (str/includes? (content-type response) "text/html"))
+      (let [body (body-text response)]
+        (is (str/starts-with? body "<li"))
+        (is (str/includes? body "hx-swap-oob=\"beforeend:#entries-list\""))
+        (is (str/includes? body "walk"))
+        (is (str/includes? body "Настроение 7/10")))
+      (is (= 1 (count (db/get-entries @ds-atom)))))))
+
+(deftest post-hx-string-values-still-accepted
+  (testing "POST /entries via htmx json-enc sends string values and blank sleep_hours"
+    (let [response (post-entries-hx-strings {:activity "walk"
+                                             :effect "calm"
+                                             :mood_score "7"
+                                             :sleep_hours ""})]
+      (is (= 201 (:status response)))
+      (let [entry (first (db/get-entries @ds-atom))]
+        (is (= 7 (:mood-score entry)))
+        (is (nil? (:sleep-hours entry)))))))
+
+(deftest post-hx-validation-error-returns-html
+  (testing "POST /entries with HX-Request and out-of-range mood_score returns 400 HTML fragment"
+    (let [response (post-entries-hx {:activity "walk"
+                                     :effect "calm"
+                                     :mood_score 15})]
+      (is (= 400 (:status response)))
+      (is (str/includes? (content-type response) "text/html"))
+      (let [body (body-text response)]
+        (is (str/starts-with? body "<div"))
+        (is (str/includes? body "alert alert-error"))
+        (is (str/includes? body "mood_score")))
+      (is (= 0 (count (db/get-entries @ds-atom)))))))
+
+(deftest post-json-validation-still-returns-json
+  (testing "POST /entries without HX-Request still returns 400 JSON validation error"
+    (let [response (post-entries {:activity "walk" :effect "calm" :mood_score 15})]
+      (is (= 400 (:status response)))
+      (let [body (response-body response)]
+        (is (some? (get-in body [:errors :mood_score])))))))

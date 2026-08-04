@@ -3,3 +3,5 @@
 .continue
 .opencode
 .qwen
+.cpcache
+*.db

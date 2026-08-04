@@ -10,7 +10,8 @@ Clojure, deps.edn, ring + ring-jetty-adapter, reitit, integrant, hiccup2, htmx, 
 
 # Конвенции
 
-src/app/{db,routes,views,domains}/..., явные reitit-роуты, простые hiccup2-функции без сложных макросов.
+- src/app/{db,routes,views,domains}/..., явные reitit-роуты, простые hiccup2-функции без сложных макросов.
+- при добавлении новых зависимостей в проект убедиться, что это последняя версия пакета если не сказано другого
 
 # Codestyle
 codestyle см. в ./CODESTYLE.md

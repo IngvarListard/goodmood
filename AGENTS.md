@@ -12,6 +12,9 @@ Clojure, deps.edn, ring + ring-jetty-adapter, reitit, integrant, hiccup2, htmx, 
 
 src/app/{db,routes,views,domains}/..., явные reitit-роуты, простые hiccup2-функции без сложных макросов.
 
+# Codestyle
+codestyle см. в ./CODESTYLE.md
+
 # Запуск
 
 ```bash

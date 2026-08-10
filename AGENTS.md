@@ -16,6 +16,10 @@ Clojure, deps.edn, ring + ring-jetty-adapter, reitit, integrant, hiccup2, htmx, 
 # Codestyle
 codestyle см. в ./CODESTYLE.md
 
+# Иконки
+
+Иконки находятся по пути ./resources/icons/. Объем иконок большой. Используй grep для поиска
+
 # Запуск
 
 ```bash

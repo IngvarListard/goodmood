@@ -15,4 +15,4 @@
  
  :aliases {:run {:main-opts ["-m" "app.core"]}
             :test {:extra-paths ["test"]
-                   :main-opts ["-e" "(require '[clojure.test :as t] '[app.domains.entries.db-test] '[app.routes-test])(t/run-tests 'app.domains.entries.db-test 'app.routes-test)"]}}}
+                   :main-opts ["-e" "(require '[clojure.test :as t] '[app.db.entries-test] '[app.routes.app-test])(t/run-tests 'app.db.entries-test 'app.routes.app-test)"]}}}

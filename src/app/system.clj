@@ -3,7 +3,7 @@
             [next.jdbc :as jdbc]
             [ring.adapter.jetty :as jetty]
             [app.db.migrate :as db.migrate]
-            [app.routes :as routes]))
+            [app.routes.app :as routes]))
 
 (defmethod ig/init-key :db/connection
   [_ {:keys [path]}]

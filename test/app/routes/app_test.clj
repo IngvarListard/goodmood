@@ -85,6 +85,14 @@
     :headers {"accept" "text/html"}
     :body nil}))
 
+(defn- get-html-page
+  [uri]
+  ((app)
+   {:request-method :get
+    :uri uri
+    :headers {"accept" "text/html"}
+    :body nil}))
+
 (defn- body-text
   [response]
   (let [body (:body response)]
@@ -229,3 +237,37 @@
       (is (= 400 (:status response)))
       (let [body (response-body response)]
         (is (some? (get-in body [:errors :mood_score])))))))
+
+(deftest nav-placeholder-routes-return-pages
+  (testing "each navigation route returns a 200 HTML page with the item label as heading"
+    (doseq [[uri label] [["/dashboard" "Дашборд"]
+                         ["/check-in" "Чек-ин"]
+                         ["/history" "История"]
+                         ["/statistics" "Статистика"]
+                         ["/insights" "Инсайты"]
+                         ["/settings" "Настройки"]]]
+      (let [response (get-html-page uri)]
+        (is (= 200 (:status response)) uri)
+        (is (str/includes? (content-type response) "text/html"))
+        (let [body (body-text response)]
+          (is (str/starts-with? body "<html"))
+          (is (str/includes? body (str ">" label "<")))
+          (is (not (str/includes? body "Новая запись"))
+              "Placeholder pages must not contain the entry form"))))))
+
+(deftest nav-placeholder-marks-only-matching-item-active
+  (testing "each route marks only its own nav item active (in both nav variants)"
+    (doseq [[uri id-label] [["/dashboard" "Дашборд"]
+                            ["/check-in" "Чек-ин"]
+                            ["/history" "История"]
+                            ["/statistics" "Статистика"]
+                            ["/insights" "Инсайты"]
+                            ["/settings" "Настройки"]]]
+      (let [body (body-text (get-html-page uri))
+            active-links (re-seq #"<a[^>]*aria-current=\"page\"[^>]*>" body)
+            active-hrefs (map #(second (re-find #"href=\"([^\"]+)\"" %))
+                              active-links)]
+        (is (= 2 (count active-links))
+            (str uri ": expected two active links (mobile + desktop nav)"))
+        (is (= [uri uri] active-hrefs)
+            (str uri ": active links must point to " id-label))))))

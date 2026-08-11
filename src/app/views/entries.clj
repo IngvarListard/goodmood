@@ -1,10 +1,6 @@
-(ns app.views.entries)
-
-(def htmx-src "https://unpkg.com/htmx.org@2.0.10/dist/htmx.min.js")
-(def json-enc-src "https://unpkg.com/htmx.org@2.0.10/dist/ext/json-enc.js")
-(def hyperscript-src "https://unpkg.com/hyperscript.org@0.9.93/dist/_hyperscript.min.js")
-(def tailwind-src "https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4")
-(def daisyui-href "https://cdn.jsdelivr.net/npm/daisyui@5.7.15/daisyui.css")
+(ns app.views.entries
+  (:require [app.views.layout :as layout]
+            [app.views.navigation :as navigation]))
 
 (defn- field
   [label type name options]
@@ -68,21 +64,13 @@
 
 (defn page
   [entries]
-  [:html {:lang "ru"}
-   [:head
-    [:meta {:charset "UTF-8"}]
-    [:meta {:name "viewport" :content "width=device-width, initial-scale=1"}]
-    [:title "Дневник настроения"]
-    [:link {:rel "stylesheet" :href daisyui-href}]
-    [:script {:src tailwind-src}]
-    [:script {:src htmx-src}]
-    [:script {:src json-enc-src}]
-    [:script {:src hyperscript-src}]]
-   [:body {:data-theme "light" :class "bg-base-100 min-h-screen"}
-    [:main {:class "max-w-2xl mx-auto p-4"}
-     [:h1 {:class "text-2xl font-bold mb-1"} "Дневник настроения"]
-     [:p {:class "text-sm opacity-70 mb-6"} "Трекер настроения при биполярном расстройстве"]
-     (form)
-     [:div {:id "form-error" :class "mt-3"}]
-     [:h2 {:class "text-xl font-semibold mt-8 mb-3"} "Записи"]
-     (entries-list entries)]]])
+  (let [content [:div {:class "max-w-2xl mx-auto p-4"}
+                 [:h1 {:class "text-2xl font-bold mb-1"} "Дневник настроения"]
+                 [:p {:class "text-sm opacity-70 mb-6"} "Трекер настроения при биполярном расстройстве"]
+                 (form)
+                 [:div {:id "form-error" :class "mt-3"}]
+                 [:h2 {:class "text-xl font-semibold mt-8 mb-3"} "Записи"]
+                 (entries-list entries)]]
+    (layout/layout {:title "Дневник настроения"}
+                   navigation/nav-items
+                   content)))

@@ -11,7 +11,7 @@
             [malli.error :as me]
             [malli.transform :as mt]
             [ring.util.response :as response]
-            [hiccup.core :as hc]
+            [hiccup2.core :refer [html]]
             [app.middleware :as mw]
             [app.domains.entries :as domains]
             [app.routes.auth :as auth]
@@ -20,7 +20,9 @@
             [app.views.placeholder :as placeholder]
             [app.views.settings :as settings]))
 
-(defn health-check [_]
+(defn health-check
+  "Вернуть OK для проверок health-check балансировщика."
+  [_]
   (response/response "OK"))
 
 (defn- blank->nil-double
@@ -65,7 +67,7 @@
               (if (entries/htmx-request? request)
                 {:status 400
                  :headers {"Content-Type" "text/html; charset=utf-8"}
-                 :body (hc/html (views/error-fragment (flatten-errors errors)))}
+                 :body (str (html (views/error-fragment (flatten-errors errors))))}
                 {:status 400
                  :body {:errors errors}}))
             (throw e)))))))
@@ -74,7 +76,7 @@
   [status body]
   {:status status
    :headers {"Content-Type" "text/html; charset=utf-8"}
-   :body (hc/html body)})
+   :body (str (html body))})
 
 (defn- nav-page-handler
   [title-key]
@@ -103,12 +105,12 @@
                 :auth/public true}]
     ["/locale" {:post {:handler auth/locale-post-handler}
                 :auth/public true}]
-    ["/dashboard"  {:get {:handler (nav-page-handler :pages/dashboard)}}]
-    ["/check-in"   {:get {:handler (nav-page-handler :pages/check-in)}}]
-    ["/history"    {:get {:handler (nav-page-handler :pages/history)}}]
+    ["/dashboard" {:get {:handler (nav-page-handler :pages/dashboard)}}]
+    ["/check-in" {:get {:handler (nav-page-handler :pages/check-in)}}]
+    ["/history" {:get {:handler (nav-page-handler :pages/history)}}]
     ["/statistics" {:get {:handler (nav-page-handler :pages/statistics)}}]
-    ["/insights"   {:get {:handler (nav-page-handler :pages/insights)}}]
-    ["/settings"   {:get {:handler settings-page-handler}}]
+    ["/insights" {:get {:handler (nav-page-handler :pages/insights)}}]
+    ["/settings" {:get {:handler settings-page-handler}}]
     ["/entries"
      {:post {:parameters {:body domains/create-entry-schema}
              :handler (partial entries/create-entry ds)}
@@ -118,12 +120,14 @@
                         rc/coerce-response-middleware]}}))
 
 (defn session-config
+  "Сформировать конфигурацию cookie-хранилища сессий Ring из секретного ключа."
   [session-secret]
   {:store (session.cookie/cookie-store {:key (mw/secret-key session-secret)})
    :cookie-name "gm-session"
    :cookie-attrs {:http-only true :same-site :lax :max-age 3600}})
 
 (defn ->app
+  "Создать Ring-приложение: роутер, стэк middleware и конфигурацию сессий."
   [ds session-secret]
   (let [router (router ds)]
     (-> (ring/ring-handler router (ring/create-default-handler))

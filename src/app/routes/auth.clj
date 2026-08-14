@@ -1,14 +1,14 @@
 (ns app.routes.auth
   (:require [app.domains.users :as users]
             [app.views.auth :as views]
-            [hiccup.core :as hc]
+            [hiccup2.core :refer [html]]
             [ring.util.response :as response]))
 
 (defn- html-response
   [status body]
   {:status status
    :headers {"Content-Type" "text/html; charset=utf-8"}
-   :body (hc/html body)})
+   :body (str (html body))})
 
 (defn- safe-next
   "Return next if it is a local path (starts with single /), else nil."
@@ -22,6 +22,7 @@
   (get-in request [:form-params name]))
 
 (defn login-page-handler
+  "Показать страницу входа. Перенаправляет на / если пользователь уже аутентифицирован."
   [ds request]
   (if (:identity request)
     (response/redirect "/")
@@ -29,6 +30,8 @@
       (html-response 200 (views/login-page request {:next next})))))
 
 (defn login-post-handler
+  "Аутентифицировать пользователя по email/паролю. При успехе — редирект на :next (или /)
+   с сессией. При ошибке — перерендерить страницу входа с сообщением об ошибке."
   [ds request]
   (let [email (form-param request "email")
         password (form-param request "password")]

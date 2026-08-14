@@ -5,6 +5,8 @@
 - **Валидация**: Malli (схемы как данные, интеграция с Reitit)
 - **Сериализация**: Muuntaja (content negotiation)
 - **Рендеринг**: Hiccup v2 (SSR), HTMX (ajax-взаимодействие), Hyperscript (инлайн-скрипты)
+  - Импорт: `[hiccup2.core :refer [html raw]]`. `html` для рендеринга (автоэскейпинг), `raw` для сырого HTML.
+  - **Не используй `hiccup.core`** — в v2 он deprecated.
 - **Стили**: Tailwind CSS + DaisyUI
 - **Сборка**: deps.edn (без ClojureScript, без shadow-cljs)
 

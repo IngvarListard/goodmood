@@ -13,10 +13,23 @@ Clojure, deps.edn, ring + ring-jetty-adapter, reitit, integrant, hiccup2, htmx, 
 - src/app/{db,routes,views,domains}/..., явные reitit-роуты, простые hiccup2-функции без сложных макросов.
 - при добавлении новых зависимостей в проект убедиться, что это последняя версия пакета если не сказано другого
 
+# Импорты
+
+- Hiccup: всегда используй `hiccup2.core` с `:refer [html raw]`. **Не используй `hiccup.core`** — он deprecated и не эскейпит строки.
+  - `html` — для рендеринга hiccup-данных в HTML (автоэскейпинг)
+  - `raw` — только для сознательной вставки сырого HTML (SVG-иконки и т.п.)
+
+# Документация
+
+- Публичные нетривиальные функции должны иметь docstring в соответствии с CODESTYLE.md.
+- Тривиальные функции (геттеры, простые хелперы) и приватные функции (`defn-`) можно без docstring.
+
 
 # Codestyle and rules
-codestyle см. в ./CODESTYLE.md
-Правила написания кода и архитектуры см ./CLOJURE-RULES.md
+
+- codestyle см. в ./CODESTYLE.md
+- Правила написания кода и архитектуры см ./CLOJURE-RULES.md
+- Пиши любые комментарии на русском языке, а логи на английском
 
 # Фронтенд
 

@@ -1,7 +1,7 @@
 (ns app.icons
   (:require [clojure.java.io :as io]
             [clojure.string :as str]
-            [hiccup2.core :as h2]))
+            [hiccup2.core :refer [html raw]]))
 
 (def ^:private valid-variants
   #{:outline :solid})
@@ -49,4 +49,4 @@
                      {:variant variant :valid-variants valid-variants})))
    [:span {:class (str "inline-flex items-center justify-center w-6 h-6 shrink-0 "
                        (or class ""))}
-    (h2/raw (memoized-load-svg name variant))]))
+    (raw (memoized-load-svg name variant))]))

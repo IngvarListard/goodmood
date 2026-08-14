@@ -13,6 +13,8 @@
                          :class "input input-bordered w-full"} options)])])
 
 (defn form
+  "Сформировать HTMX-форму создания записи.
+   Отправляет JSON на /entries, ответ направляет в #form-error."
   []
   [:form {:hx-post "/entries"
           :hx-ext "json-enc"
@@ -30,6 +32,9 @@
     (i18n/t :entries/add)]])
 
 (defn item
+  "Отрендерить одну карточку записи с оценкой настроения, датой, активностью,
+   эффектом и часами сна. Ожидает map с ключами: :id, :date, :activity,
+   :effect, :mood-score, :sleep-hours."
   [{:keys [id date activity effect mood-score sleep-hours]}]
   [:li {:id (str "entry-" id)
         :hx-swap-oob (str "beforeend:#entries-list")
@@ -50,6 +55,7 @@
       (format "%.1f ч" (double sleep-hours))])])
 
 (defn entries-list
+  "Отрендерить список записей или сообщение о пустом списке."
   [entries]
   (if (seq entries)
     [:ul {:id "entries-list" :class "space-y-3"}
@@ -64,6 +70,8 @@
    [:span (clojure.string/join "; " messages)]])
 
 (defn page
+  "Отрендерить полную страницу записей: заголовок, форму, контейнер ошибок,
+   список записей и лейаут."
   [request entries]
   (let [content [:div {:class "max-w-2xl mx-auto p-4"}
                  [:h1 {:class "text-2xl font-bold mb-1"} (i18n/t :entries/title)]

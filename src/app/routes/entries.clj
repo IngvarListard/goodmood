@@ -17,10 +17,12 @@
   [ds request]
   (let [{:keys [activity effect mood_score sleep_hours]}
         (get-in request [:parameters :body])
-        entry (entries/create-entry ds {:activity activity
-                                        :effect effect
-                                        :mood_score mood_score
-                                        :sleep_hours sleep_hours})]
+        user-id (get-in request [:identity :id])
+        entry (entries/create-entry ds user-id
+                                    {:activity activity
+                                     :effect effect
+                                     :mood_score mood_score
+                                     :sleep_hours sleep_hours})]
     (if (htmx-request? request)
       (html-response 201 (views/item entry))
       {:status 201
@@ -35,6 +37,6 @@
 (defn get-entries
   [ds request]
   (if (prefers-html? request)
-    (html-response 200 (views/page (entries/list-entries ds)))
+    (html-response 200 (views/page request (entries/list-entries ds (get-in request [:identity :id]))))
     {:status 200
-     :body (entries/list-entries ds)}))
+     :body (entries/list-entries ds (get-in request [:identity :id]))}))

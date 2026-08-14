@@ -1,5 +1,6 @@
 (ns app.views.layout-test
-  (:require [app.views.layout :as layout]
+  (:require [app.i18n :as app.i18n]
+            [app.views.layout :as layout]
             [app.views.navigation :as nav]
             [clojure.string :as str]
             [clojure.test :refer [deftest is testing]]))
@@ -47,8 +48,29 @@
 
   (testing "includes navigation items"
     (let [html (html-str (layout/layout {:title "Test"} nav/nav-items [:div]))]
-      (doseq [{:keys [label]} nav/nav-items]
-        (is (str/includes? html label)))))
+      (doseq [item nav/nav-items]
+        (is (str/includes? html (nav/nav-label item))))))
+
+  (testing "html lang attribute defaults to ru"
+    (let [html (html-str (layout/layout {:title "Test"} nav/nav-items [:div]))]
+      (is (str/includes? html "lang=\"ru\""))))
+
+  (testing "lang attribute follows bound locale"
+    (binding [app.i18n/*locale* :en]
+      (let [html (html-str (layout/layout {:title "Test"} nav/nav-items [:div]))]
+        (is (str/includes? html "lang=\"en\"")))))
+
+  (testing "renders user menu when identity is present"
+    (let [request {:identity {:id 1 :display-name "Alice" :role "user"}
+                   :anti-forgery-token "tok"}
+          html (html-str (layout/layout {:title "Test" :request request} nav/nav-items [:div]))]
+      (is (str/includes? html "Alice"))
+      (is (str/includes? html "Выйти"))
+      (is (str/includes? html "csrf-token"))))
+
+  (testing "no user menu without identity"
+    (let [html (html-str (layout/layout {:title "Test"} nav/nav-items [:div]))]
+      (is (not (str/includes? html "Выйти")))))
 
   (testing "includes content"
     (let [html (html-str (layout/layout {:title "Test"} nav/nav-items [:div "Hello World"]))]

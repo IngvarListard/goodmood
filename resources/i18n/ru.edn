@@ -1,0 +1,39 @@
+{:nav {:dashboard "Дашборд"
+       :check-in "Чек-ин"
+       :history "История"
+       :statistics "Статистика"
+       :insights "Инсайты"
+       :settings "Настройки"}
+ :pages {:dashboard "Дашборд"
+         :check-in "Чек-ин"
+         :history "История"
+         :statistics "Статистика"
+         :insights "Инсайты"
+         :settings "Настройки"
+         :under-development "Раздел в разработке"}
+ :app {:name "Good Mood"
+       :description "Трекер настроения при биполярном расстройстве"}
+ :auth {:login "Войти"
+        :logout "Выйти"
+        :email "Email"
+        :password "Пароль"
+        :invalid-credentials "Неверный email или пароль"
+        :title "Вход"}
+ :entries {:title "Дневник настроения"
+           :new-entry "Новая запись"
+           :activity "Активность"
+           :effect "Эффект"
+           :mood "Настроение (0–10)"
+           :sleep "Сон (часы)"
+           :add "Добавить запись"
+           :list "Записи"
+           :empty "Записей пока нет"
+           :mood-label "Настроение {score}/10"
+           :activity-label "Активность: "
+           :effect-label "Эффект: "
+           :sleep-label "Сон: "
+           :count-plural {:one "запись" :few "записи" :many "записей"}}
+ :user {:language "Язык"
+        :language-russian "Русский"
+        :language-english "English"}
+ :locale {:set "Сменить язык на {name}"}}

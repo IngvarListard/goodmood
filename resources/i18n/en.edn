@@ -1,0 +1,39 @@
+{:nav {:dashboard "Dashboard"
+       :check-in "Check-in"
+       :history "History"
+       :statistics "Statistics"
+       :insights "Insights"
+       :settings "Settings"}
+ :pages {:dashboard "Dashboard"
+         :check-in "Check-in"
+         :history "History"
+         :statistics "Statistics"
+         :insights "Insights"
+         :settings "Settings"
+         :under-development "Section under development"}
+ :app {:name "Good Mood"
+       :description "Mood tracker for bipolar disorder"}
+ :auth {:login "Log in"
+        :logout "Log out"
+        :email "Email"
+        :password "Password"
+        :invalid-credentials "Invalid email or password"
+        :title "Sign in"}
+ :entries {:title "Mood diary"
+           :new-entry "New entry"
+           :activity "Activity"
+           :effect "Effect"
+           :mood "Mood (0–10)"
+           :sleep "Sleep (hours)"
+           :add "Add entry"
+           :list "Entries"
+           :empty "No entries yet"
+           :mood-label "Mood {score}/10"
+           :activity-label "Activity: "
+           :effect-label "Effect: "
+           :sleep-label "Sleep: "
+           :count-plural {:one "entry" :few "entries" :many "entries"}}
+ :user {:language "Language"
+        :language-russian "Русский"
+        :language-english "English"}
+ :locale {:set "Switch language to {name}"}}

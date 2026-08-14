@@ -1,15 +1,28 @@
 (ns app.routes.app-test
   (:require [app.db.entries :as db]
+            [app.middleware :as mw]
             [app.routes.app :as routes]
             [clojure.string :as str]
             [clojure.test :refer [deftest is testing use-fixtures]]
             [jsonista.core :as json]
             [migratus.core :as migratus]
-            [next.jdbc :as jdbc]))
+            [next.jdbc :as jdbc]
+            [ring.middleware.session.cookie :as session.cookie]
+            [ring.middleware.session.store :as session.store]))
 
 (defonce ^:private tmp-path "/tmp/goodmood-routes-test.db")
 
 (def ^:private ds-atom (atom nil))
+
+(def ^:private session-secret "routes-test-secret-0123456789abcdef")
+
+(def ^:private cookie-store
+  (session.cookie/cookie-store {:key (mw/secret-key session-secret)}))
+
+(def ^:private csrf-token "test-csrf-token")
+
+(def ^:private test-identity
+  {:id 1 :email "user@test.dev" :role "user" :display-name "Test User"})
 
 (defn- migrate! [ds]
   (migratus/migrate {:store :database
@@ -35,7 +48,23 @@
 (use-fixtures :each with-test-db)
 
 (defn- app []
-  (routes/->app @ds-atom))
+  (routes/->app @ds-atom session-secret))
+
+(defn- with-session
+  "Attach a sealed gm-session cookie to the request for the given session map."
+  [request session]
+  (let [sealed (session.store/write-session cookie-store nil session)]
+    (assoc request :cookies {"gm-session" {:value sealed}})))
+
+(defn- authed
+  "Attach an authenticated session (identity + CSRF token) to the request."
+  [request]
+  (with-session request {:identity test-identity
+                         :ring.middleware.anti-forgery/anti-forgery-token csrf-token}))
+
+(defn- with-csrf-header
+  [request]
+  (assoc-in request [:headers "x-csrf-token"] csrf-token))
 
 (defn- json-body
   [body]
@@ -44,54 +73,60 @@
 (defn- post-entries
   [payload]
   ((app)
-   {:request-method :post
-    :uri "/entries"
-    :headers {"content-type" "application/json" "accept" "application/json"}
-    :body (java.io.ByteArrayInputStream. (.getBytes (json-body payload)))}))
+   (-> {:request-method :post
+        :uri "/entries"
+        :headers {"content-type" "application/json" "accept" "application/json"}
+        :body (java.io.ByteArrayInputStream. (.getBytes (json-body payload)))}
+       authed
+       with-csrf-header)))
 
 (defn- get-entries
   []
   ((app)
-   {:request-method :get
-    :uri "/entries"
-    :headers {"accept" "application/json"}
-    :body nil}))
+   (authed {:request-method :get
+            :uri "/entries"
+            :headers {"accept" "application/json"}
+            :body nil})))
 
 (defn- post-entries-hx
   [payload]
   ((app)
-   {:request-method :post
-    :uri "/entries"
-    :headers {"content-type" "application/json"
-              "accept" "application/json"
-              "hx-request" "true"}
-    :body (java.io.ByteArrayInputStream. (.getBytes (json-body payload)))}))
+   (-> {:request-method :post
+        :uri "/entries"
+        :headers {"content-type" "application/json"
+                  "accept" "application/json"
+                  "hx-request" "true"}
+        :body (java.io.ByteArrayInputStream. (.getBytes (json-body payload)))}
+       authed
+       with-csrf-header)))
 
 (defn- post-entries-hx-strings
   [payload]
   ((app)
-   {:request-method :post
-    :uri "/entries"
-    :headers {"content-type" "application/json"
-              "accept" "text/html"
-              "hx-request" "true"}
-    :body (java.io.ByteArrayInputStream. (.getBytes (json-body payload)))}))
+   (-> {:request-method :post
+        :uri "/entries"
+        :headers {"content-type" "application/json"
+                  "accept" "text/html"
+                  "hx-request" "true"}
+        :body (java.io.ByteArrayInputStream. (.getBytes (json-body payload)))}
+       authed
+       with-csrf-header)))
 
 (defn- get-entries-html
   []
   ((app)
-   {:request-method :get
-    :uri "/entries"
-    :headers {"accept" "text/html"}
-    :body nil}))
+   (authed {:request-method :get
+            :uri "/entries"
+            :headers {"accept" "text/html"}
+            :body nil})))
 
 (defn- get-html-page
   [uri]
   ((app)
-   {:request-method :get
-    :uri uri
-    :headers {"accept" "text/html"}
-    :body nil}))
+   (authed {:request-method :get
+            :uri uri
+            :headers {"accept" "text/html"}
+            :body nil})))
 
 (defn- body-text
   [response]
@@ -124,6 +159,7 @@
         (is (= "calm" (:effect entry)))
         (is (= 7 (:mood-score entry)))
         (is (= 8.0 (:sleep-hours entry)))
+        (is (= 1 (:user-id entry)) "created entry is assigned to the authenticated user")
         (is (pos? (:id entry)))
         (is (not (nil? (:created-at entry))))))))
 
@@ -155,16 +191,17 @@
 (deftest get-entries-within-time-limit
   (testing "GET /entries with up to 1000 entries responds within 200ms"
     (dotimes [i 1000]
-      (db/create-entry! @ds-atom {:date "2026-08-04"
+      (db/create-entry! @ds-atom {:user-id 1
+                                  :date "2026-08-04"
                                   :activity (str "a" i)
                                   :effect "e"
                                   :mood-score 5}))
     (let [handler (app)
           start (System/nanoTime)
-          response (handler {:request-method :get
-                             :uri "/entries"
-                             :headers {"accept" "application/json"}
-                             :body nil})
+          response (handler (authed {:request-method :get
+                                     :uri "/entries"
+                                     :headers {"accept" "application/json"}
+                                     :body nil}))
           elapsed-ms (/ (- (System/nanoTime) start) 1e6)]
       (is (= 200 (:status response)))
       (is (< elapsed-ms 200) (str "GET /entries took " elapsed-ms "ms")))))
@@ -205,7 +242,7 @@
         (is (str/includes? body "hx-swap-oob=\"beforeend:#entries-list\""))
         (is (str/includes? body "walk"))
         (is (str/includes? body "Настроение 7/10")))
-      (is (= 1 (count (db/get-entries @ds-atom)))))))
+      (is (= 1 (count (db/get-entries @ds-atom 1)))))))
 
 (deftest post-hx-string-values-still-accepted
   (testing "POST /entries via htmx json-enc sends string values and blank sleep_hours"
@@ -214,7 +251,7 @@
                                              :mood_score "7"
                                              :sleep_hours ""})]
       (is (= 201 (:status response)))
-      (let [entry (first (db/get-entries @ds-atom))]
+      (let [entry (first (db/get-entries @ds-atom 1))]
         (is (= 7 (:mood-score entry)))
         (is (nil? (:sleep-hours entry)))))))
 
@@ -229,7 +266,7 @@
         (is (str/starts-with? body "<div"))
         (is (str/includes? body "alert alert-error"))
         (is (str/includes? body "mood_score")))
-      (is (= 0 (count (db/get-entries @ds-atom)))))))
+      (is (= 0 (count (db/get-entries @ds-atom 1)))))))
 
 (deftest post-json-validation-still-returns-json
   (testing "POST /entries without HX-Request still returns 400 JSON validation error"
@@ -271,3 +308,10 @@
             (str uri ": expected two active links (mobile + desktop nav)"))
         (is (= [uri uri] active-hrefs)
             (str uri ": active links must point to " id-label))))))
+
+(deftest settings-page-shows-user-and-language
+  (testing "/settings shows user info, language switch and logout"
+    (let [body (body-text (get-html-page "/settings"))]
+      (is (str/includes? body "user@test.dev"))
+      (is (str/includes? body "Test User"))
+      (is (str/includes? body "Выйти")))))

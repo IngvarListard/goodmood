@@ -20,7 +20,7 @@
 (deftest page-test
   (testing "renders stub content through the common layout"
     (let [html (str (hiccup2.core/html
-                     (placeholder/page {:title "Статистика"}
+                     (placeholder/page {:title-key :pages/statistics}
                                        {:uri "/statistics"})))]
       (is (str/includes? html "<html"))
       (is (str/includes? html ">Статистика<"))
@@ -29,13 +29,13 @@
 
   (testing "passes active item derived from the request path"
     (let [html (str (hiccup2.core/html
-                     (placeholder/page {:title "Дашборд"}
+                     (placeholder/page {:title-key :pages/dashboard}
                                        {:uri "/dashboard"})))]
       (is (str/includes? html "aria-current=\"page\""))
       (is (str/includes? html "fill=\"currentColor\""))))
 
   (testing "no active item for non-navigation path"
     (let [html (str (hiccup2.core/html
-                     (placeholder/page {:title "X"}
+                     (placeholder/page {:title-key :pages/dashboard}
                                        {:uri "/not-a-route"})))]
       (is (not (str/includes? html "aria-current"))))))

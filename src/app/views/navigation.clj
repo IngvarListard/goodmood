@@ -1,17 +1,19 @@
 (ns app.views.navigation
-  (:require [app.icons :as icons]))
+  (:require [app.i18n :as i18n]
+            [app.icons :as icons]))
 
 (def nav-items
-  [{:id :dashboard :label "Дашборд" :icon "home" :route "/dashboard"}
-   {:id :check-in :label "Чек-ин" :icon "plus-circle" :route "/check-in"}
-   {:id :history :label "История" :icon "clock" :route "/history"}
-   {:id :statistics :label "Статистика" :icon "chart-bar" :route "/statistics"}
-   {:id :insights :label "Инсайты" :icon "light-bulb" :route "/insights"}
-   {:id :settings :label "Настройки" :icon "cog-6-tooth" :route "/settings"}])
+  [{:id :dashboard :label-key :nav/dashboard :icon "home" :route "/dashboard"}
+   {:id :check-in :label-key :nav/check-in :icon "plus-circle" :route "/check-in"}
+   {:id :history :label-key :nav/history :icon "clock" :route "/history"}
+   {:id :statistics :label-key :nav/statistics :icon "chart-bar" :route "/statistics"}
+   {:id :insights :label-key :nav/insights :icon "light-bulb" :route "/insights"}
+   {:id :settings :label-key :nav/settings :icon "cog-6-tooth" :route "/settings"}])
 
 (defn- nav-link
-  [{:keys [id icon label route]} active? variant]
-  (let [icon-variant (if active? :solid :outline)
+  [{:keys [id label-key icon route]} active? variant]
+  (let [label (i18n/t label-key)
+        icon-variant (if active? :solid :outline)
         layout-classes (case variant
                          :mobile "flex-col items-center justify-center gap-0.5 py-2"
                          :desktop "items-center gap-2")
@@ -47,9 +49,14 @@
     :desktop
     [:nav {:class "flex flex-col h-full"}
      [:div {:class "p-4"}
-      [:h1 {:class "text-xl font-bold"} "Good Mood"]]
+      [:h1 {:class "text-xl font-bold"} (i18n/t :app/name)]]
      [:ul {:class "menu menu-vertical gap-1 flex-1 w-full px-2"}
       (doall
        (for [{:keys [id] :as item} items]
          ^{:key id}
          (nav-link item (= active id) :desktop)))]]))
+
+(defn nav-label
+  "Translate a nav item label for the current locale."
+  [item]
+  (i18n/t (:label-key item)))

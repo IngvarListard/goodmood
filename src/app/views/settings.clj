@@ -41,8 +41,8 @@
        (i18n/t :auth/logout)]]]))
 
 (defn page
-  "Settings page: user info, language switch and logout.
-   Serves as the mobile entry point for the user account menu."
+  "Страница настроек: информация о пользователе, переключатель языка и выход.
+   Служит точкой входа в меню учётной записи на мобильных устройствах."
   [request]
   (let [identity (:identity request)
         content [:div {:class "max-w-2xl mx-auto p-4"}

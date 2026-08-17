@@ -4,16 +4,16 @@
             [app.views.navigation :as navigation]))
 
 (defn active-id
-  "Return the nav item id whose :route matches the request path, or nil."
+  "Вернуть id пункта навигации, чей :route совпадает с путём запроса, или nil."
   [path]
   (some (fn [{:keys [id route]}]
           (when (= route path) id))
         navigation/nav-items))
 
 (defn page
-  "Render a placeholder page for a navigation route.
-   opts: map with :title-key key (i18n key)
-   request: ring request (uses :uri to derive the active nav item)"
+  "Отрендерить страницу-заглушку для навигационного маршрута.
+   opts: map с ключом :title-key (i18n-ключ)
+   request: ring-запрос (:uri используется для определения активного пункта меню)"
   [{:keys [title-key]} request]
   (let [title (i18n/t title-key)
         content [:div {:class "max-w-2xl mx-auto p-4"}

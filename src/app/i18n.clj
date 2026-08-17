@@ -9,11 +9,11 @@
 (def default-locale :ru)
 
 (def ^:dynamic *locale*
-  "Current request locale, bound by wrap-locale middleware."
+  "Текущая локаль запроса, устанавливается middleware wrap-locale."
   default-locale)
 
 (defn normalize-locale
-  "Normalize a locale string (e.g. \"en-US\") to a supported keyword, or nil."
+  "Нормализовать строку локали (напр. \"en-US\") до поддерживаемого keyword, или nil."
   [s]
   (when (and (string? s) (seq s))
     (let [lang (-> s (str/split #"[-_]") first str/lower-case)]
@@ -21,13 +21,13 @@
         (keyword lang)))))
 
 (defn supported-locale
-  "Return locale keyword if supported, else nil."
+  "Вернуть keyword локали если она поддерживается, иначе nil."
   [locale]
   (when (contains? (set supported-locales) locale)
     locale))
 
 (defn ru-plural-form
-  "Russian plural form selector: :one (1, 21, 31...), :few (2-4, 22-24...), :many else."
+  "Селектор русских множественных форм: :one (1, 21, 31…), :few (2–4, 22–24…), :many — остальные."
   [n]
   (let [n (Math/abs (long n))
         d (mod n 10)
@@ -39,7 +39,7 @@
       :else :many)))
 
 (defn en-plural-form
-  "English plural form selector: :one for 1, :many else."
+  "Селектор английских множественных форм: :one для 1, :many для остальных."
   [n]
   (if (= 1 (Math/abs (long n))) :one :many))
 
@@ -51,9 +51,9 @@
     (fn [_] :many)))
 
 (defn- plural-template
-  "Build a tongue function template for -plural keys.
-   The value map {:one .. :few .. :many ..} is resolved by the locale's
-   plural selector; the count is taken from the :n interpolation key."
+  "Построить шаблон функции tongue для ключей с -plural.
+   Значение {:one … :few … :many …} разрешается селектором множественных
+   чисел локали; количество берётся из ключа интерполяции :n."
   [locale forms]
   (fn [x]
     (let [n (if (map? x) (:n x) x)
@@ -61,8 +61,8 @@
       (str n " " (get forms form (get forms :many))))))
 
 (defn- compile-plurals
-  "Recursively replace plural map values ({:one :few :many}) with
-   plural function templates."
+  "Рекурсивно заменить map множественных чисел ({:one :few :many}) на
+   шаблоны функций множественных чисел."
   [dict locale]
   (reduce-kv
    (fn [acc k v]
@@ -93,8 +93,8 @@
   (tongue/build-translate dicts))
 
 (defn t
-  "Translate key for the current *locale*. Supports named ({name}) and
-   positional ({1}) placeholders, and plural keys taking {:n count}."
+  "Перевести ключ для текущей *locale*. Поддерживает именованные ({name}) и
+   позиционные ({1}) плейсхолдеры, а также plural-ключи c {:n count}."
   ([key]
    (translate *locale* key))
   ([key x]
@@ -103,6 +103,6 @@
    (apply translate *locale* key x more)))
 
 (defn t-for
-  "Translate key for an explicit locale."
+  "Перевести ключ для явно указанной локали."
   [locale key & args]
   (apply translate locale key args))

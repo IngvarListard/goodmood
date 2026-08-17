@@ -5,7 +5,7 @@
             [ring.util.response :as response]))
 
 (defn secret-key
-  "Derive the 16-byte cookie-store key from a session secret string."
+  "Вычислить 16-байтовый ключ для cookie-store из строки секрета сессии."
   [session-secret]
   (let [digest (java.security.MessageDigest/getInstance "SHA-256")]
     (->> (.digest digest (.getBytes ^String session-secret "UTF-8"))
@@ -27,8 +27,8 @@
           i18n/supported-locale))
 
 (defn wrap-locale
-  "Determine request locale (cookie gm-locale > Accept-Language > default),
-   bind it to i18n/*locale* and assoc as :locale on the request."
+  "Определить локаль запроса (cookie gm-locale > Accept-Language > умолчание),
+   привязать к i18n/*locale* и добавить как :locale в request."
   [handler]
   (fn [request]
     (let [locale (or (locale-from-cookie request)
@@ -38,7 +38,7 @@
         (handler (assoc request :locale locale))))))
 
 (defn wrap-identity
-  "Expose the authenticated user from the session as request :identity."
+  "Достать аутентифицированного пользователя из сессии и добавить как request :identity."
   [handler]
   (fn [request]
     (handler (assoc request :identity (get-in request [:session :identity])))))
@@ -48,9 +48,9 @@
   (response/redirect location))
 
 (defn require-auth
-  "Protect all routes that are not marked :auth/public in the reitit route
-   data. Unauthenticated requests are redirected to /login?next=<uri>.
-   Routes with :auth/roles require the identity role to be in that set."
+  "Защитить все маршруты, не помеченные :auth/public в данных reitit-роута.
+   Неаутентифицированные запросы перенаправляются на /login?next=<uri>.
+   Маршруты с :auth/roles требуют, чтобы роль пользователя была в указанном множестве."
   [handler router]
   (fn [request]
     (let [match (reitit/match-by-path router (:uri request))

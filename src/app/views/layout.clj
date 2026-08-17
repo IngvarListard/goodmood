@@ -10,8 +10,8 @@
 (def daisyui-href "https://cdn.jsdelivr.net/npm/daisyui@5.7.15/daisyui.css")
 
 (defn head
-  "Render the HTML head with CDN resources, page title and CSRF meta tag.
-   csrf-token: session anti-forgery token (nil when absent)."
+  "Сформировать HTML-шапку с CDN-ресурсами, заголовком страницы и CSRF meta-тегом.
+   csrf-token: токен антифоржери (nil если отсутствует)."
   [title csrf-token]
   [:head
    [:meta {:charset "UTF-8"}]
@@ -26,11 +26,11 @@
    [:script {:src hyperscript-src}]])
 
 (defn layout
-  "Render a complete HTML page with navigation and content.
-   opts: map with :title key, optional :active (nav item id) and
-   optional :request (ring request, used for identity/session/csrf/locale)
-   nav-items: vector of navigation items
-   content: hiccup content to render in main"
+  "Отрендерить полную HTML-страницу с навигацией и содержимым.
+   opts: map с ключом :title, опциональными :active (id пункта меню) и
+   :request (ring-запрос, используется для identity/session/csrf/locale)
+   nav-items: вектор пунктов навигации
+   content: hiccup-контент для рендера в main"
   [{:keys [title active request]} nav-items content]
   (let [identity (:identity request)
         csrf-token (:anti-forgery-token request)]

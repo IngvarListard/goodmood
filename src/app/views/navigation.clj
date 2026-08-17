@@ -32,10 +32,10 @@
       [:span {:class "text-xs"} label]]]))
 
 (defn navigation
-  "Render navigation component.
-   variant: :mobile (horizontal bottom bar) or :desktop (vertical sidebar)
-   items: vector of nav items
-   opts: optional map with :active key (item id)"
+  "Отрендерить компонент навигации.
+   variant: :mobile (горизонтальная нижняя панель) или :desktop (вертикальная боковая панель)
+   items: вектор пунктов навигации
+   opts: опциональная map с ключом :active (id пункта)"
   [variant items & [{:keys [active]}]]
   (case variant
     :mobile
@@ -57,6 +57,6 @@
          (nav-link item (= active id) :desktop)))]]))
 
 (defn nav-label
-  "Translate a nav item label for the current locale."
+  "Перевести название пункта навигации для текущей локали."
   [item]
   (i18n/t (:label-key item)))

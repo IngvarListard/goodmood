@@ -19,8 +19,8 @@
        code]])])
 
 (defn login-page
-  "Render the login page. opts: optional :error i18n key to display,
-   optional :next redirect target after successful login."
+  "Отрендерить страницу входа. opts: опциональный :error — i18n-ключ ошибки,
+   опциональный :next — куда перенаправить после успешного входа."
   [request {:keys [error next]}]
   (let [csrf-token (:anti-forgery-token request)]
     [:html {:lang (name i18n/*locale*)}

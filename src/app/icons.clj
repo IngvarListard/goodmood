@@ -35,13 +35,13 @@
   (memoize load-svg))
 
 (defn svg
-  "Load an SVG icon from heroicons and return a hiccup element.
-   The icon is wrapped in a fixed-size box (w-6 h-6) with the svg
-   sized explicitly (24x24), so icons always render at the same size
-   regardless of surrounding containers.
-   Options:
-     :variant - :outline (default) or :solid
-     :class   - CSS class string appended to the wrapping span"
+  "Загрузить SVG-иконку из heroicons и вернуть hiccup-элемент.
+   Иконка обёрнута в блок фиксированного размера (w-6 h-6) с явным
+   размером svg (24×24), чтобы иконки всегда рендерились одинаково
+   независимо от контейнера.
+   Опции:
+     :variant — :outline (по умолчанию) или :solid
+     :class   — CSS-класс, добавляется к обёрточному span"
   ([name] (svg name {}))
   ([name {:keys [variant class] :or {variant :outline}}]
    (when-not (contains? valid-variants variant)

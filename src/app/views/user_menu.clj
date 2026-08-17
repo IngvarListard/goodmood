@@ -2,7 +2,7 @@
   (:require [app.i18n :as i18n]))
 
 (defn language-link
-  "A single language-switch button posting to /locale."
+  "Кнопка переключения языка, отправляющая POST на /locale."
   [locale code csrf-token]
   (let [current? (= i18n/*locale* locale)]
     [:form {:method "post" :action "/locale"}
@@ -14,9 +14,9 @@
       code]]))
 
 (defn user-menu
-  "User chip with dropdown (logout, language switch).
-   Rendered at the bottom of the desktop sidebar.
-   identity: authenticated user map; request: ring request (for CSRF token)."
+  "Чип пользователя с выпадающим меню (выход, переключатель языка).
+   Рендерится внизу боковой панели на десктопе.
+   identity: map аутентифицированного пользователя; request: ring-запрос (для CSRF-токена)."
   [{:keys [display-name] :as identity} request]
   (let [csrf-token (:anti-forgery-token request)]
     [:div {:class "dropdown dropdown-top w-full p-3 border-t border-base-200"}

@@ -250,7 +250,7 @@
                                       "accept" "application/json"
                                       "x-csrf-token" csrf-token}
                             :body (java.io.ByteArrayInputStream.
-                                   (.getBytes "{\"activity\":\"walk\",\"effect\":\"calm\",\"mood_score\":7}"))}
+                                   (.getBytes "{\"mood_score\":7,\"energy\":8,\"anxiety\":2}"))}
                            (with-session {:identity {:id (:id user1)
                                                      :email "one@b.c"
                                                      :role "user"
@@ -262,7 +262,7 @@
                                       "accept" "application/json"
                                       "x-csrf-token" csrf-token}
                             :body (java.io.ByteArrayInputStream.
-                                   (.getBytes "{\"activity\":\"run\",\"effect\":\"fast\",\"mood_score\":8}"))}
+                                   (.getBytes "{\"mood_score\":8,\"energy\":3,\"anxiety\":7}"))}
                            (with-session {:identity {:id (:id user2)
                                                      :email "two@b.c"
                                                      :role "user"
@@ -278,7 +278,7 @@
       (is (= 201 (:status post2)))
       (let [entries1 (json/read-value (:body list1) (json/object-mapper {:decode-key-fn true}))]
         (is (= 1 (count entries1)))
-        (is (= "walk" (:activity (first entries1))))))
+        (is (= 7 (:mood-score (first entries1))))))
     (is (= 2 (count (jdbc/execute! @ds-atom ["SELECT * FROM entries"]))))))
 
 (deftest locale-cookie-picks-english

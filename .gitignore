@@ -7,3 +7,4 @@
 *.db
 .clj-kondo
 .lsp
+discovery-notes.md

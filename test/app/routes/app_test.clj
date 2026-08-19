@@ -149,15 +149,15 @@
 
 (deftest create-entry-returns-201
   (testing "POST /entries with valid body returns 201 and created entry"
-    (let [response (post-entries {:activity "walk"
-                                  :effect "calm"
-                                  :mood_score 7
+    (let [response (post-entries {:mood_score 7
+                                  :energy 8
+                                  :anxiety 2
                                   :sleep_hours 8.0})]
       (is (= 201 (:status response)))
       (let [entry (response-body response)]
-        (is (= "walk" (:activity entry)))
-        (is (= "calm" (:effect entry)))
         (is (= 7 (:mood-score entry)))
+        (is (= 8 (:energy entry)))
+        (is (= 2 (:anxiety entry)))
         (is (= 8.0 (:sleep-hours entry)))
         (is (= 1 (:user-id entry)) "created entry is assigned to the authenticated user")
         (is (pos? (:id entry)))
@@ -171,22 +171,29 @@
       (is (= 400 (:status response)))
       (is (some? (get-in (response-body response) [:errors :mood_score]))))))
 
-(deftest create-entry-rejects-missing-field
-  (testing "POST /entries without required field returns 400 with validation error"
-    (let [response (post-entries {:activity "walk"
-                                  :mood_score 5})]
+(deftest create-entry-rejects-out-of-range-energy
+  (testing "POST /entries with energy 11 returns 400 with validation error"
+    (let [response (post-entries {:mood_score 5
+                                  :energy 11
+                                  :anxiety 5})]
       (is (= 400 (:status response)))
-      (is (some? (get-in (response-body response) [:errors :effect]))))))
+      (is (some? (get-in (response-body response) [:errors :energy]))))))
+
+(deftest create-entry-rejects-missing-field
+  (testing "POST /entries without required core field returns 400 with validation error"
+    (let [response (post-entries {:mood_score 5 :energy 5})]
+      (is (= 400 (:status response)))
+      (is (some? (get-in (response-body response) [:errors :anxiety]))))))
 
 (deftest get-entries-returns-200
   (testing "GET /entries returns 200 with stored entries"
-    (post-entries {:activity "walk" :effect "calm" :mood_score 7 :sleep_hours 8.0})
-    (post-entries {:activity "run" :effect "energetic" :mood_score 6 :sleep_hours 7.5})
+    (post-entries {:mood_score 7 :energy 8 :anxiety 2 :sleep_hours 8.0})
+    (post-entries {:mood_score 6 :energy 3 :anxiety 7 :sleep_hours 7.5})
     (let [response (get-entries)]
       (is (= 200 (:status response)))
       (let [entries (response-body response)]
         (is (= 2 (count entries)))
-        (is (= #{"walk" "run"} (set (map :activity entries))))))))
+        (is (= #{8 3} (set (map :energy entries))))))))
 
 (deftest get-entries-within-time-limit
   (testing "GET /entries with up to 1000 entries responds within 200ms"
@@ -221,56 +228,59 @@
 
 (deftest get-entries-html-lists-entries
   (testing "GET /entries html page shows stored entries in the list"
-    (post-entries {:activity "walk" :effect "calm" :mood_score 7 :sleep_hours 8.0})
-    (post-entries {:activity "run" :effect "energetic" :mood_score 6 :sleep_hours 7.5})
+    (post-entries {:mood_score 7 :energy 8 :anxiety 2 :sleep_hours 8.0})
+    (post-entries {:mood_score 6 :energy 3 :anxiety 7 :sleep_hours 7.5})
     (let [body (body-text (get-entries-html))]
-      (is (str/includes? body "walk"))
-      (is (str/includes? body "run"))
       (is (str/includes? body "Настроение 7/10"))
+      (is (str/includes? body "Энергия 3/10"))
       (is (not (str/includes? body "Записей пока нет"))))))
 
 (deftest post-hx-returns-html-fragment
   (testing "POST /entries with HX-Request returns 201 HTML li fragment"
-    (let [response (post-entries-hx {:activity "walk"
-                                     :effect "calm"
-                                     :mood_score 7
-                                     :sleep_hours 8.0})]
+    (let [response (post-entries-hx {:mood_score 7
+                                      :energy 8
+                                      :anxiety 2
+                                      :sleep_hours 8.0})]
       (is (= 201 (:status response)))
       (is (str/includes? (content-type response) "text/html"))
       (let [body (body-text response)]
         (is (str/starts-with? body "<li"))
-        (is (str/includes? body "hx-swap-oob=\"beforeend:#entries-list\""))
-        (is (str/includes? body "walk"))
-        (is (str/includes? body "Настроение 7/10")))
+        (is (str/includes? body "hx-swap-oob=\"afterbegin:#entries-list\""))
+        (is (str/includes? body "Настроение 7/10"))
+        (is (str/includes? body "Энергия 8/10")))
       (is (= 1 (count (db/get-entries @ds-atom 1)))))))
 
 (deftest post-hx-string-values-still-accepted
-  (testing "POST /entries via htmx json-enc sends string values and blank sleep_hours"
-    (let [response (post-entries-hx-strings {:activity "walk"
-                                             :effect "calm"
-                                             :mood_score "7"
+  (testing "POST /entries via htmx json-enc sends string values and blank optional fields"
+    (let [response (post-entries-hx-strings {:mood_score "7"
+                                             :energy "8"
+                                             :anxiety "2"
+                                             :focus ""
                                              :sleep_hours ""})]
       (is (= 201 (:status response)))
       (let [entry (first (db/get-entries @ds-atom 1))]
         (is (= 7 (:mood-score entry)))
-        (is (nil? (:sleep-hours entry)))))))
+        (is (= 8 (:energy entry)))
+        (is (nil? (:sleep-hours entry)))
+        (is (nil? (:focus entry)))))))
 
 (deftest post-hx-validation-error-returns-html
   (testing "POST /entries with HX-Request and out-of-range mood_score returns 400 HTML fragment"
-    (let [response (post-entries-hx {:activity "walk"
-                                     :effect "calm"
-                                     :mood_score 15})]
+    (let [response (post-entries-hx {:mood_score 15
+                                     :energy 5
+                                     :anxiety 5})]
       (is (= 400 (:status response)))
       (is (str/includes? (content-type response) "text/html"))
       (let [body (body-text response)]
         (is (str/starts-with? body "<div"))
-        (is (str/includes? body "alert alert-error"))
+        (is (str/includes? body "alert alert-warning"))
+        (is (not (str/includes? body "alert alert-error")))
         (is (str/includes? body "mood_score")))
       (is (= 0 (count (db/get-entries @ds-atom 1)))))))
 
 (deftest post-json-validation-still-returns-json
   (testing "POST /entries without HX-Request still returns 400 JSON validation error"
-    (let [response (post-entries {:activity "walk" :effect "calm" :mood_score 15})]
+    (let [response (post-entries {:mood_score 15 :energy 5 :anxiety 5})]
       (is (= 400 (:status response)))
       (let [body (response-body response)]
         (is (some? (get-in body [:errors :mood_score])))))))

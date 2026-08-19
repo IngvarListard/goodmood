@@ -25,14 +25,30 @@
   [_]
   (response/response "OK"))
 
+(defn- blank->nil
+  "Вернуть nil для пустой строки, иначе исходное значение."
+  [v]
+  (if (and (string? v) (clojure.string/blank? v))
+    nil
+    v))
+
 (defn- blank->nil-double
   [v]
   (if (and (string? v) (clojure.string/blank? v))
     nil
     ((mc/decoder :double nil mt/string-transformer) v)))
 
+(defn- blank->nil-int
+  [v]
+  (if (and (string? v) (clojure.string/blank? v))
+    nil
+    ((mc/decoder :int nil mt/string-transformer) v)))
+
 (def ^:private blank-aware-body-transformer
-  (mt/transformer mt/string-transformer {:decoders {:double blank->nil-double}}))
+  (mt/transformer mt/string-transformer
+                  {:decoders {:string blank->nil
+                              :double blank->nil-double
+                              :int blank->nil-int}}))
 
 (def ^:private blank-aware-body-provider
   (reify malli/TransformationProvider

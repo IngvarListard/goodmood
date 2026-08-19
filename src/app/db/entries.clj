@@ -7,7 +7,7 @@
   {:builder-fn rs/as-unqualified-kebab-maps})
 
 (defn create-entry!
-  [ds {:keys [user-id date activity effect mood-score sleep-hours]}]
+  [ds {:keys [user-id date activity effect mood-score energy anxiety focus sleep-hours note template]}]
   (jdbc/execute-one!
    ds
    (sql/format {:insert-into :entries
@@ -16,7 +16,12 @@
                           :activity activity
                           :effect effect
                           :mood_score mood-score
-                          :sleep_hours sleep-hours}]
+                          :energy energy
+                          :anxiety anxiety
+                          :focus focus
+                          :sleep_hours sleep-hours
+                          :note note
+                          :template template}]
                 :returning [:*]})
    default-opts))
 

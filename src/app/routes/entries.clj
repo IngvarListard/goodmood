@@ -18,14 +18,19 @@
   "Создать новую запись настроения для аутентифицированного пользователя.
    Возвращает HTML-фрагмент для HTMX-запросов или JSON для API."
   [ds request]
-  (let [{:keys [activity effect mood_score sleep_hours]}
+  (let [{:keys [activity effect mood_score energy anxiety focus sleep_hours note template]}
         (get-in request [:parameters :body])
         user-id (get-in request [:identity :id])
         entry (entries/create-entry ds user-id
                                     {:activity activity
                                      :effect effect
                                      :mood_score mood_score
-                                     :sleep_hours sleep_hours})]
+                                     :energy energy
+                                     :anxiety anxiety
+                                     :focus focus
+                                     :sleep_hours sleep_hours
+                                     :note note
+                                     :template template})]
     (if (htmx-request? request)
       (html-response 201 (views/item entry))
       {:status 201

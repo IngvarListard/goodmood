@@ -23,7 +23,17 @@
    [:script {:src tailwind-src}]
    [:script {:src htmx-src}]
    [:script {:src json-enc-src}]
-   [:script {:src hyperscript-src}]])
+   [:script {:src hyperscript-src}]
+   [:script (str "(function () {"
+                 "  var init = function () {"
+                 "    document.body.addEventListener('htmx:configRequest', function (e) {"
+                 "      var meta = document.querySelector('meta[name=\"csrf-token\"]');"
+                 "      if (meta) { e.detail.headers['X-CSRF-Token'] = meta.content; }"
+                 "    });"
+                 "  };"
+                 "  if (document.body) { init(); }"
+                 "  else { document.addEventListener('DOMContentLoaded', init); }"
+                 "})();")]])
 
 (defn layout
   "Отрендерить полную HTML-страницу с навигацией и содержимым.
@@ -36,7 +46,7 @@
         csrf-token (:anti-forgery-token request)]
     [:html {:lang (name i18n/*locale*)}
      (head title csrf-token)
-     [:body {:data-theme "light"
+     [:body {:data-theme "dark"
              :hx-boost "true"
              :class "bg-base-100 min-h-screen"}
       [:div {:class "hidden md:flex fixed left-0 top-0 h-screen w-64 flex-col"}

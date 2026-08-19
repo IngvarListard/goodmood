@@ -25,7 +25,7 @@
   (let [csrf-token (:anti-forgery-token request)]
     [:html {:lang (name i18n/*locale*)}
      (layout/head (i18n/t :auth/title) csrf-token)
-     [:body {:data-theme "light"
+     [:body {:data-theme "dark"
              :class "bg-base-100 min-h-screen flex flex-col items-center justify-center p-4"}
       [:div {:class "card w-full max-w-sm bg-base-200 shadow-xl"}
        [:div {:class "card-body"}
@@ -33,7 +33,7 @@
         [:p {:class "text-center text-sm opacity-70 mb-2"}
          (i18n/t :auth/title)]
         (when error
-          [:div {:role "alert" :class "alert alert-error"}
+          [:div {:role "alert" :class "alert alert-warning"}
            [:span (i18n/t error)]])
         [:form {:method "post" :action "/login"}
          [:input {:type "hidden" :name "__anti-forgery-token" :value csrf-token}]

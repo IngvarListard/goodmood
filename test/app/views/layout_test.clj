@@ -68,6 +68,18 @@
       (is (str/includes? html "Выйти"))
       (is (str/includes? html "csrf-token"))))
 
+  (testing "renders htmx configRequest script for CSRF header when token present"
+    (let [request {:anti-forgery-token "tok-123"}
+          html (html-str (layout/layout {:title "Test" :request request} nav/nav-items [:div]))]
+      (is (str/includes? html "htmx:configRequest"))
+      (is (str/includes? html "X-CSRF-Token"))
+      (is (str/includes? html "meta[name=&quot;csrf-token&quot;]"))))
+
+  (testing "renders htmx configRequest script even without token"
+    (let [html (html-str (layout/layout {:title "Test"} nav/nav-items [:div]))]
+      (is (str/includes? html "htmx:configRequest"))
+      (is (str/includes? html "X-CSRF-Token"))))
+
   (testing "no user menu without identity"
     (let [html (html-str (layout/layout {:title "Test"} nav/nav-items [:div]))]
       (is (not (str/includes? html "Выйти")))))

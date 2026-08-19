@@ -62,11 +62,12 @@
 
 (defn form
   "Сформировать HTMX-форму создания записи (mobile-first, тёмная тема).
+   csrf-token: CSRF-токен для скрытого поля (передаётся json-enc в теле запроса).
    Ядро: mood_score / energy / anxiety (range 0-10).
    Опционально: focus, sleep_hours, note, activity (collapse-блоки).
    Отправляет JSON на /entries, ответ направляет в #form-error.
    При успехе — сброс формы и вставка записи в #entries-list (OOB)."
-  []
+  [csrf-token]
   [:form {:hx-post "/entries"
           :hx-ext "json-enc"
           :hx-target "#form-error"
@@ -79,6 +80,7 @@
                   end
                 end"
           :class "card bg-base-200 p-4"}
+   [:input {:type "hidden" :name "__anti-forgery-token" :value csrf-token}]
    [:h2 {:class "text-lg font-semibold mb-1"} (i18n/t :entries/new-entry)]
    [:p {:class "text-sm opacity-60 mb-4"} (i18n/t :entries/how-are-you)]
    (template-tabs)
@@ -165,7 +167,7 @@
   (let [content [:div {:class "max-w-2xl mx-auto p-4"}
                  [:h1 {:class "text-2xl font-bold mb-1"} (i18n/t :entries/title)]
                  [:p {:class "text-sm opacity-70 mb-6"} (i18n/t :app/description)]
-                 (form)
+                 (form (:anti-forgery-token request))
                  [:div {:id "form-error" :class "mt-3"}]
                  [:h2 {:class "text-xl font-semibold mt-8 mb-3"} (i18n/t :entries/list)]
                  (entries-list entries)]]

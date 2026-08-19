@@ -27,6 +27,7 @@ Clojure, deps.edn, ring + ring-jetty-adapter, reitit, integrant, hiccup2, htmx, 
 
 # Codestyle and rules
 
+Читай кодстайл непосредственно перед написанием или ревью кода
 - codestyle см. в ./CODESTYLE.md
 - Правила написания кода и архитектуры см ./CLOJURE-RULES.md
 - Пиши любые комментарии на русском языке, а логи на английском
@@ -35,6 +36,14 @@ Clojure, deps.edn, ring + ring-jetty-adapter, reitit, integrant, hiccup2, htmx, 
 
 При работе над фронтендом используй tailwind и dailsyui классы
 При реализации любых ui компонентов используй компоненты tailwind daisyui. Написание своих компонентов крайний случай
+
+## htmx-философия
+
+- Пиши на htmx + hyperscript. **Никакого сырого JavaScript** без острой необходимости.
+  - CSRF, заголовки, обмен с сервером — через атрибуты htmx, hyperscript или скрытые поля формы.
+  - Если задача не решается htmx/hyperscript — сначала задай вопрос, прежде чем писать JS.
+- Фрагменты ответа сервера (HTML-фрагменты) — основной способ обновления UI. Не JSON API для фронтенда.
+- Используй `hx-ext="json-enc"` для отправки JSON; сервер возвращает Hiccup2-вектор, не JSON.
 
 ## Иконки
 

@@ -1,18 +1,18 @@
-## 0. Фаза 0 — MVP-мобильная форма
+## 0. Фаза 0 — MVP-мобильная форма ✅
 
 **Цель фазы:** форма, которую основатель реально заполняет каждый день на мобилке.
 **Капабилити:** `mobile-entry` (spec-as-hypothesis).
 **Блокирующие open questions:** OQ1 (состав минимальной формы).
 
 - [x] 0.1 Принять решение по OQ1: состав минимальной формы, обязательные/опциональные поля, целевое время заполнения. Зафиксировано в design.md Decision 9 и specs/mobile-entry/spec.md (2026-08-18).
-- [ ] 0.2 Создать имплементационный change `add-mobile-entry-form` (proposal/design/specs/tasks). Delta-спеки уточняют `mobile-entry` и `entries-data`/`entries-ui` из umbrella-гипотез.
-- [ ] 0.3 `openspec validate --change add-mobile-entry-form` — структура валидна.
-- [ ] 0.4 Реализовать: mobile-first layout формы, опциональные блоки, шаблоны (минимум утро/день/вечер/событие).
-- [ ] 0.5 Покрыть сценарии из `specs/mobile-entry/spec.md` тестами (GIVEN/WHEN/THEN).
-- [ ] 0.6 `openspec status --change add-mobile-entry-form` — все задачи выполнены, тесты проходят.
-- [ ] 0.7 Запустить приложение, вручную заполнить форму с мобилки, убедиться, что UX минимален.
-- [ ] 0.8 `openspec archive --change add-mobile-entry-form` → delta-спеки синхронизированы в `openspec/specs/`.
-- [ ] 0.9 В `product-vision/tasks.md` отметить Фазу 0 ✅. В `product-vision/design.md` при необходимости обновить гипотезы по `[ref: A3-q1]`.
+- [x] 0.2 Создать имплементационный change `add-mobile-entry-form` (proposal/design/specs/tasks). Delta-спеки уточняют `mobile-entry` и `entries-data`/`entries-ui` из umbrella-гипотез.
+- [x] 0.3 `openspec validate --change add-mobile-entry-form` — структура валидна.
+- [x] 0.4 Реализовать: mobile-first layout формы, опциональные блоки, шаблоны (минимум утро/день/вечер/событие).
+- [x] 0.5 Покрыть сценарии из `specs/mobile-entry/spec.md` тестами (GIVEN/WHEN/THEN).
+- [x] 0.6 `openspec status --change add-mobile-entry-form` — все задачи выполнены, тесты проходят.
+- [x] 0.7 Запустить приложение, вручную заполнить форму с мобилки, убедиться, что UX минимален.
+- [x] 0.8 `openspec archive --change add-mobile-entry-form` → delta-спеки синхронизированы в `openspec/specs/`.
+- [x] 0.9 В `product-vision/tasks.md` отметить Фазу 0 ✅. В `product-vision/design.md` при необходимости обновить гипотезы по `[ref: A3-q1]`.
 
 ## 1. Фаза 1 — Медикаменты + сон как базовые факторы
 

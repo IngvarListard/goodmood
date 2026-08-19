@@ -76,3 +76,6 @@ The system SHALL keep the entries page readable and functional on a mobile viewp
 - **AND** submit button has `h-12` class (48px height)
 
 #### Scenario: Range sliders have adequate touch targets
+- **WHEN** the form is rendered on a mobile device
+- **THEN** each range slider track has height ≥ 2rem (32px)
+- **AND** the label + slider combination creates a touch target ≥ 44px tall

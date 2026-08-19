@@ -151,8 +151,9 @@
         (mw/require-auth router)
         mw/wrap-identity
         mw/wrap-locale
-        (anti-forgery/wrap-anti-forgery
-         {:error-handler anti-forgery-error-handler})
+(anti-forgery/wrap-anti-forgery
+          {:read-token mw/read-csrf-token
+           :error-handler anti-forgery-error-handler})
         (session/wrap-session (session-config session-secret))
         muuntaja/wrap-format
         params/wrap-params)))

@@ -43,6 +43,18 @@
   (fn [request]
     (handler (assoc request :identity (get-in request [:session :identity])))))
 
+(defn read-csrf-token
+  "Прочитать CSRF-токен для ring-anti-forgery из form-params, body-params
+   (JSON через muuntaja) или заголовков x-csrf-token / x-xsrf-token.
+   Используется как :read-token при инициализации wrap-anti-forgery."
+  [request]
+  (let [form-params (merge (:form-params request)
+                           (:multipart-params request))]
+    (or (get form-params "__anti-forgery-token")
+        (get-in request [:body-params :__anti-forgery-token])
+        (get-in request [:headers "x-csrf-token"])
+        (get-in request [:headers "x-xsrf-token"]))))
+
 (defn- local-redirect
   [location]
   (response/redirect location))

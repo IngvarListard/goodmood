@@ -23,17 +23,7 @@
    [:script {:src tailwind-src}]
    [:script {:src htmx-src}]
    [:script {:src json-enc-src}]
-   [:script {:src hyperscript-src}]
-   [:script (str "(function () {"
-                 "  var init = function () {"
-                 "    document.body.addEventListener('htmx:configRequest', function (e) {"
-                 "      var meta = document.querySelector('meta[name=\"csrf-token\"]');"
-                 "      if (meta) { e.detail.headers['X-CSRF-Token'] = meta.content; }"
-                 "    });"
-                 "  };"
-                 "  if (document.body) { init(); }"
-                 "  else { document.addEventListener('DOMContentLoaded', init); }"
-                 "})();")]])
+   [:script {:src hyperscript-src}]])
 
 (defn layout
   "Отрендерить полную HTML-страницу с навигацией и содержимым.

@@ -13,6 +13,10 @@ export const projectRoot = path.resolve(__dirname, '..');
 export const E2E_USER_EMAIL = process.env.E2E_USER_EMAIL ?? 'e2e@goodmood.test';
 export const E2E_USER_PASSWORD = process.env.E2E_USER_PASSWORD ?? 'e2e-test-password-123';
 
+// Изолированный юзер для empty-state: гарантированно без записей
+export const E2E_EMPTY_USER_EMAIL = 'e2e-empty@goodmood.test';
+export const E2E_EMPTY_USER_PASSWORD = 'e2e-test-password-123';
+
 // Создать e2e-юзера, если его нет (идемпотентно). Вызывается один раз до тестов.
 export function ensureE2EUser() {
   try {
@@ -28,25 +32,43 @@ export function ensureE2EUser() {
   }
 }
 
-// Войти в приложение через форму на /login. После успеха — редирект на "/".
+// Войти в приложение через форму на /login. После успеха — редирект на "/feed".
 export async function login(page: Page, email = E2E_USER_EMAIL, password = E2E_USER_PASSWORD) {
   await page.goto('/login');
   await page.fill('input[name="email"]', email);
   await page.fill('input[name="password"]', password);
   await page.click('form[action="/login"] button[type="submit"]');
-  await page.waitForURL('**/');
+  await page.waitForURL('**/feed');
 }
 
-// Создать запись настроения через htmx-форму на /entries.
+// Создать запись настроения через htmx-форму на /check-in.
 // Форма шлёт JSON (hx-ext=json-enc), CSRF-токен уходит в теле. После успеха
-// форма сбрасывается, а карточка записи появляется в #entries-list (OOB).
+// hyperscript редиректит на /feed, где появляется hero-карточка последней записи.
 export async function submitEntry(
   page: Page,
   { mood = 5, energy = 5, anxiety = 5, note = '' } = {},
 ) {
-  await page.goto('/entries');
+  await page.goto('/check-in');
+  const setRange = (name: string, value: number) =>
+    page.evaluate(
+      ([n, v]) => {
+        const el = document.querySelector(`input[name="${n}"]`) as HTMLInputElement;
+        const setter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set!;
+        setter.call(el, String(v));
+        el.dispatchEvent(new Event('input', { bubbles: true }));
+        el.dispatchEvent(new Event('change', { bubbles: true }));
+      },
+      [name, value] as const,
+    );
+  await setRange('mood_score', mood);
+  await setRange('energy', energy);
+  await setRange('anxiety', anxiety);
+  if (note) {
+    await page.locator('textarea[name="note"]').evaluate((el) => el.removeAttribute('disabled'));
+    await page.fill('textarea[name="note"]', note);
+  }
   await page.getByRole('button', { name: /Сохранить запись|Save entry/ }).click();
-  await expect(page.locator('#entries-list li')).toHaveCount(1);
+  await page.waitForURL('**/feed');
 }
 
 // Создать медикамент через модалку на /medications.

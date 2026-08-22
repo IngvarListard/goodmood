@@ -185,55 +185,101 @@
       (is (= 400 (:status response)))
       (is (some? (get-in (response-body response) [:errors :anxiety]))))))
 
-(deftest get-entries-returns-200
-  (testing "GET /entries returns 200 with stored entries"
+(deftest get-entries-redirects-to-feed
+  (testing "GET /entries returns 308 redirect to /feed (list replaced by feed)"
     (post-entries {:mood_score 7 :energy 8 :anxiety 2 :sleep_hours 8.0})
-    (post-entries {:mood_score 6 :energy 3 :anxiety 7 :sleep_hours 7.5})
     (let [response (get-entries)]
-      (is (= 200 (:status response)))
-      (let [entries (response-body response)]
-        (is (= 2 (count entries)))
-        (is (= #{8 3} (set (map :energy entries))))))))
+      (is (= 308 (:status response)))
+      (is (= "/feed" (get-in response [:headers "Location"]))))))
 
-(deftest get-entries-within-time-limit
-  (testing "GET /entries with up to 1000 entries responds within 200ms"
-    (dotimes [i 1000]
-      (db/create-entry! @ds-atom {:user-id 1
-                                  :date "2026-08-04"
-                                  :activity (str "a" i)
-                                  :effect "e"
-                                  :mood-score 5}))
-    (let [handler (app)
-          start (System/nanoTime)
-          response (handler (authed {:request-method :get
-                                     :uri "/entries"
-                                     :headers {"accept" "application/json"}
-                                     :body nil}))
-          elapsed-ms (/ (- (System/nanoTime) start) 1e6)]
-      (is (= 200 (:status response)))
-      (is (< elapsed-ms 200) (str "GET /entries took " elapsed-ms "ms")))))
-
-(deftest get-entries-html-returns-page
-  (testing "GET /entries with text/html accept returns HTML page with form and empty state"
+(deftest get-entries-html-redirects-to-feed
+  (testing "GET /entries with text/html accept redirects to /feed"
     (let [response (get-entries-html)]
+      (is (= 308 (:status response)))
+      (is (= "/feed" (get-in response [:headers "Location"]))))))
+
+(deftest feed-page-returns-html
+  (testing "GET /feed returns 200 HTML page"
+    (let [response (get-html-page "/feed")]
       (is (= 200 (:status response)))
-      (is (some? (content-type response)))
       (is (str/includes? (content-type response) "text/html"))
       (let [body (body-text response)]
-        (is (str/starts-with? body "<html"))
-        (is (str/includes? body ">Новая запись"))
-        (is (str/includes? body "id=\"form-error\""))
-        (is (str/includes? body "id=\"entries-list\""))
-        (is (str/includes? body "Записей пока нет"))))))
+        (is (str/includes? body ">Лента<"))))))
 
-(deftest get-entries-html-lists-entries
-  (testing "GET /entries html page shows stored entries in the list"
-    (post-entries {:mood_score 7 :energy 8 :anxiety 2 :sleep_hours 8.0})
-    (post-entries {:mood_score 6 :energy 3 :anxiety 7 :sleep_hours 7.5})
-    (let [body (body-text (get-entries-html))]
-      (is (str/includes? body "Настроение 7/10"))
-      (is (str/includes? body "Энергия 3/10"))
-      (is (not (str/includes? body "Записей пока нет"))))))
+(deftest feed-page-empty-state
+  (testing "GET /feed with no entries shows onboarding + link to /check-in"
+    (let [body (body-text (get-html-page "/feed"))]
+      (is (str/includes? body "Как ты? Создай первую запись"))
+      (is (str/includes? body "href=\"/check-in\"")))))
+
+(deftest feed-page-hero-card-with-radar
+  (testing "GET /feed with today's entries shows hero card with SVG radar"
+    (post-entries {:mood_score 5 :energy 8 :anxiety 7 :focus 3})
+    (let [body (body-text (get-html-page "/feed"))]
+      (is (str/includes? body "<svg"))
+      (is (str/includes? body "Роза ветров"))
+      (is (str/includes? body ">смешанное<")))))
+
+(deftest feed-page-groups-past-days
+  (testing "GET /feed groups past-day entries under date headers"
+    (db/create-entry! @ds-atom {:user-id 1
+                                :date "2026-08-20"
+                                :activity ""
+                                :effect "e"
+                                :mood-score 5
+                                :energy 5
+                                :anxiety 5
+                                :created-at "2026-08-20 12:00:00"})
+    (let [body (body-text (get-html-page "/feed"))]
+      (is (str/includes? body "августа")))))
+
+(deftest root-redirects-authenticated-to-feed
+  (testing "GET / for authenticated user redirects to /feed"
+    (let [response (get-html-page "/")]
+      (is (= 302 (:status response)))
+      (is (= "/feed" (get-in response [:headers "Location"]))))))
+
+(deftest root-health-check-ok
+  (testing "GET / without identity returns OK (health check)"
+    (let [response ((app) {:request-method :get
+                           :uri "/"
+                           :headers {"accept" "text/plain"}
+                           :body nil})]
+      (is (= 200 (:status response)))
+      (is (= "OK" (body-text response))))))
+
+(deftest check-in-page-returns-form
+  (testing "GET /check-in returns 200 HTML form with back link to /feed"
+    (let [response (get-html-page "/check-in")]
+      (is (= 200 (:status response)))
+      (let [body (body-text response)]
+        (is (str/includes? body ">Новая запись"))
+        (is (str/includes? body "href=\"/feed\""))
+        (is (str/includes? body "id=\"form-error\""))
+        (is (str/includes? body "name=\"mood_score\""))
+        (is (str/includes? body "name=\"energy\""))
+        (is (str/includes? body "name=\"anxiety\""))))))
+
+(deftest removed-placeholder-routes-return-404-or-redirect
+  (testing "removed placeholder routes are no longer available"
+    (doseq [uri ["/dashboard" "/history" "/statistics" "/insights"]]
+      (let [response (get-html-page uri)]
+        (is (not= 200 (:status response)) uri)))))
+
+(deftest nav-items-are-four
+  (testing "each route marks only its own nav item active (in both nav variants)"
+    (doseq [[uri id-label] [["/feed" "Лента"]
+                            ["/check-in" "Новая запись"]
+                            ["/medications" "Медикаменты"]
+                            ["/settings" "Настройки"]]]
+      (let [body (body-text (get-html-page uri))
+            active-links (re-seq #"<a[^>]*aria-current=\"page\"[^>]*>" body)
+            active-hrefs (map #(second (re-find #"href=\"([^\"]+)\"" %))
+                              active-links)]
+        (is (= 2 (count active-links))
+            (str uri ": expected two active links (mobile + desktop nav)"))
+        (is (= [uri uri] active-hrefs)
+            (str uri ": active links must point to " id-label))))))
 
 (deftest post-hx-returns-html-fragment
   (testing "POST /entries with HX-Request returns 201 HTML li fragment"
@@ -284,40 +330,6 @@
       (is (= 400 (:status response)))
       (let [body (response-body response)]
         (is (some? (get-in body [:errors :mood_score])))))))
-
-(deftest nav-placeholder-routes-return-pages
-  (testing "each navigation route returns a 200 HTML page with the item label as heading"
-    (doseq [[uri label] [["/dashboard" "Дашборд"]
-                         ["/check-in" "Чек-ин"]
-                         ["/history" "История"]
-                         ["/statistics" "Статистика"]
-                         ["/insights" "Инсайты"]
-                         ["/settings" "Настройки"]]]
-      (let [response (get-html-page uri)]
-        (is (= 200 (:status response)) uri)
-        (is (str/includes? (content-type response) "text/html"))
-        (let [body (body-text response)]
-          (is (str/starts-with? body "<html"))
-          (is (str/includes? body (str ">" label "<")))
-          (is (not (str/includes? body "Новая запись"))
-              "Placeholder pages must not contain the entry form"))))))
-
-(deftest nav-placeholder-marks-only-matching-item-active
-  (testing "each route marks only its own nav item active (in both nav variants)"
-    (doseq [[uri id-label] [["/dashboard" "Дашборд"]
-                            ["/check-in" "Чек-ин"]
-                            ["/history" "История"]
-                            ["/statistics" "Статистика"]
-                            ["/insights" "Инсайты"]
-                            ["/settings" "Настройки"]]]
-      (let [body (body-text (get-html-page uri))
-            active-links (re-seq #"<a[^>]*aria-current=\"page\"[^>]*>" body)
-            active-hrefs (map #(second (re-find #"href=\"([^\"]+)\"" %))
-                              active-links)]
-        (is (= 2 (count active-links))
-            (str uri ": expected two active links (mobile + desktop nav)"))
-        (is (= [uri uri] active-hrefs)
-            (str uri ": active links must point to " id-label))))))
 
 (deftest settings-page-shows-user-and-language
   (testing "/settings shows user info, language switch and logout"

@@ -14,30 +14,30 @@
 - [x] 0.8 `openspec archive --change add-mobile-entry-form` → delta-спеки синхронизированы в `openspec/specs/`.
 - [x] 0.9 В `product-vision/tasks.md` отметить Фазу 0 ✅. В `product-vision/design.md` при необходимости обновить гипотезы по `[ref: A3-q1]`.
 
-## 1. Фаза 1 — Медикаменты + сон как базовые факторы
+## 1. Фаза 1 — Медикаменты + сон как базовые факторы ✅
 
 **Цель фазы:** медикаменты (расписание, доза, пропуски) интегрированы в данные и учитываются в анализе.
 **Капабилити:** `medications` (spec-as-hypothesis).
 
-- [ ] 1.1 Создать change `add-medications` (proposal/design/specs/tasks). Delta-спеки: `medications` (new), `entries-data` (modified — связь с meds).
-- [ ] 1.2 Решить модель данных: таблица `medications` (название, доза, расписание), таблица `medication_logs` (приём/пропуск, timestamp, доза).
-- [ ] 1.3 Реализовать UI: ввод/редактирование медикаментов, отметка приёма, список пропусков.
-- [ ] 1.4 Тесты: сценарии из `specs/medications/spec.md`.
-- [ ] 1.5 `openspec validate`, реализация, `openspec status`, `openspec archive`.
-- [ ] 1.6 Отметить Фазу 1 ✅ в `product-vision/tasks.md`.
+- [x] 1.1 Создать change `add-medications` (proposal/design/specs/tasks). Delta-спеки: `medications` (new), `entries-data` (modified — связь с meds).
+- [x] 1.2 Решить модель данных: таблица `medications` (название, доза, расписание), таблица `medication_logs` (приём/пропуск, timestamp, доза).
+- [x] 1.3 Реализовать UI: ввод/редактирование медикаментов, отметка приёма, список пропусков.
+- [x] 1.4 Тесты: сценарии из `specs/medications/spec.md`.
+- [x] 1.5 `openspec validate`, реализация, `openspec status`, `openspec archive`.
+- [x] 1.6 Отметить Фазу 1 ✅ в `product-vision/tasks.md`. Change архивирован: `2026-08-21-add-medications`.
 
-## 2. Фаза 2 — «Роза ветров состояний» + несколько записей в день
+## 2. Фаза 2 — «Роза ветров состояний» + несколько записей в день ✅
 
 **Цель фазы:** состояние описывается многомерным распределением; несколько записей в день.
 **Капабилити:** `mood-states`, `entry-granularity` (вариант а).
 **Блокирующие open questions:** OQ2 (оси розы ветров).
 
-- [ ] 2.1 Принять решение по OQ2: оси розы ветров, их количество, диапазоны.
-- [ ] 2.2 Создать change `add-mood-states-rose` (proposal/design/specs/tasks). Delta-спеки: `mood-states` (new), `entries-data` (modified — поля осей), `entry-granularity` (вариант а — несколько записей/день).
-- [ ] 2.3 Реализовать: ввод осей в форме (опционально, в шаблонах), страница «лента/мой день» с автоматически определённой розой и возможностью ручного перераспределения, производная «роль/ярлык» состояния.
-- [ ] 2.4 Тесты: сценарии из `specs/mood-states/spec.md` и `specs/entry-granularity/spec.md` (вариант а).
-- [ ] 2.5 `openspec validate`, реализация, `openspec status`, `openspec archive`.
-- [ ] 2.6 Отметить Фазу 2 ✅ в `product-vision/tasks.md`.
+- [x] 2.1 Принять решение по OQ2: оси розы ветров, их количество, диапазоны.
+- [x] 2.2 Создать change `add-mood-states-rose` (proposal/design/specs/tasks). Delta-спеки: `mood-states` (new), `entries-data` (modified — поля осей), `entry-granularity` (вариант а — несколько записей/день).
+- [x] 2.3 Реализовать: ввод осей в форме (опционально, в шаблонах), страница «лента/мой день» с автоматически определённой розой и возможностью ручного перераспределения, производная «роль/ярлык» состояния.
+- [x] 2.4 Тесты: сценарии из `specs/mood-states/spec.md` и `specs/entry-granularity/spec.md` (вариант а).
+- [x] 2.5 `openspec validate`, реализация, `openspec status`, `openspec archive`.
+- [x] 2.6 Отметить Фазу 2 ✅ в `product-vision/tasks.md`.
 
 ## 3. Фаза 3 — Инсайт-артефакт + подбор из прошлого
 

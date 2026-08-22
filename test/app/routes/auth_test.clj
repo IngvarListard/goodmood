@@ -5,7 +5,6 @@
             [app.routes.app :as routes]
             [clojure.string :as str]
             [clojure.test :refer [deftest is testing use-fixtures]]
-            [jsonista.core :as json]
             [migratus.core :as migratus]
             [next.jdbc :as jdbc]
             [ring.middleware.session.cookie :as session.cookie]
@@ -100,13 +99,13 @@
                                :display-name "Test User"}))
 
 (deftest protected-route-redirects-unauthenticated
-  (testing "GET /dashboard without session redirects to /login?next=/dashboard"
+  (testing "GET /feed without session redirects to /login?next=/feed"
     (let [response ((app) {:request-method :get
-                           :uri "/dashboard"
+                           :uri "/feed"
                            :headers {"accept" "text/html"}
                            :body nil})]
       (is (= 302 (:status response)))
-      (is (= "/login?next=/dashboard" (location response))))))
+      (is (= "/login?next=/feed" (location response))))))
 
 (deftest api-route-redirects-unauthenticated
   (testing "GET /entries without session redirects to /login"
@@ -160,7 +159,7 @@
       (is (some? (session-cookie-value response))
           "session cookie must be set")
       (let [follow-up ((app) (assoc {:request-method :get
-                                     :uri "/dashboard"
+                                     :uri "/feed"
                                      :headers {"accept" "text/html"}
                                      :body nil}
                                     :cookies {"gm-session"
@@ -169,18 +168,18 @@
             "logged-in session accesses protected pages")))))
 
 (deftest successful-login-redirects-to-next
-  (testing "POST /login with valid credentials and next param redirects to /dashboard"
+  (testing "POST /login with valid credentials and next param redirects to /feed"
     (create-user! "a@b.c" "correct-horse")
     (let [response ((app)
                     (-> {:request-method :post
                          :uri "/login"
                          :form-params {"email" "a@b.c"
                                        "password" "correct-horse"
-                                       "next" "/dashboard"
+                                       "next" "/feed"
                                        "__anti-forgery-token" csrf-token}}
                         with-csrf-session))]
       (is (= 302 (:status response)))
-      (is (= "/dashboard" (location response))))))
+      (is (= "/feed" (location response))))))
 
 (deftest login-page-redirects-authenticated
   (testing "GET /login with valid session redirects to /"
@@ -196,7 +195,7 @@
   (testing "POST /logout invalidates the session and redirects to /login"
     (let [auth-cookie (session-cookie-value
                        ((app) (authed {:request-method :get
-                                       :uri "/dashboard"
+                                       :uri "/feed"
                                        :headers {"accept" "text/html"}
                                        :body nil}
                                       {:id 1 :email "a@b.c" :role "user" :display-name "A"})))
@@ -213,7 +212,7 @@
             "session cookie must change after logout")
         (let [follow-up ((app)
                          (-> {:request-method :get
-                              :uri "/dashboard"
+                              :uri "/feed"
                               :headers {"accept" "text/html"}
                               :body nil}
                              (assoc :cookies {"gm-session" {:value cookie-after}})))]
@@ -228,9 +227,9 @@
       (is (= 403 (:status response))))))
 
 (deftest authenticated-user-gets-protected-pages
-  (testing "GET /dashboard with session returns 200 and user chip"
+  (testing "GET /feed with session returns 200 and user chip"
     (let [response ((app) (authed {:request-method :get
-                                   :uri "/dashboard"
+                                   :uri "/feed"
                                    :headers {"accept" "text/html"}
                                    :body nil}
                                   {:id 1 :email "a@b.c" :role "user" :display-name "Alice"}))]
@@ -267,18 +266,14 @@
                                                      :email "two@b.c"
                                                      :role "user"
                                                      :display-name "Two"}
-                                          :ring.middleware.anti-forgery/anti-forgery-token csrf-token})))
-          list1 ((app) (with-session {:request-method :get
-                                      :uri "/entries"
-                                      :headers {"accept" "application/json"}
-                                      :body nil}
-                                     {:identity {:id (:id user1) :role "user"}
-                                      :ring.middleware.anti-forgery/anti-forgery-token csrf-token}))]
+                                          :ring.middleware.anti-forgery/anti-forgery-token csrf-token})))]
       (is (= 201 (:status post1)))
       (is (= 201 (:status post2)))
-      (let [entries1 (json/read-value (:body list1) (json/object-mapper {:decode-key-fn true}))]
-        (is (= 1 (count entries1)))
-        (is (= 7 (:mood-score (first entries1))))))
+      (let [rows (jdbc/execute! @ds-atom ["SELECT mood_score FROM entries WHERE user_id = ?" (:id user1)])]
+        (is (= 1 (count rows)))
+        (is (= 7 (:entries/mood_score (first rows)))))
+      (let [row (first (jdbc/execute! @ds-atom ["SELECT mood_score FROM entries WHERE user_id = ?" (:id user2)]))]
+        (is (= 8 (:entries/mood_score row)))))
     (is (= 2 (count (jdbc/execute! @ds-atom ["SELECT * FROM entries"]))))))
 
 (deftest locale-cookie-picks-english

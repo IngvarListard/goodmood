@@ -14,16 +14,33 @@
 (defn- e2e-password []
   (or (System/getenv "E2E_USER_PASSWORD") "e2e-test-password-123"))
 
+(defn- e2e-email []
+  (or (System/getenv "E2E_USER_EMAIL") "e2e@goodmood.test"))
+
+(defn- e2e-password []
+  (or (System/getenv "E2E_USER_PASSWORD") "e2e-test-password-123"))
+
+(def ^:private empty-user-email "e2e-empty@goodmood.test")
+
+(def ^:private empty-user-password "e2e-test-password-123")
+
+(defn- ensure-user!
+  "Создать пользователя, если его нет (идемпотентно)."
+  [ds email password display-name]
+  (when-not (users/get-user-by-email ds email)
+    (users/create-user! ds {:email email
+                            :password-hash (hashers/derive password)
+                            :display-name display-name
+                            :role "user"})
+    (println (str "Created e2e user: " email))))
+
 (defn -main []
   (let [ds (jdbc/get-datasource {:dbtype "sqlite" :dbname "resources/goodmood.db"})
         email (e2e-email)
         password (e2e-password)]
-    (when-not (users/get-user-by-email ds email)
-      (users/create-user! ds {:email email
-                              :password-hash (hashers/derive password)
-                              :display-name "E2E Tester"
-                              :role "user"})
-      (println (str "Created e2e user: " email)))
+    (ensure-user! ds email password "E2E Tester")
+    ;; Изолированный юзер для empty-state /feed (гарантированно без записей)
+    (ensure-user! ds empty-user-email empty-user-password "E2E Empty")
     (println "E2E user ready")))
 
 (-main)

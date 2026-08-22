@@ -1,26 +1,17 @@
-{:nav {:dashboard "Дашборд"
-       :check-in "Чек-ин"
-       :history "История"
-       :statistics "Статистика"
-:insights "Инсайты"
-        :medications "Медикаменты"
-        :settings "Настройки"}
-  :pages {:dashboard "Дашборд"
-          :check-in "Чек-ин"
-          :history "История"
-          :statistics "Статистика"
-          :insights "Инсайты"
-          :settings "Настройки"
-         :under-development "Раздел в разработке"}
- :app {:name "Good Mood"
-       :description "Трекер настроения при биполярном расстройстве"}
- :auth {:login "Войти"
-        :logout "Выйти"
-        :email "Email"
-        :password "Пароль"
-        :invalid-credentials "Неверный email или пароль"
-        :title "Вход"}
-:entries {:title "Дневник настроения"
+{:nav {:feed "Лента"
+       :check-in "Отметка"
+       :medications "Медикаменты"
+       :settings "Настройки"}
+  :pages {:under-development "Раздел в разработке"}
+  :app {:name "Good Mood"
+        :description "Трекер настроения при биполярном расстройстве"}
+  :auth {:login "Войти"
+         :logout "Выйти"
+         :email "Email"
+         :password "Пароль"
+         :invalid-credentials "Неверный email или пароль"
+         :title "Вход"}
+  :entries {:title "Дневник настроения"
             :new-entry "Новая запись"
             :how-are-you "Как ты сейчас?"
             :mood "Настроение"
@@ -41,6 +32,33 @@
             :activity-label "Активность: "
             :sleep-label "Сон: "
             :count-plural {:one "запись" :few "записи" :many "записей"}}
+  :state {:mixed "смешанное"
+          :anxiety "тревога"
+          :elevated "подъём"
+          :low "спад"
+          :balanced "норма"
+          :neutral "нейтрально"}
+  :feed {:title "Лента"
+         :empty "Как ты? Создай первую запись"
+         :go-check-in "Создать запись"
+         :new-entry "Новая запись"
+         :today "Сегодня"
+         :yesterday "Вчера"
+         :state-label "состояние"
+         :month-1 "января"
+         :month-2 "февраля"
+         :month-3 "марта"
+         :month-4 "апреля"
+         :month-5 "мая"
+         :month-6 "июня"
+         :month-7 "июля"
+         :month-8 "августа"
+         :month-9 "сентября"
+         :month-10 "октября"
+         :month-11 "ноября"
+         :month-12 "декабря"}
+  :check-in {:title "Новая запись"
+             :back "Назад к ленте"}
   :medications {:title "Медикаменты"
                 :add "Добавить"
                 :description "Препараты, которые вы принимаете"
@@ -71,7 +89,7 @@
              :day "День"
              :evening "Вечер"
              :event "Событие"}
- :user {:language "Язык"
-        :language-russian "Русский"
-        :language-english "English"}
- :locale {:set "Сменить язык на {name}"}}
+  :user {:language "Язык"
+         :language-russian "Русский"
+         :language-english "English"}
+  :locale {:set "Сменить язык на {name}"}}

@@ -9,3 +9,4 @@
 .lsp
 discovery-notes.md
 node_modules
+.playwright-mcp

@@ -25,15 +25,23 @@ test.describe('smoke', () => {
   });
 
   test('unauthenticated visitor is redirected to /login', async ({ page }) => {
-    await page.goto('/entries');
+    await page.goto('/feed');
     await expect(page).toHaveURL(/\/login/);
   });
 
   test('e2e user can log in and open main pages', async ({ page }) => {
     await login(page);
-    await page.goto('/entries');
-    await expect(page.getByRole('heading', { name: /Mood diary|Дневник настроения/ })).toBeVisible();
+    await page.goto('/feed');
+    await expect(page.getByRole('heading', { name: /Лента|Feed/ })).toBeVisible();
+    await page.goto('/check-in');
+    await expect(page.getByRole('heading', { name: /Новая запись|New entry/ })).toBeVisible();
     await page.goto('/medications');
-    await expect(page.getByRole('heading', { name: /Medications|Медикаменты/ })).toBeVisible();
+    await expect(page.getByRole('heading', { name: /Медикаменты|Medications/ })).toBeVisible();
+  });
+
+  test('legacy GET /entries redirects to /feed', async ({ page }) => {
+    await login(page);
+    await page.goto('/entries');
+    await expect(page).toHaveURL(/\/feed/);
   });
 });

@@ -16,10 +16,11 @@
             [app.domains.entries :as domains]
             [app.domains.medications :as med-domains]
             [app.routes.auth :as auth]
+            [app.routes.check-in :as check-in]
             [app.routes.entries :as entries]
+            [app.routes.feed :as feed]
             [app.routes.medications :as med-routes]
             [app.views.entries :as views]
-            [app.views.placeholder :as placeholder]
             [app.views.settings :as settings]))
 
 (defn health-check
@@ -96,11 +97,6 @@
    :headers {"Content-Type" "text/html; charset=utf-8"}
    :body (str (html body))})
 
-(defn- nav-page-handler
-  [title-key]
-  (fn [request]
-    (html-response 200 (placeholder/page {:title-key title-key} request))))
-
 (defn- settings-page-handler
   [request]
   (html-response 200 (settings/page request)))
@@ -111,10 +107,20 @@
    :headers {"Content-Type" "text/plain; charset=utf-8"}
    :body "Invalid anti-forgery token"})
 
+(defn- root-handler
+  "Для аутентифицированного пользователя — редирект на /feed;
+   для health-check (curl) — OK."
+  [request]
+  (if (:identity request)
+    (response/redirect "/feed")
+    {:status 200
+     :headers {"Content-Type" "text/plain; charset=utf-8"}
+     :body "OK"}))
+
 (defn- router
   [ds]
   (ring/router
-   [["/" {:get {:handler health-check}
+   [["/" {:get {:handler root-handler}
           :auth/public true}]
     ["/login" {:get {:handler (partial auth/login-page-handler ds)}
                :post {:handler (partial auth/login-post-handler ds)}
@@ -123,11 +129,8 @@
                 :auth/public true}]
     ["/locale" {:post {:handler auth/locale-post-handler}
                 :auth/public true}]
-    ["/dashboard" {:get {:handler (nav-page-handler :pages/dashboard)}}]
-    ["/check-in" {:get {:handler (nav-page-handler :pages/check-in)}}]
-    ["/history" {:get {:handler (nav-page-handler :pages/history)}}]
-    ["/statistics" {:get {:handler (nav-page-handler :pages/statistics)}}]
-    ["/insights" {:get {:handler (nav-page-handler :pages/insights)}}]
+    ["/feed" {:get {:handler (partial feed/page ds)}}]
+    ["/check-in" {:get {:handler check-in/page}}]
     ["/settings" {:get {:handler settings-page-handler}}]
     ["/entries"
      {:post {:parameters {:body domains/create-entry-schema}

@@ -1,8 +1,5 @@
-# Navigation Specification
+## MODIFIED Requirements
 
-## Purpose
-Render the application navigation with two responsive variants (mobile bottom bar and desktop sidebar) from a single data source.
-## Requirements
 ### Requirement: Navigation component renders menu items from a single data source
 The `navigation` component SHALL accept a vector of menu items and render each item as a menu link with icon and label. The component SHALL support two variants: `:mobile` (horizontal bottom bar) and `:desktop` (vertical sidebar), both rendered as daisyUI `menu`. Items SHALL stretch to equal width within their container so icons align on a common axis; the icon SHALL be placed in a fixed-size box. On `:mobile` the icon SHALL stack above the label (compact bottom bar layout); on `:desktop` the icon SHALL sit next to the label.
 
@@ -64,4 +61,3 @@ The navigation component SHALL render the solid variant of the icon for the acti
 #### Scenario: Inactive items have outline icons
 - **WHEN** `(navigation :desktop nav-items {:active :feed})` is called
 - **THEN** links for items other than `:feed` render outline-variant icons
-

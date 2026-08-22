@@ -9,6 +9,11 @@
   (str (hiccup2.core/html hiccup)))
 
 (deftest navigation-test
+  (testing "nav-items contains exactly 4 items, no placeholder routes"
+    (is (= 4 (count nav/nav-items)))
+    (is (= ["/feed" "/check-in" "/medications" "/settings"]
+           (map :route nav/nav-items))))
+
   (testing "mobile renders all items as links in horizontal menu"
     (let [html (html-str (nav/navigation :mobile nav/nav-items))]
       (is (= (count nav/nav-items)
@@ -35,7 +40,7 @@
       (is (str/includes? html "flex w-full"))))
 
   (testing "mobile active item has text-primary"
-    (let [html (html-str (nav/navigation :mobile nav/nav-items {:active :dashboard}))]
+    (let [html (html-str (nav/navigation :mobile nav/nav-items {:active :feed}))]
       (is (str/includes? html "text-primary"))))
 
   (testing "desktop active item has menu-active and text-primary"
@@ -44,7 +49,7 @@
       (is (str/includes? html "text-primary"))))
 
   (testing "active link has aria-current page"
-    (let [html (html-str (nav/navigation :mobile nav/nav-items {:active :history}))]
+    (let [html (html-str (nav/navigation :mobile nav/nav-items {:active :feed}))]
       (is (str/includes? html "aria-current=\"page\""))))
 
   (testing "no active when :active is nil"
@@ -54,22 +59,22 @@
       (is (not (str/includes? html "aria-current")))))
 
   (testing "active item uses solid icon"
-    (let [html (html-str (nav/navigation :desktop nav/nav-items {:active :dashboard}))]
+    (let [html (html-str (nav/navigation :desktop nav/nav-items {:active :feed}))]
       (is (str/includes? html "fill=\"currentColor\""))))
 
   (testing "inactive items use outline icon"
-    (let [html (html-str (nav/navigation :desktop nav/nav-items {:active :dashboard}))]
+    (let [html (html-str (nav/navigation :desktop nav/nav-items {:active :feed}))]
       (is (str/includes? html "fill=\"none\"")))))
 
 (deftest nav-label-test
   (testing "nav-label translates the item label-key for the default locale"
-    (is (= "Дашборд" (nav/nav-label {:label-key :nav/dashboard})))
+    (is (= "Лента" (nav/nav-label {:label-key :nav/feed})))
     (is (= "Настройки" (nav/nav-label {:label-key :nav/settings})))))
 
 (deftest english-labels-test
   (testing "labels are translated into English when locale is bound to :en"
     (binding [app.i18n/*locale* :en]
       (let [html (html-str (nav/navigation :desktop nav/nav-items))]
-        (is (str/includes? html "Dashboard"))
+        (is (str/includes? html "Feed"))
         (is (str/includes? html "Settings"))
-        (is (not (str/includes? html "Дашборд")))))))
+        (is (not (str/includes? html "Лента")))))))

@@ -37,9 +37,9 @@
       (is (str/includes? html "hx-boost=\"true\""))))
 
   (testing "active item is passed to navigation"
-    (let [html (html-str (layout/layout {:title "Test" :active :statistics} nav/nav-items [:div]))]
+    (let [html (html-str (layout/layout {:title "Test" :active :feed} nav/nav-items [:div]))]
       (is (str/includes? html "menu-active"))
-      (is (str/includes? html "href=\"/statistics\""))))
+      (is (str/includes? html "href=\"/feed\""))))
 
   (testing "main content has correct padding"
     (let [html (html-str (layout/layout {:title "Test"} nav/nav-items [:div]))]

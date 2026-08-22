@@ -180,3 +180,74 @@
       (is (= "" (:effect entry)))
       (is (= 5 (:mood-score entry)))
       (is (nil? (:sleep-hours entry))))))
+
+(deftest create-entry-with-state-label
+  (testing "create-entry! stores state_label; without it, column is NULL"
+    (db/create-entry! @ds-atom {:user-id user-id
+                                :date "2026-08-07"
+                                :activity "walk"
+                                :effect "e"
+                                :mood-score 5
+                                :energy 8
+                                :anxiety 7
+                                :state-label "state/mixed"})
+    (db/create-entry! @ds-atom {:user-id user-id
+                                :date "2026-08-08"
+                                :activity ""
+                                :effect ""
+                                :mood-score 5
+                                :energy 4
+                                :anxiety 7})
+    (let [entries (db/get-entries @ds-atom user-id)
+          with-label (first (filter #(= "2026-08-07" (:date %)) entries))
+          without-label (first (filter #(= "2026-08-08" (:date %)) entries))]
+      (is (= "state/mixed" (:state-label with-label)))
+      (is (nil? (:state-label without-label)))
+      (is (nil? (:state-period-id with-label)))
+      (is (nil? (:state-period-id without-label))))))
+
+(deftest get-entries-ordered-by-created-at-within-day
+  (testing "get-entries orders entries by created_at descending within the same date"
+    (db/create-entry! @ds-atom {:user-id user-id
+                                :date "2026-08-09"
+                                :activity "a"
+                                :effect "e"
+                                :mood-score 5
+                                :energy 5
+                                :anxiety 5
+                                :created-at "2026-08-09 07:10:00"})
+    (db/create-entry! @ds-atom {:user-id user-id
+                                :date "2026-08-09"
+                                :activity "b"
+                                :effect "e"
+                                :mood-score 6
+                                :energy 5
+                                :anxiety 5
+                                :created-at "2026-08-09 14:15:00"})
+    (let [entries (db/get-entries @ds-atom user-id)]
+      (is (= ["b" "a"] (map :activity entries))))))
+
+(deftest state-label-rules
+  (testing "state-label returns correct keyword for all 6 rules (first-match-wins)"
+    (is (= :state/mixed (domains/state-label {:energy 8 :anxiety 7})))
+    (is (= :state/anxiety (domains/state-label {:energy 4 :anxiety 7})))
+    (is (= :state/anxiety (domains/state-label {:energy 2 :anxiety 6})))
+    (is (= :state/elevated (domains/state-label {:energy 9 :anxiety 2})))
+    (is (= :state/elevated (domains/state-label {:energy 7 :anxiety 5})))
+    (is (= :state/low (domains/state-label {:energy 2 :anxiety 3})))
+    (is (= :state/low (domains/state-label {:energy 3 :anxiety 4})))
+    (is (= :state/balanced (domains/state-label {:energy 5 :anxiety 4})))
+    (is (= :state/balanced (domains/state-label {:energy 6 :anxiety 5})))
+    (is (= :state/neutral (domains/state-label {:energy 5 :anxiety 2})))))
+
+(deftest state-label-ignores-focus
+  (testing "focus axis does not affect state-label"
+    (is (= :state/anxiety (domains/state-label {:energy 4 :anxiety 7 :focus 10})))
+    (is (= :state/elevated (domains/state-label {:energy 9 :anxiety 2 :focus 1})))))
+
+(deftest state-label-nil-axes-return-neutral
+  (testing "entries without axis values (pre-migration 004) do not crash and classify as neutral"
+    (is (= :state/neutral (domains/state-label {:energy nil :anxiety nil})))
+    (is (= :state/neutral (domains/state-label {:energy 5 :anxiety nil})))
+    (is (= :state/neutral (domains/state-label {:energy nil :anxiety 5})))
+    (is (= :state/neutral (domains/state-label {})))))

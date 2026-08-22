@@ -3,11 +3,8 @@
             [app.icons :as icons]))
 
 (def nav-items
-  [{:id :dashboard :label-key :nav/dashboard :icon "home" :route "/dashboard"}
+  [{:id :feed :label-key :nav/feed :icon "list-bullet" :route "/feed"}
    {:id :check-in :label-key :nav/check-in :icon "plus-circle" :route "/check-in"}
-   {:id :history :label-key :nav/history :icon "clock" :route "/history"}
-   {:id :statistics :label-key :nav/statistics :icon "chart-bar" :route "/statistics"}
-   {:id :insights :label-key :nav/insights :icon "light-bulb" :route "/insights"}
    {:id :medications :label-key :nav/medications :icon "beaker" :route "/medications"}
    {:id :settings :label-key :nav/settings :icon "cog-6-tooth" :route "/settings"}])
 

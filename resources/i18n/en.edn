@@ -1,26 +1,17 @@
-{:nav {:dashboard "Dashboard"
+{:nav {:feed "Feed"
        :check-in "Check-in"
-       :history "History"
-       :statistics "Statistics"
-:insights "Insights"
-        :medications "Medications"
-        :settings "Settings"}
-  :pages {:dashboard "Dashboard"
-          :check-in "Check-in"
-          :history "History"
-          :statistics "Statistics"
-          :insights "Insights"
-          :settings "Settings"
-         :under-development "Section under development"}
- :app {:name "Good Mood"
-       :description "Mood tracker for bipolar disorder"}
- :auth {:login "Log in"
-        :logout "Log out"
-        :email "Email"
-        :password "Password"
-        :invalid-credentials "Invalid email or password"
-        :title "Sign in"}
-:entries {:title "Mood diary"
+       :medications "Medications"
+       :settings "Settings"}
+  :pages {:under-development "Section under development"}
+  :app {:name "Good Mood"
+        :description "Mood tracker for bipolar disorder"}
+  :auth {:login "Log in"
+         :logout "Log out"
+         :email "Email"
+         :password "Password"
+         :invalid-credentials "Invalid email or password"
+         :title "Sign in"}
+  :entries {:title "Mood diary"
             :new-entry "New entry"
             :how-are-you "How are you right now?"
             :mood "Mood"
@@ -41,6 +32,33 @@
             :activity-label "Activity: "
             :sleep-label "Sleep: "
             :count-plural {:one "entry" :few "entries" :many "entries"}}
+  :state {:mixed "mixed"
+          :anxiety "anxiety"
+          :elevated "elevated"
+          :low "low"
+          :balanced "balanced"
+          :neutral "neutral"}
+  :feed {:title "Feed"
+         :empty "How are you? Create your first entry"
+         :go-check-in "Create entry"
+         :new-entry "New entry"
+         :today "Today"
+         :yesterday "Yesterday"
+         :state-label "state"
+         :month-1 "January"
+         :month-2 "February"
+         :month-3 "March"
+         :month-4 "April"
+         :month-5 "May"
+         :month-6 "June"
+         :month-7 "July"
+         :month-8 "August"
+         :month-9 "September"
+         :month-10 "October"
+         :month-11 "November"
+         :month-12 "December"}
+  :check-in {:title "New entry"
+             :back "Back to feed"}
   :medications {:title "Medications"
                 :add "Add"
                 :description "Medications you take"
@@ -71,7 +89,7 @@
              :day "Day"
              :evening "Evening"
              :event "Event"}
- :user {:language "Language"
-        :language-russian "Русский"
-        :language-english "English"}
- :locale {:set "Switch language to {name}"}}
+  :user {:language "Language"
+         :language-russian "Русский"
+         :language-english "English"}
+  :locale {:set "Switch language to {name}"}}

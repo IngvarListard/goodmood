@@ -2,9 +2,7 @@
 
 ## Purpose
 Provide a mobile-first entry form for recording mood state: a three-axis core (mood_score, energy, anxiety) as range sliders, optional collapsible blocks (focus, sleep_hours, note, activity), a template selector (morning/day/evening/event), dark theme as default, soft validation alerts, and htmx-based insertion of new entries into the feed.
-
 ## Requirements
-
 ### Requirement: Three-axis core with range sliders
 The system SHALL provide a mobile-first entry form with exactly three mandatory core fields: mood_score, energy, and anxiety — each as a range slider 0–10.
 
@@ -121,12 +119,3 @@ The system SHALL NOT display any streak, consecutive day counter, or guilt-induc
 - **THEN** отсутствуют счётчики «дней подряд», «цепочка», «стрик»
 - **AND** отсутствуют сообщения «вы пропустили день» или «цепочка разорвана» `[ref: A2-q3]`
 
-### Requirement: Submitting the form swaps result into feed
-The system SHALL insert the newly created entry into the feed via htmx without full page reload.
-
-#### Scenario: New entry appears in feed after submit
-- **GIVEN** пользователь заполнил форму и нажал «Сохранить запись»
-- **WHEN** сервер возвращает HTML-фрагмент созданной записи
-- **THEN** запись вставляется в `#entries-list` через `hx-swap="afterbegin"`
-- **AND** форма сбрасывается к исходному состоянию
-- **AND** полной перезагрузки страницы не происходит `[ref: A3-q1]`

@@ -1,6 +1,6 @@
 import { test, expect, Page } from '@playwright/test';
 import { execSync } from 'node:child_process';
-import { ensureE2EUser, login, addMedication, submitEntry } from '../helpers';
+import { ensureE2EUser, login, addMedication } from '../helpers';
 
 test.beforeAll(ensureE2EUser);
 
@@ -131,17 +131,5 @@ test.describe('medications', () => {
     await page.click('#med-modal button[type="submit"]');
     await expect(page.locator('#med-modal')).not.toHaveAttribute('open', /.*/);
     await expect(page.locator('.badge-neutral', { hasText: 'sensitive' })).toBeVisible();
-  });
-});
-
-test.describe('entries', () => {
-  test('create entry via htmx form', async ({ page }) => {
-    await page.context().addCookies([{ name: 'gm-locale', value: 'ru', url: 'http://localhost:3000' }]);
-    await login(page);
-    await page.goto('/entries');
-    const before = await page.locator('#entries-list li').count();
-    await page.getByRole('button', { name: /Сохранить запись|Save entry/ }).click();
-    await expect(page.locator('#entries-list li')).toHaveCount(before + 1);
-    await expect(page.getByText('Настроение 5/10').first()).toBeVisible();
   });
 });

@@ -1,6 +1,7 @@
 (ns app.routes.entries
   (:require [app.domains.entries :as entries]
             [app.views.entries :as views]
+            [ring.util.response :as response]
             [hiccup2.core :refer [html]]))
 
 (defn htmx-request?
@@ -36,17 +37,7 @@
       {:status 201
        :body entry})))
 
-(defn- prefers-html?
-  [request]
-  (clojure.string/includes?
-   (or (get-in request [:headers "accept"]) "")
-   "text/html"))
-
 (defn get-entries
-  "Показать список записей настроения для аутентифицированного пользователя.
-   Возвращает HTML-страницу для браузерных запросов или JSON для API."
-  [ds request]
-  (if (prefers-html? request)
-    (html-response 200 (views/page request (entries/list-entries ds (get-in request [:identity :id]))))
-    {:status 200
-     :body (entries/list-entries ds (get-in request [:identity :id]))}))
+  "Старый GET /entries → постоянный редирект на /feed (лента заменила список)."
+  [_ _]
+  (response/redirect "/feed" 308))

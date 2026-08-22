@@ -14,8 +14,10 @@
             [hiccup2.core :refer [html]]
             [app.middleware :as mw]
             [app.domains.entries :as domains]
+            [app.domains.medications :as med-domains]
             [app.routes.auth :as auth]
             [app.routes.entries :as entries]
+            [app.routes.medications :as med-routes]
             [app.views.entries :as views]
             [app.views.placeholder :as placeholder]
             [app.views.settings :as settings]))
@@ -130,7 +132,27 @@
     ["/entries"
      {:post {:parameters {:body domains/create-entry-schema}
              :handler (partial entries/create-entry ds)}
-      :get {:handler (partial entries/get-entries ds)}}]]
+      :get {:handler (partial entries/get-entries ds)}}]
+    ["/medications"
+     {:post {:parameters {:body med-domains/medication-schema}
+             :handler (partial med-routes/create-medication ds)}
+      :get {:handler (partial med-routes/page ds)}}]
+    ["/medications/new"
+     {:get {:handler (partial med-routes/new-modal ds)}
+      :conflicting true}]
+    ["/medications/:id"
+     {:post {:parameters {:body med-domains/medication-schema}
+             :handler (partial med-routes/update-medication ds)}
+      :conflicting true}]
+    ["/medications/:id/edit"
+     {:get {:handler (partial med-routes/edit-modal ds)}}]
+    ["/medications/:id/deactivate"
+     {:post {:handler (partial med-routes/deactivate ds)}}]
+    ["/medications/:id/activate"
+     {:post {:handler (partial med-routes/activate ds)}}]
+    ["/medications/:id/log"
+     {:post {:parameters {:body med-domains/log-schema}
+             :handler (partial med-routes/log-intake ds)}}]]
    {:data {:coercion app-coercion
            :middleware [rc/coerce-request-middleware
                         rc/coerce-response-middleware]}}))

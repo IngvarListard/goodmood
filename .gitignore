@@ -8,3 +8,4 @@
 .clj-kondo
 .lsp
 discovery-notes.md
+node_modules

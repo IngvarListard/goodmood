@@ -61,6 +61,63 @@ insight:
 
 `[ref: A3-q5, A1-q2]`
 
+### 4а. Модель данных медикаментов Фазы 1 → **РЕШЁН (2026-08-19)**
+
+Три таблицы (миграция 005), связь с `entries` — по дате, без FK:
+
+```
+  medications (реестр)      medication_logs (лог)     medication_dose_changes
+  ─────────────────────     ──────────────────────     ──────────────────────────
+  id                  PK    id                  PK     id                  PK
+  user_id (FK users)        user_id (FK users)         medication_id (FK)
+  name                     medication_id (FK)         user_id (FK users)
+  dose (REAL)              log_date (YYYY-MM-DD)      previous_dose (REAL)
+  dose_unit (TEXT)         scheduled_time (HH:MM)     new_dose (REAL)
+  schedule (JSON)          status (taken/skip/delay)  changed_at (timestamp)
+  active (0/1)             taken_at (timestamp, nil)  reason (TEXT, nil)
+  sensitive (0/1)          actual_dose (REAL, nil)    (no updated_at)
+  notes                    notes
+  created_at               created_at
+  updated_at               UNIQUE(med_id, log_date, scheduled_time)
+                           INDEX(user_id, log_date)
+```
+
+**Решения:**
+
+1. **Доза: два столбца** `dose REAL` + `dose_unit TEXT`. Числовая доза нужна для корреляций Фазы 5 («доза 300 → 450 → состояние сдвинулось»). Единица — свободный текст (мг/мл/таб/кап).
+
+2. **Расписание: JSON-массив** (SQLite TEXT, парсится через `json_each`). Массив слотов: `["08:00","20:00"]`. Выбран JSON, а не comma-separated — приложение для разных людей, расписания разнообразны (1-3 приёма, разные форматы). JSON даёт структуру и совместимость со сложными расписаниями в будущем (через день, weekly) без миграции.
+
+3. **`medication_logs.actual_dose`** — nullable REAL. Хранится, когда пользователь принял дозу, отличную от назначенной (тритирование, половина таблетки). NULL = та же, что в `medications.dose`.
+
+4. **Связь logs↔entries: по дате, без FK.** `log_date = entries.date`. Пользователь логирует медикаменты независимо от настроения; не каждый лог имеет запись и наоборот. Развязка упрощает удаление/правку без каскада. В Фазе 2 (несколько записей в день) добавится time-window join по `taken_at`.
+
+5. **`status` — TEXT с CHECK** `IN ('taken','skipped','delayed')`. Человекочитаемо в raw SQL. В Фазе 1 UI экспонирует только `taken` (чекбокс) и `skipped` (явная кнопка). `delayed` зарезервирован для Фазы 2 (авто-определение: `taken_at` позже `scheduled_time`).
+
+6. **Незалогированный слот ≠ skipped.** Нет строки в `medication_logs` = «неизвестно, принял или нет» (а не «точно пропустил»). `skipped` = осознанный выбор. Авто-определение пропусков — отложено в Фазу 4.
+
+7. **Dose change tracking: отдельная таблица** `medication_dose_changes`, а не SCD2 или лог в `medication_logs`. При изменении дозы: `UPDATE medications.dose` + `INSERT INTO dose_changes` (одна транзакция). `previous_dose` и `new_dose` хранятся оба — событие самодостаточно для Фазы 5 без JOIN к `medications`.
+
+8. **`active` (0/1)** — деактивированные медикаменты НЕ удаляются (сохраняют историю для Фазы 5).
+
+9. **`sensitive` (0/1)** — хранится, не используется в Фазе 1 (экспорта нет). Future-proofing для OQ4 (граница вмешательства). В Clojure-логах: `name` медикаментов с `sensitive=1` не логировать.
+
+10. **Индекс** `medication_logs (user_id, log_date)` — ускоряет запрос «логи за день для пользователя», основной access path.
+
+11. **UI: отдельная страница `/medications`** (чекбоксы приёма + реестр). На `/entries` — read-only badge статуса приёма. Ввод медикаментов НЕ в форме настроения (нарушило бы минимализм Фазы 0).
+
+**Откладывается:**
+- Reminders / push для приёма → Фаза 4 (coping-channels)
+- Корреляции «доза→состояние» → Фаза 5 (AI)
+- Medication-aware insight matching → Фаза 5 (нужны инсайт-артефакты Фазы 3)
+- Авто-определение пропусков (конец дня) → Фаза 4
+- `delayed` авто-определение → Фаза 2
+- Time-window join logs↔entries → Фаза 2 (несколько записей в день)
+- Sensitive enforcement в экспорте → future (OQ4)
+- Сложные расписания (через день, weekly) → future (JSON-структура позволяет без миграции)
+
+`[ref: A3-q5, A1-q2]`
+
 ### 5. Гранулярность — поэтапно: (а) несколько записей в день → (в) «период состояния»
 
 Одной записи в день недостаточно (внутридневные смены). Поэтапно:

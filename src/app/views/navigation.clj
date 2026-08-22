@@ -8,6 +8,7 @@
    {:id :history :label-key :nav/history :icon "clock" :route "/history"}
    {:id :statistics :label-key :nav/statistics :icon "chart-bar" :route "/statistics"}
    {:id :insights :label-key :nav/insights :icon "light-bulb" :route "/insights"}
+   {:id :medications :label-key :nav/medications :icon "beaker" :route "/medications"}
    {:id :settings :label-key :nav/settings :icon "cog-6-tooth" :route "/settings"}])
 
 (defn- nav-link

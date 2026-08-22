@@ -18,4 +18,4 @@
  
  :aliases {:run {:main-opts ["-m" "app.core"]}
             :test {:extra-paths ["test"]
-                   :main-opts ["-e" "(require '[clojure.test :as t] '[app.db.entries-test] '[app.routes.app-test] '[app.routes.auth-test] '[app.domains.users-test] '[app.views.layout-test] '[app.views.navigation-test] '[app.views.placeholder-test] '[app.icons-test])(t/run-tests 'app.db.entries-test 'app.routes.app-test 'app.routes.auth-test 'app.domains.users-test 'app.views.layout-test 'app.views.navigation-test 'app.views.placeholder-test 'app.icons-test)"]}}}
+                   :main-opts ["-e" "(require '[clojure.test :as t] '[app.db.entries-test] '[app.db.medications-test] '[app.routes.app-test] '[app.routes.auth-test] '[app.routes.medications-test] '[app.domains.users-test] '[app.views.layout-test] '[app.views.navigation-test] '[app.views.placeholder-test] '[app.icons-test])(t/run-tests 'app.db.entries-test 'app.db.medications-test 'app.routes.app-test 'app.routes.auth-test 'app.routes.medications-test 'app.domains.users-test 'app.views.layout-test 'app.views.navigation-test 'app.views.placeholder-test 'app.icons-test)"]}}}

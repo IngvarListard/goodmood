@@ -11,137 +11,26 @@
 
 ;; === PLACEHOLDER: вставь свой hiccup сюда ===
 (def body
-  [:div {:class "max-w-lg mx-auto px-2"}
- [:form {:hx-post "/entries"
-         :hx-ext "json-enc"
-         :hx-target "#entries-list"
-         :hx-swap "afterbegin"
-         :_ "on htmx:afterRequest if event.detail.successful me.reset()"
-         :class "card bg-base-200 shadow-sm"}
-
-  [:div {:class "card-body p-4 sm:p-6"}
-
-   ;; ── Заголовок ──
-   [:h2 {:class "card-title text-xl mb-0.5"} "Новая запись"]
-   [:p {:class "text-sm opacity-60 mb-4"} "Как ты сейчас?"]
-
-   ;; ── Переключатель шаблонов ──
-   [:div {:class "tabs tabs-boxed mb-6"}
-    [:a {:class "tab tab-active" :data-template "morning"
-         :_ "on click remove .tab-active from .tab then add .tab-active to me"}
-     "Утро"]
-    [:a {:class "tab" :data-template "day"
-         :_ "on click remove .tab-active from .tab then add .tab-active to me"}
-     "День"]
-    [:a {:class "tab" :data-template "evening"
-         :_ "on click remove .tab-active from .tab then add .tab-active to me"}
-     "Вечер"]
-    [:a {:class "tab" :data-template "event"
-         :_ "on click remove .tab-active from .tab then add .tab-active to me"}
-     "Событие"]]
-
-   ;; ── Контейнер ошибок (soft alert) ──
-   [:div {:id "form-error" :class "mb-3"}]
-
-   ;; ════════════════════════════════════════
-   ;;  ЯДРО: 3 обязательных range
-   ;; ════════════════════════════════════════
-
-   ;; mood_score 0–10
-   [:div {:class "form-control mb-5"}
-    [:div {:class "label px-0"}
-     [:span {:class "label-text text-base font-medium"} "Настроение"]]
-    [:input {:type "range" :name "mood_score" :min "0" :max "10" :value "5"
-             :class "range range-primary"
-             :style "height: 2rem"
-             :_ "on input put my value into #mood-value"}]
-    [:div {:class "flex justify-between mt-0.5"}
-     [:span {:class "text-xs opacity-40"} "0"]
-     [:span {:id "mood-value" :class "text-sm font-semibold tabular-nums"} "5"]
-     [:span {:class "text-xs opacity-40"} "10"]]]
-
-   ;; energy 0–10
-   [:div {:class "form-control mb-5"}
-    [:div {:class "label px-0"}
-     [:span {:class "label-text text-base font-medium"} "Энергия"]]
-    [:input {:type "range" :name "energy" :min "0" :max "10" :value "5"
-             :class "range range-success"
-             :style "height: 2rem"
-             :_ "on input put my value into #energy-value"}]
-    [:div {:class "flex justify-between mt-0.5"}
-     [:span {:class "text-xs opacity-40"} "0"]
-     [:span {:id "energy-value" :class "text-sm font-semibold tabular-nums"} "5"]
-     [:span {:class "text-xs opacity-40"} "10"]]]
-
-   ;; anxiety 0–10
-   [:div {:class "form-control mb-6"}
-    [:div {:class "label px-0"}
-     [:span {:class "label-text text-base font-medium"} "Тревога"]]
-    [:input {:type "range" :name "anxiety" :min "0" :max "10" :value "5"
-             :class "range range-warning"
-             :style "height: 2rem"
-             :_ "on input put my value into #anxiety-value"}]
-    [:div {:class "flex justify-between mt-0.5"}
-     [:span {:class "text-xs opacity-40"} "0"]
-     [:span {:id "anxiety-value" :class "text-sm font-semibold tabular-nums"} "5"]
-     [:span {:class "text-xs opacity-40"} "10"]]]
-
-   ;; ════════════════════════════════════════
-   ;;  ОПЦИОНАЛЬНЫЕ БЛОКИ (collapse)
-   ;; ════════════════════════════════════════
-
-   [:div {:class "border-t border-base-300 pt-4 mb-2"}
-    [:p {:class "text-xs opacity-50 mb-3 tracking-wide uppercase"} "Дополнительно (необязательно)"]
-
-    ;; ── Сон (часы) ──
-    [:div {:class "collapse collapse-arrow bg-base-300/50 mb-2 rounded-lg"}
-     [:input {:type "checkbox"}]
-     [:div {:class "collapse-title text-sm font-medium min-h-0 py-3"}
-      "Сон (часы)"]
-     [:div {:class "collapse-content"}
-      [:input {:type "number" :name "sleep_hours"
-               :step "0.1" :min "0" :max "24"
-               :placeholder "например, 7.5"
-               :class "input input-bordered w-full"}]]]
-
-    ;; ── Фокус (0–10) ──
-    [:div {:class "collapse collapse-arrow bg-base-300/50 mb-2 rounded-lg"}
-     [:input {:type "checkbox"}]
-     [:div {:class "collapse-title text-sm font-medium min-h-0 py-3"}
-      "Фокус"]
-     [:div {:class "collapse-content"}
-      [:input {:type "range" :name "focus" :min "0" :max "10" :value "5"
-               :class "range range-info" :style "height: 2rem"
-               :_ "on input put my value into #focus-value"}]
-      [:div {:class "flex justify-between mt-0.5"}
-       [:span {:class "text-xs opacity-40"} "0"]
-       [:span {:id "focus-value" :class "text-sm font-semibold tabular-nums"} "5"]
-       [:span {:class "text-xs opacity-40"} "10"]]]]
-
-    ;; ── Заметка ──
-    [:div {:class "collapse collapse-arrow bg-base-300/50 mb-2 rounded-lg"}
-     [:input {:type "checkbox"}]
-     [:div {:class "collapse-title text-sm font-medium min-h-0 py-3"}
-      "Заметка"]
-     [:div {:class "collapse-content"}
-      [:textarea {:name "note" :rows "3" :maxlength "500"
-                  :placeholder "Что происходит? Какие мысли?"
-                  :class "textarea textarea-bordered w-full"}]]]
-
-    ;; ── Активность ──
-    [:div {:class "collapse collapse-arrow bg-base-300/50 mb-2 rounded-lg"}
-     [:input {:type "checkbox"}]
-     [:div {:class "collapse-title text-sm font-medium min-h-0 py-3"}
-      "Активность"]
-     [:div {:class "collapse-content"}
-      [:input {:type "text" :name "activity"
-               :placeholder "Чем занимался?"
-               :class "input input-bordered w-full"}]]]]
-
-   ;; ── Submit ──
-   [:button {:type "submit"
-             :class "btn btn-primary w-full h-12 text-base font-medium mt-4"}
-    "Сохранить запись"]]]])
+   [:form {:id "slot-1-20"
+        :hx-post "/medications/1/log"
+        :hx-ext "json-enc"
+        :hx-target "#slot-1-20"
+        :hx-swap "outerHTML"
+        :class "card bg-base-200 p-3"}
+ [:input {:type "hidden" :name "__anti-forgery-token" :value "CSRF"}]
+ [:input {:type "hidden" :name "medication_id" :value "1"}]
+ [:input {:type "hidden" :name "log_date" :value "2026-08-20"}]
+ [:input {:type "hidden" :name "scheduled_time" :value "20:00"}]
+ [:div {:class "flex items-center justify-between gap-3"}
+  [:div {:class "flex items-center gap-3"}
+   [:div
+    [:p {:class "font-medium text-base"} "Препарат А"]
+    [:p {:class "text-sm opacity-60"} "600 мг · 20:00"]]
+   [:span {:class "badge badge-success badge-sm"} "принят"]]
+  [:button {:type "submit"
+            :name "status" :value "pending"
+            :class "btn btn-ghost btn-sm h-11 min-h-11 px-3 text-sm opacity-50"}
+   "Отменить"]]])
 
 ;; ============================================================
 

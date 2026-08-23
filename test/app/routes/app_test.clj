@@ -1,5 +1,6 @@
 (ns app.routes.app-test
   (:require [app.db.entries :as db]
+            [app.db.insights :as db.insights]
             [app.middleware :as mw]
             [app.routes.app :as routes]
             [clojure.string :as str]
@@ -122,11 +123,13 @@
 
 (defn- get-html-page
   [uri]
-  ((app)
-   (authed {:request-method :get
-            :uri uri
-            :headers {"accept" "text/html"}
-            :body nil})))
+  (let [[path query] (str/split uri #"\?" 2)]
+    ((app)
+     (authed {:request-method :get
+              :uri path
+              :query-string query
+              :headers {"accept" "text/html"}
+              :body nil}))))
 
 (defn- body-text
   [response]
@@ -292,9 +295,9 @@
 (deftest post-hx-returns-html-fragment
   (testing "POST /entries with HX-Request returns 201 HTML li fragment"
     (let [response (post-entries-hx {:mood_score 7
-                                      :energy 8
-                                      :anxiety 2
-                                      :sleep_hours 8.0})]
+                                     :energy 8
+                                     :anxiety 2
+                                     :sleep_hours 8.0})]
       (is (= 201 (:status response)))
       (is (str/includes? (content-type response) "text/html"))
       (let [body (body-text response)]
@@ -345,3 +348,39 @@
       (is (str/includes? body "user@test.dev"))
       (is (str/includes? body "Test User"))
       (is (str/includes? body "Выйти")))))
+
+(deftest check-in-shows-soft-mode-in-low-state
+  (testing "/check-in показывает баннер мягкого режима, когда последняя запись low"
+    ;; последняя запись — состояние low (energy <= 3)
+    (post-entries {:mood_score 2 :energy 2 :anxiety 5})
+    (let [body (body-text (get-html-page "/check-in"))]
+      (is (str/includes? body "soft-mode-banner"))
+      (is (str/includes? body "Тебе сейчас может быть непросто"))
+      (is (str/includes? body "Мягкий режим")))))
+
+(deftest check-in-no-soft-mode-in-balanced-state
+  (testing "/check-in без баннера мягкого режима при сбалансированном состоянии"
+    (post-entries {:mood_score 5 :energy 5 :anxiety 2})
+    (let [body (body-text (get-html-page "/check-in"))]
+      (is (not (str/includes? body "soft-mode-banner"))))))
+
+(deftest feed-shows-toast-after-save-with-insight
+  (testing "/feed?saved=1 показывает toast-подсказку, когда есть релевантный инсайт"
+    ;; создать инсайт anxiety и запись anxiety через БД напрямую
+    (db.insights/create-insight! @ds-atom
+                                 {:user-id 1
+                                  :context "Когда тревога 7+, не принимай решений"
+                                  :category "coping"
+                                  :advice-to-self ["дыхание 4-7-8"]
+                                  :state-label "anxiety"})
+    (post-entries {:mood_score 3 :energy 2 :anxiety 7 :state_label "anxiety"})
+    (let [body (body-text (get-html-page "/feed?saved=1"))]
+      (is (str/includes? body "check-in-hint-toast"))
+      (is (str/includes? body "В таком состоянии тебе помогало:"))
+      (is (str/includes? body "Когда тревога 7+")))))
+
+(deftest feed-no-toast-without-saved-flag
+  (testing "/feed без ?saved=1 не показывает toast (не пугает каждый визит)"
+    (post-entries {:mood_score 3 :energy 2 :anxiety 7 :state_label "anxiety"})
+    (let [body (body-text (get-html-page "/feed"))]
+      (is (not (str/includes? body "check-in-hint-toast"))))))

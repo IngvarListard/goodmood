@@ -1,7 +1,8 @@
 (ns app.views.settings
   (:require [app.i18n :as i18n]
             [app.views.layout :as layout]
-            [app.views.navigation :as navigation]))
+            [app.views.navigation :as navigation]
+            [app.views.notifications :as notifications]))
 
 (defn- language-switcher
   [csrf-token]
@@ -41,13 +42,16 @@
        (i18n/t :auth/logout)]]]))
 
 (defn page
-  "Страница настроек: информация о пользователе, переключатель языка и выход.
-   Служит точкой входа в меню учётной записи на мобильных устройствах."
-  [request]
+  "Страница настроек: информация о пользователе, переключатель языка, выход
+   и секция настроек уведомлений.
+   request: ring-запрос; notif-slots: вектор строк из user_notification_settings."
+  [request notif-slots]
   (let [identity (:identity request)
+        csrf (:anti-forgery-token request)
         content [:div {:class "max-w-2xl mx-auto p-4"}
                  [:h1 {:class "text-2xl font-bold mb-4"} (i18n/t :nav/settings)]
-                 (user-card identity request)]]
+                 (user-card identity request)
+                 (notifications/settings-section csrf notif-slots)]]
     (layout/layout {:title (i18n/t :nav/settings)
                     :active :settings
                     :request request}

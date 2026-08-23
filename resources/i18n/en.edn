@@ -59,7 +59,11 @@
          :month-11 "November"
          :month-12 "December"}
   :check-in {:title "New entry"
-             :back "Back to feed"}
+             :back "Back to feed"
+             :soft-mode-title "Things might feel hard right now. Turn on soft mode?"
+             :soft-mode-desc "Just your mood, no details."
+             :soft-mode-accept "Soft mode"
+             :soft-mode-decline "Full form"}
   :medications {:title "Medications"
                 :add "Add"
                 :description "Medications you take"
@@ -138,6 +142,24 @@
              :onboarding-state-create "Create"
              :empty-category "Nothing here yet"
              :empty-category-hint "Create your first insight — the \"New\" button above"
-             :validation-error "Fill in context, state, and at least one piece of advice"
-             :created-at "Created {date}"
-             :delete-advice "Remove item"}}
+:validation-error "Fill in context, state, and at least one piece of advice"
+              :created-at "Created {date}"
+              :delete-advice "Remove item"}
+  :toast {:hint-title "In a state like this, this helped you:"
+          :hint-more "view full"
+          :dismiss "Dismiss hint"}
+  :feed-summary {:title "Tomorrow's summary is ready"
+                 :see "view"
+                 :dismiss "Dismiss for today"
+                 :state "Today you are in a \"{state}\" state"
+                 :past "Last time, this helped you in this state"
+                 :closing "Tomorrow is a new day. What helped before will help again."
+                 :away "While you were away, a tip for the \"{state}\" state arrived"}
+  :notifications {:title "Notifications"
+                  :subtitle "Contain your own insights, not reminders to fill your diary."
+                  :slot-morning "Morning"
+                  :slot-midday "Midday"
+                  :slot-evening "Evening"
+                  :save "Save"
+                  :saved "Saved"
+                  :error "Check the time — use HH:MM format"}}

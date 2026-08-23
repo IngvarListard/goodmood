@@ -1,6 +1,8 @@
 (ns app.routes.entries
   (:require [app.domains.entries :as entries]
+            [app.domains.insights :as insights]
             [app.views.entries :as views]
+            [app.views.notifications :as notif-views]
             [ring.util.response :as response]
             [hiccup2.core :refer [html]]))
 

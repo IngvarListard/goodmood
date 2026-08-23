@@ -68,7 +68,7 @@ export async function submitEntry(
     await page.fill('textarea[name="note"]', note);
   }
   await page.getByRole('button', { name: /Сохранить запись|Save entry/ }).click();
-  await page.waitForURL('**/feed');
+  await page.waitForURL(/\/feed/);
 }
 
 // Создать медикамент через модалку на /medications.

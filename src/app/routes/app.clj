@@ -22,6 +22,8 @@
             [app.routes.feed :as feed]
             [app.routes.insights :as insights]
             [app.routes.medications :as med-routes]
+            [app.routes.notifications :as notifications]
+            [app.domains.notification-settings :as notif-domains]
             [app.views.entries :as views]
             [app.views.settings :as settings]))
 
@@ -100,8 +102,10 @@
    :body (str (html body))})
 
 (defn- settings-page-handler
-  [request]
-  (html-response 200 (settings/page request)))
+  [ds request]
+  (let [uid (get-in request [:identity :id])
+        settings (notif-domains/get-settings ds uid)]
+    (html-response 200 (settings/page request settings))))
 
 (defn- anti-forgery-error-handler
   [_]
@@ -132,8 +136,8 @@
     ["/locale" {:post {:handler auth/locale-post-handler}
                 :auth/public true}]
     ["/feed" {:get {:handler (partial feed/page ds)}}]
-    ["/check-in" {:get {:handler check-in/page}}]
-    ["/settings" {:get {:handler settings-page-handler}}]
+    ["/check-in" {:get {:handler (partial check-in/page ds)}}]
+    ["/settings" {:get {:handler (partial settings-page-handler ds)}}]
     ["/entries"
      {:post {:parameters {:body domains/create-entry-schema}
              :handler (partial entries/create-entry ds)}
@@ -185,7 +189,13 @@
     ["/insights/:id/edit-identity"
      {:get {:handler (partial insights/edit-identity ds)}}]
     ["/insights/:id/identity"
-     {:post {:handler (partial insights/update-identity ds)}}]]
+     {:post {:handler (partial insights/update-identity ds)}}]
+    ["/feed/pending-insight"
+     {:get {:handler (partial notifications/pending-insight ds)}}]
+    ["/notifications/summary-dismiss"
+     {:post {:handler (partial notifications/summary-dismiss ds)}}]
+    ["/settings/notifications"
+     {:post {:handler (partial notifications/settings-update ds)}}]]
    {:data {:coercion app-coercion
            :middleware [rc/coerce-request-middleware
                         rc/coerce-response-middleware]}}))

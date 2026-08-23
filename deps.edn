@@ -14,8 +14,9 @@
         migratus/migratus {:mvn/version "1.6.7"}
          buddy/buddy-hashers {:mvn/version "2.0.167"}
          tongue/tongue {:mvn/version "0.4.4"}
-         ring/ring-anti-forgery {:mvn/version "1.4.0"}}
+          ring/ring-anti-forgery {:mvn/version "1.4.0"}
+          cheshire/cheshire {:mvn/version "5.13.0"}}
  
  :aliases {:run {:main-opts ["-m" "app.core"]}
             :test {:extra-paths ["test"]
-                   :main-opts ["-e" "(require '[clojure.test :as t] '[app.db.entries-test] '[app.db.insights-test] '[app.db.medications-test] '[app.domains.insights-test] '[app.routes.app-test] '[app.routes.auth-test] '[app.routes.insights-test] '[app.routes.medications-test] '[app.domains.users-test] '[app.views.layout-test] '[app.views.navigation-test] '[app.views.placeholder-test] '[app.icons-test])(t/run-tests 'app.db.entries-test 'app.db.insights-test 'app.db.medications-test 'app.domains.insights-test 'app.routes.app-test 'app.routes.auth-test 'app.routes.insights-test 'app.routes.medications-test 'app.domains.users-test 'app.views.layout-test 'app.views.navigation-test 'app.views.placeholder-test 'app.icons-test)"]}}}
+                   :main-opts ["-e" "(require '[clojure.test :as t] '[app.db.entries-test] '[app.db.insights-test] '[app.db.medications-test] '[app.db.notification-settings-test] '[app.domains.insights-test] '[app.domains.notification-settings-test] '[app.routes.app-test] '[app.routes.auth-test] '[app.routes.insights-test] '[app.routes.medications-test] '[app.routes.notifications-test] '[app.domains.users-test] '[app.views.layout-test] '[app.views.navigation-test] '[app.views.placeholder-test] '[app.icons-test])(t/run-tests 'app.db.entries-test 'app.db.insights-test 'app.db.medications-test 'app.db.notification-settings-test 'app.domains.insights-test 'app.domains.notification-settings-test 'app.routes.app-test 'app.routes.auth-test 'app.routes.insights-test 'app.routes.medications-test 'app.routes.notifications-test 'app.domains.users-test 'app.views.layout-test 'app.views.navigation-test 'app.views.placeholder-test 'app.icons-test)"]}}}

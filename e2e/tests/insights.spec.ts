@@ -169,7 +169,8 @@ test.describe('insights', () => {
     });
     await page.goto('/feed');
     await expect(page.getByText('Что ты сам говорил в таком состоянии')).toBeVisible();
-    await expect(page.getByText('Тревога — главное дышать')).toBeVisible();
+    // скоуп на виджет: тот же инсайт дублируется в вечерней сводке-баннере
+    await expect(page.locator('#feed-insights').getByText('Тревога — главное дышать')).toBeVisible();
     await expect(page.locator('#feed-insights a', { hasText: 'дыхание 4-7-8' })).toBeVisible();
   });
 

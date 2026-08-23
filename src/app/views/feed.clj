@@ -4,6 +4,7 @@
             [app.views.insights :as insights]
             [app.views.layout :as layout]
             [app.views.navigation :as navigation]
+            [app.views.notifications :as notifications]
             [app.views.rose :as rose]
             [clojure.string :as str]))
 
@@ -85,24 +86,32 @@
   "Секция «Сегодня»: hero-карточка последней записи + виджет инсайтов +
    компактные остальные, или онбординг при отсутствии записей.
    state-label: текущий state_label последней записи сегодня (для виджета).
-   insight: 1 релевантный инсайт или nil."
+   insight: 1 релевантный инсайт или nil.
+   В мягком состоянии (low/mixed) виджет поднимается выше hero — акцент
+   на совете, не на фиксации боли (Decision 14.4)."
   [today-entries state-label insight]
-  [:section {:class "mb-6"}
-   [:h2 {:class "text-sm font-medium opacity-60 mb-2 uppercase tracking-wide"}
-    (i18n/t :feed/today)]
-   (if (seq today-entries)
-     (let [latest (first today-entries)
-           rest-entries (rest today-entries)]
-       [:div
-        (hero-card latest)
-        (insights/feed-widget state-label insight)
-        (when (seq rest-entries)
-          [:ul {:class "space-y-2 mt-2"}
-           (map compact-card rest-entries)])])
-     [:div {:class "text-center py-10"}
-      [:p {:class "opacity-70 mb-4"} (i18n/t :feed/empty)]
-      [:a {:href "/check-in" :class "btn btn-primary"}
-       (i18n/t :feed/go-check-in)]])])
+  (let [soft? (and state-label (contains? #{"low" "mixed"} state-label))]
+    [:section {:class "mb-6"}
+     [:h2 {:class "text-sm font-medium opacity-60 mb-2 uppercase tracking-wide"}
+      (i18n/t :feed/today)]
+     (if (seq today-entries)
+       (let [latest (first today-entries)
+             rest-entries (rest today-entries)
+             soft-order? (list (insights/feed-widget state-label insight)
+                               (hero-card latest))
+             normal-order? (list (hero-card latest)
+                                 (insights/feed-widget state-label insight))]
+         [:div
+          (if soft?
+            soft-order?
+            normal-order?)
+          (when (seq rest-entries)
+            [:ul {:class "space-y-2 mt-2"}
+             (map compact-card rest-entries)])])
+       [:div {:class "text-center py-10"}
+        [:p {:class "opacity-70 mb-4"} (i18n/t :feed/empty)]
+        [:a {:href "/check-in" :class "btn btn-primary"}
+         (i18n/t :feed/go-check-in)]])]))
 
 (defn- past-day-section
   "Секция прошлого дня: заголовок даты + компактные карточки."
@@ -129,13 +138,22 @@
   "Отрендерить страницу /feed: лента записей, сгруппированных по дням.
    Последняя запись сегодня — hero-карточка с розой; остальные — компактные.
    Под hero — виджет инсайтов (state-label, insight).
-   request: ring-запрос; entries: вектор записей (date desc, created_at desc)."
-  [request entries state-label insight]
+   request: ring-запрос; entries: вектор записей (date desc, created_at desc).
+   opts: map с ключами :toast-insight (toast после сохранения) и
+   :summary (map {:show :csrf :state-label :insight} для вечерней сводки)."
+  [request entries state-label insight & [{:keys [toast-insight summary]}]]
   (let [grouped (group-by :date entries)
         today (str (java.time.LocalDate/now))
         today-entries (get grouped today)
         past-dates (remove #{today} (keys grouped))
         content [:div {:class "max-w-2xl mx-auto p-4 pb-24"}
+                 (when toast-insight
+                   (notifications/hint-toast toast-insight))
+                 (when (:show summary)
+                   (notifications/summary-banner (:csrf summary)
+                                                 (:state-label summary)
+                                                 (:insight summary)))
+                 (notifications/pending-insight-fragment)
                  [:div {:class "mb-6"}
                   [:h1 {:class "text-2xl font-bold"} (i18n/t :feed/title)]]
                  (today-section today-entries state-label insight)

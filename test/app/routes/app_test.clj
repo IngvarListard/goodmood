@@ -262,14 +262,22 @@
 
 (deftest removed-placeholder-routes-return-404-or-redirect
   (testing "removed placeholder routes are no longer available"
-    (doseq [uri ["/dashboard" "/history" "/statistics" "/insights"]]
+    (doseq [uri ["/dashboard" "/history" "/statistics"]]
       (let [response (get-html-page uri)]
         (is (not= 200 (:status response)) uri)))))
 
-(deftest nav-items-are-four
+(deftest insights-route-returns-200
+  (testing "GET /insights is a real Phase 3 route (not a placeholder)"
+    (let [response (get-html-page "/insights")]
+      (is (= 200 (:status response)))
+      (let [body (body-text response)]
+        (is (str/includes? body "Инсайты"))))))
+
+(deftest nav-items-are-five
   (testing "each route marks only its own nav item active (in both nav variants)"
     (doseq [[uri id-label] [["/feed" "Лента"]
                             ["/check-in" "Новая запись"]
+                            ["/insights" "Инсайты"]
                             ["/medications" "Медикаменты"]
                             ["/settings" "Настройки"]]]
       (let [body (body-text (get-html-page uri))

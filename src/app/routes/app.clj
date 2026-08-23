@@ -14,11 +14,13 @@
             [hiccup2.core :refer [html]]
             [app.middleware :as mw]
             [app.domains.entries :as domains]
+            [app.domains.insights :as insights-domains]
             [app.domains.medications :as med-domains]
             [app.routes.auth :as auth]
             [app.routes.check-in :as check-in]
             [app.routes.entries :as entries]
             [app.routes.feed :as feed]
+            [app.routes.insights :as insights]
             [app.routes.medications :as med-routes]
             [app.views.entries :as views]
             [app.views.settings :as settings]))
@@ -155,7 +157,35 @@
      {:post {:handler (partial med-routes/activate ds)}}]
     ["/medications/:id/log"
      {:post {:parameters {:body med-domains/log-schema}
-             :handler (partial med-routes/log-intake ds)}}]]
+             :handler (partial med-routes/log-intake ds)}}]
+    ["/insights"
+     {:post {:parameters {:body insights-domains/create-insight-schema}
+             :handler (partial insights/create ds)}
+      :get {:handler (partial insights/page ds)}}]
+    ["/insights/new"
+     {:get {:handler (partial insights/new-page ds)}
+      :conflicting true}]
+    ["/insights/advice-item"
+     {:get {:handler insights/advice-item}
+      :conflicting true}]
+    ["/insights/:id"
+     {:get {:handler (partial insights/show ds)}
+      :delete {:handler (partial insights/delete ds)}
+      :conflicting true}]
+    ["/insights/:id/edit-context"
+     {:get {:handler (partial insights/edit-context ds)}}]
+    ["/insights/:id/advice-items"
+     {:get {:handler (partial insights/advice-items ds)}}]
+    ["/insights/:id/context"
+     {:post {:handler (partial insights/update-context ds)}}]
+    ["/insights/:id/edit-advice"
+     {:get {:handler (partial insights/edit-advice ds)}}]
+    ["/insights/:id/advice"
+     {:post {:handler (partial insights/update-advice ds)}}]
+    ["/insights/:id/edit-identity"
+     {:get {:handler (partial insights/edit-identity ds)}}]
+    ["/insights/:id/identity"
+     {:post {:handler (partial insights/update-identity ds)}}]]
    {:data {:coercion app-coercion
            :middleware [rc/coerce-request-middleware
                         rc/coerce-response-middleware]}}))

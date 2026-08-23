@@ -307,6 +307,73 @@ ALTER TABLE entries ADD COLUMN state_period_id INTEGER;
 
 `[ref: A3-q2, A2-q1, A3-q6, A1-q2]`
 
+### 13. Фаза 3 — инсайт-артефакт: модель данных, подбор, fallback → **РЕШЁН (2026-08-23)**
+
+Конкретика реализации Фазы 3 (change `add-insights-artefact`), не меняющая продуктового видения, но финализирующая OQ3 и детали UX.
+
+#### 13.1 Схема `insights` (миграция 007)
+
+Одна таблица:
+
+```sql
+CREATE TABLE insights (
+  id             INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_id        INTEGER NOT NULL REFERENCES users(id),
+  context        TEXT NOT NULL,
+  category       TEXT NOT NULL CHECK (category IN ('productivity','coping','identity','general')),
+  advice_to_self TEXT NOT NULL,   -- JSON-массив строк: ["...","..."]
+  identity       TEXT,            -- nullable
+  state_label    TEXT,            -- nullable; ключ подбора, raw-ключ (как entries.state_label)
+  entry_id       INTEGER,         -- nullable, soft reference на entries.id (БЕЗ FK)
+  created_at     TEXT NOT NULL DEFAULT (datetime('now')),
+  updated_at     TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+CREATE INDEX idx_insights_user_state
+  ON insights (user_id, state_label);
+```
+
+#### 13.2 `advice_to_self` — JSON-массив в TEXT
+
+Альтернатива «отдельная таблица `insight_advice`» отвергнута: список читается/пишется целиком с инсайтом, 1–5 пунктов, нет cross-insight запросов (YAGNI). Совпадает с паттерном `medications.schedule` (TEXT-JSON, Decision 4a). Newline-separated отвергнут (теряет структуру, редактирование = string surgery). Редактирование = перезапись массива целиком, один атомарный UPDATE.
+
+#### 13.3 `entry_id` — soft reference, без FK
+
+Provenance («инсайт из записи 14:30») + backfill-путь для Фазы 5 (euclidean distance: снапшот осей можно достать из связанной записи). Без FK по mandate spec «No insight loss»: инсайт должен пережить удаление записи (`FK CASCADE` удалил бы инсайт, `FK RESTRICT` заблокировал бы удаление). Следует паттерну `state_period_id` (Decision 12.7) и medications link-by-date (Decision 4a.4 — loose coupling без FK). `state_label` — ключ подбора, `entry_id` — provenance; разные задачи, оба хранятся.
+
+#### 13.4 Подбор — variant A (exact match по state_label)
+
+```sql
+SELECT … WHERE user_id=? AND state_label=?
+ORDER BY updated_at DESC LIMIT 1;
+```
+
+Виджет на /feed — **1 инсайт** (mobile fold), под hero-карточкой, отдельная секция (не compact-card). «:neutral» — равноправный 6-й ярлык, обрабатывается одинаково с остальными (матч + онбординг при отсутствии). Euclidean distance (variant C, хранение снапшота осей) — Фаза 5 (AI); снапшот осей сейчас не хранится, Фаза 5 может backfill из `entry_id`.
+
+#### 13.5 Fallback (resolve OQ3) — молчать + мягкий онбординг
+
+AI-генерация — Фаза 5; чужой совет — Non-goal. Промпт per-state, dismissible, фактическая формулировка («ещё нет»), без strik/self-blame языка. Для `:neutral` — тот же онбординг, что и для остальных ярлыков.
+
+#### 13.6 UI placement
+
+`/insights` (список + htmx-фильтры category/state_label + поиск по context) + `/insights/new` (форма) + `/insights/:id` (detail, in-place edit) + виджет на `/feed` под hero-карточкой. Навигация: 5 пунктов (`/feed, /check-in, /insights, /medications, /settings`) — потолок мобильной bottom-nav.
+
+#### 13.7 Создание — три entry point, A основной
+
+- **A (основной):** из `/feed` — context авто-привязан к текущему состоянию, `entry_id` = latest entry.
+- **B (опционально):** post-save ссылка из `/check-in` (мягкий промпт «записать инсайт для этого состояния?», НЕ поле формы).
+- **C:** standalone `/insights/new` — без `entry_id`, `state_label` из dropdown.
+
+#### 13.8 Редактирование — in-place htmx, `updated_at`-only
+
+Editable: `context, category, advice_to_self, identity`. Не editable в Фазе 3: `state_label` (привязан к контексту создания; чтобы избежать relabel-gaming — delete+recreate). Полная версия (`insight_versions` таблица) — Фаза 6. Spec-clarification: требование spec «история изменений сохраняется» трактуется как «артефакт переживает изменения состояния и время, context не перезаписывается вслепую», а не byte-level diff advice-пунктов.
+
+#### 13.9 `/check-in` не смешивается с инсайтом
+
+Единственная связь — post-save ссылка (13.7-B), не поле формы (Decision 9 — минимализм формы).
+
+`[ref: A2-q2, A2-q4, A3-q3, A4-q5, OQ3]`
+
 ## Risks / Trade-offs
 
 - **Мульти-шкала → бросание.** Больше полей ≠ больше пользы; Daylio-опыт подтверждает. Решение: минимализм формы (Decision 9), опциональные блоки, шаблоны. Точный состав — open question Фазы 0.
@@ -324,7 +391,7 @@ ALTER TABLE entries ADD COLUMN state_period_id INTEGER;
 |---|---|---|
 | OQ1 | ~~Состав минимальной формы: какие поля обязательны, какие опциональны, сколько секунд на заполнение~~ **РЕШЁН (2026-08-18, уточнён 2026-08-19):** ядро = mood_score (0-10) + energy (0-10) + anxiety (0-10); опционально = focus (0-10), sleep_hours, note, activity. См. Decision 9. | Фаза 0, change `add-mobile-entry-form` ✅ |
 | OQ2 | ~~Оси «розы ветров»: какие (энергия / тревога / фокус / аффект / …), сколько, диапазоны~~ **РЕШЁН (2026-08-22):** 3 обязательные оси (energy / anxiety / focus, 0–10) + опциональный mood_score = 3–4 точки полигона. См. Decision 12. | Фаза 2, change `add-mood-states-rose` |
-| OQ3 | Fallback при отсутствии инсайта для текущего состояния: молчать / AI-генерация / чужой совет | Фаза 3, change `add-insights-artefact` |
+| OQ3 | ~~Fallback при отсутствии инсайта для текущего состояния: молчать / AI-генерация / чужой совет~~ **РЕШЁН (2026-08-23):** молчать + мягкий онбординг per-state; AI — Фаза 5, чужой — Non-goal. См. Decision 13.5. | Фаза 3, change `add-insights-artefact` |
 | OQ4 | Граница вмешательства: где приложение «не должно лезть» | По мере появления конкретных функций; пока открыто |
 | OQ5 | Нерепрессивная альтернатива стрику | Фаза 0 или 4, отдельный change `add-streak-alternative` (опционально) |
 | OQ6 | Формат вечерних инсайтов на «завтра» | Фаза 4, change `add-coping-channels` |

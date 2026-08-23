@@ -1,6 +1,7 @@
 (ns app.views.feed
   (:require [app.domains.entries :as domains]
             [app.i18n :as i18n]
+            [app.views.insights :as insights]
             [app.views.layout :as layout]
             [app.views.navigation :as navigation]
             [app.views.rose :as rose]
@@ -81,9 +82,11 @@
         [:p {:class "text-sm opacity-80 mt-2"} note])]]]])
 
 (defn- today-section
-  "Секция «Сегодня»: hero-карточка последней записи + компактные остальные,
-   или онбординг при отсутствии записей."
-  [today-entries]
+  "Секция «Сегодня»: hero-карточка последней записи + виджет инсайтов +
+   компактные остальные, или онбординг при отсутствии записей.
+   state-label: текущий state_label последней записи сегодня (для виджета).
+   insight: 1 релевантный инсайт или nil."
+  [today-entries state-label insight]
   [:section {:class "mb-6"}
    [:h2 {:class "text-sm font-medium opacity-60 mb-2 uppercase tracking-wide"}
     (i18n/t :feed/today)]
@@ -92,6 +95,7 @@
            rest-entries (rest today-entries)]
        [:div
         (hero-card latest)
+        (insights/feed-widget state-label insight)
         (when (seq rest-entries)
           [:ul {:class "space-y-2 mt-2"}
            (map compact-card rest-entries)])])
@@ -124,8 +128,9 @@
 (defn page
   "Отрендерить страницу /feed: лента записей, сгруппированных по дням.
    Последняя запись сегодня — hero-карточка с розой; остальные — компактные.
+   Под hero — виджет инсайтов (state-label, insight).
    request: ring-запрос; entries: вектор записей (date desc, created_at desc)."
-  [request entries]
+  [request entries state-label insight]
   (let [grouped (group-by :date entries)
         today (str (java.time.LocalDate/now))
         today-entries (get grouped today)
@@ -133,7 +138,7 @@
         content [:div {:class "max-w-2xl mx-auto p-4 pb-24"}
                  [:div {:class "mb-6"}
                   [:h1 {:class "text-2xl font-bold"} (i18n/t :feed/title)]]
-                 (today-section today-entries)
+                 (today-section today-entries state-label insight)
                  (for [date past-dates]
                    (past-day-section date (get grouped date)))
                  (fab)]]

@@ -14,7 +14,7 @@
     (is (nil? (placeholder/active-id "/dashboard")))
     (is (nil? (placeholder/active-id "/history")))
     (is (nil? (placeholder/active-id "/statistics")))
-    (is (nil? (placeholder/active-id "/insights")))
+    (is (= :insights (placeholder/active-id "/insights")))
     (is (nil? (placeholder/active-id "/entries")))
     (is (nil? (placeholder/active-id "/unknown")))
     (is (nil? (placeholder/active-id nil)))))

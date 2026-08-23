@@ -9,9 +9,9 @@
   (str (hiccup2.core/html hiccup)))
 
 (deftest navigation-test
-  (testing "nav-items contains exactly 4 items, no placeholder routes"
-    (is (= 4 (count nav/nav-items)))
-    (is (= ["/feed" "/check-in" "/medications" "/settings"]
+  (testing "nav-items contains exactly 5 items (Phase 3: /insights restored)"
+    (is (= 5 (count nav/nav-items)))
+    (is (= ["/feed" "/check-in" "/insights" "/medications" "/settings"]
            (map :route nav/nav-items))))
 
   (testing "mobile renders all items as links in horizontal menu"

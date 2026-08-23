@@ -12,186 +12,109 @@
 ;; === PLACEHOLDER: вставь свой hiccup сюда ===
 (def body
    [:div {:class "max-w-2xl mx-auto p-4 pb-24"}
- ;; ── Шапка: назад + заголовок ───────────────────────────
- [:div {:class "flex items-center gap-3 mb-6"}
-  [:a {:href "/feed"
-       :class "btn btn-ghost btn-circle btn-sm"
-       :aria-label "Назад к ленте"}
-   [:svg {:xmlns "http://www.w3.org/2000/svg"
-          :width 20 :height 20 :viewBox "0 0 24 24"
-          :fill "none" :stroke "currentColor"
-          :stroke-width 2 :stroke-linecap "round" :stroke-linejoin "round"}
-    [:path {:d "M15 18l-6-6 6-6"}]]]
-  [:h1 {:class "text-2xl font-bold"} "Новая запись"]]
 
- ;; ── Форма (существующая) ────────────────────────────────
- ;; csrf-token передаётся рантаймом, здесь — плейсхолдер.
- [:form {:hx-post "/entries"
-         :hx-ext "json-enc"
-         :hx-target "#form-error"
-         :hx-swap "innerHTML"
-         :hx-disabled-elt "this button[type=submit]"
-         :_ "on htmx:afterRequest
-               if event.detail.successful
-                 set window.location to '/feed'
-               end"
-         :class "card bg-base-200 p-4"}
-  [:input {:type "hidden" :name "__anti-forgery-token" :value "{{csrf-token}}"}]
+   ;; ── Карточка: шапка (назад + бейджи) ──
+   [:div {:class "card bg-base-200 shadow-sm mb-4"}
+    [:div {:class "card-body p-4"}
+     [:div {:class "flex items-center gap-3 mb-2"}
+      [:a {:href "/insights"
+           :class "btn btn-ghost btn-sm h-11 min-h-11 px-3"
+           :aria-label "Назад"}
+       [:svg {:xmlns "http://www.w3.org/2000/svg"
+              :width 20 :height 20 :viewBox "0 0 24 24"
+              :fill "none" :stroke "currentColor"
+              :stroke-width 2.5 :stroke-linecap "round" :stroke-linejoin "round"}
+        [:path {:d "M15 18l-6-6 6-6"}]]]
+      [:h1 {:class "text-2xl font-bold"} "Инсайт"]]
+     [:div {:class "flex items-center gap-2 flex-wrap"}
+      [:span {:class "badge badge-secondary badge-sm"} "Копинг"]
+      [:span {:class "badge badge-ghost badge-sm"} "тревога"]]]]
 
-  ;; template-tabs (утро/день/вечер/событие)
-  [:div {:class "tabs tabs-boxed mb-4"}
-   [:button {:type "button"
-             :class "tab tab-active"
-             :data-template "morning"
-             :role "tab"
-             :_ "on click
-                   remove .tab-active from .tab
-                   add .tab-active to me
-                   set #template-value.value to @data-template"}
-    "Утро"]
-   [:button {:type "button"
-             :class "tab"
-             :data-template "day"
-             :role "tab"
-             :_ "on click
-                   remove .tab-active from .tab
-                   add .tab-active to me
-                   set #template-value.value to @data-template"}
-    "День"]
-   [:button {:type "button"
-             :class "tab"
-             :data-template "evening"
-             :role "tab"
-             :_ "on click
-                   remove .tab-active from .tab
-                   add .tab-active to me
-                   set #template-value.value to @data-template"}
-    "Вечер"]
-   [:button {:type "button"
-             :class "tab"
-             :data-template "event"
-             :role "tab"
-             :_ "on click
-                   remove .tab-active from .tab
-                   add .tab-active to me
-                   set #template-value.value to @data-template"}
-    "Событие"]
-   [:input {:type "hidden" :name "template" :id "template-value" :value "morning"}]]
+   ;; ── Карточка: контекст ──
+   [:div {:class "card bg-base-200 shadow-sm mb-4"}
+    [:div {:class "card-body p-4"}
+     [:div {:class "flex items-center justify-between mb-2"}
+      [:h2 {:class "text-sm font-medium opacity-60 uppercase tracking-wide"}
+       "Контекст"]
+      [:button {:type "button"
+                :class "btn btn-ghost btn-sm h-11 min-h-11 px-3"
+                :hx-get "/insights/1/edit-context"
+                :hx-target "#context-block"
+                :hx-swap "outerHTML"}
+       "Править"]]
+     [:div {:id "context-block"}
+      [:p {:class "text-sm"}
+       "Когда тревога 7+, я знаю, что это знакомое состояние, а не конец. Главное — не принимать решений в первые два часа. Тело напряжено, мысли скачут, но это уже было — и проходило."]]]]
 
-  ;; контейнер ошибок
-  [:div {:id "form-error" :class "mb-3"}]
+   ;; ── Карточка: советы себе (advice_to_self) ──
+   [:div {:class "card bg-base-200 shadow-sm mb-4"}
+    [:div {:class "card-body p-4"}
+     [:div {:class "flex items-center justify-between mb-2"}
+      [:h2 {:class "text-sm font-medium opacity-60 uppercase tracking-wide"}
+       "Советы себе"]
+      [:button {:type "button"
+                :class "btn btn-ghost btn-sm h-11 min-h-11 px-3"
+                :hx-get "/insights/1/edit-advice"
+                :hx-target "#advice-block"
+                :hx-swap "outerHTML"}
+       "Править"]]
+     [:div {:id "advice-block"}
+      [:ol {:class "text-sm space-y-2 list-decimal list-inside"}
+       [:li "Дыхание 4-7-8 минут пять — снижает накал"]
+       [:li "Текст близкому: «мне сейчас некомфортно, не срочно»"]
+       [:li "Не принимать решений в первые два часа"]
+       [:li "Прогулка 15 минут — меняет контекст тела"]
+       [:li "Напомнить себе: это состояние, а не я"]]]]]
 
-  ;; ядро: mood_score / energy / anxiety (range 0-10)
-  [:div {:class "grid grid-cols-1 gap-3"}
-   [:div {:class "form-control mb-5"}
-    [:div {:class "label px-0"}
-     [:span {:class "label-text text-base font-medium"} "Настроение"]]
-    [:input {:type "range" :name "mood_score" :min "0" :max "10" :value "5"
-             :class "range range-primary" :style "height: 2rem"
-             :_ "on input put my value into #mood-value"}]
-    [:div {:class "flex justify-between mt-0.5 px-0.5"}
-     [:span {:class "text-xs opacity-40"} "0"]
-     [:span {:id "mood-value" :class "text-sm font-semibold tabular-nums"} "5"]
-     [:span {:class "text-xs opacity-40"} "10"]]]
+   ;; ── Карточка: идентичность (опционально) ──
+   [:div {:class "card bg-base-200 shadow-sm mb-4"}
+    [:div {:class "card-body p-4"}
+     [:div {:class "flex items-center justify-between mb-2"}
+      [:h2 {:class "text-sm font-medium opacity-60 uppercase tracking-wide"}
+       "Идентичность"]
+      [:button {:type "button"
+                :class "btn btn-ghost btn-sm h-11 min-h-11 px-3"
+                :hx-get "/insights/1/edit-identity"
+                :hx-target "#identity-block"
+                :hx-swap "outerHTML"}
+       "Править"]]
+     [:div {:id "identity-block"}
+      [:p {:class "text-sm italic opacity-80"}
+       "Я не своя тревога — я та, кто её наблюдает"]]]]
 
-   [:div {:class "form-control mb-5"}
-    [:div {:class "label px-0"}
-     [:span {:class "label-text text-base font-medium"} "Энергия"]]
-    [:input {:type "range" :name "energy" :min "0" :max "10" :value "5"
-             :class "range range-success" :style "height: 2rem"
-             :_ "on input put my value into #energy-value"}]
-    [:div {:class "flex justify-between mt-0.5 px-0.5"}
-     [:span {:class "text-xs opacity-40"} "0"]
-     [:span {:id "energy-value" :class "text-sm font-semibold tabular-nums"} "5"]
-     [:span {:class "text-xs opacity-40"} "10"]]]
+   ;; ── Карточка: метаданные + действия ──
+   [:div {:class "card bg-base-200 shadow-sm"}
+    [:div {:class "card-body p-4"}
+     [:div {:class "flex items-center justify-between flex-wrap gap-2"}
+      [:span {:class "text-xs opacity-50 tabular-nums"}
+       "Создано 14 августа 2026"]
+      [:button {:type "button"
+                :class "btn btn-ghost btn-sm h-11 min-h-11 px-3 text-error"
+                :_ "on click toggle .modal-open on #del-insight-1"}
+       [:svg {:xmlns "http://www.w3.org/2000/svg"
+              :width 18 :height 18 :viewBox "0 0 24 24"
+              :fill "none" :stroke "currentColor"
+              :stroke-width 2 :stroke-linecap "round" :stroke-linejoin "round"}
+        [:path {:d "M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"}]]
+       "Удалить"]]]]
 
-   [:div {:class "form-control mb-5"}
-    [:div {:class "label px-0"}
-     [:span {:class "label-text text-base font-medium"} "Тревога"]]
-    [:input {:type "range" :name "anxiety" :min "0" :max "10" :value "5"
-             :class "range range-warning" :style "height: 2rem"
-             :_ "on input put my value into #anxiety-value"}]
-    [:div {:class "flex justify-between mt-0.5 px-0.5"}
-     [:span {:class "text-xs opacity-40"} "0"]
-     [:span {:id "anxiety-value" :class "text-sm font-semibold tabular-nums"} "5"]
-     [:span {:class "text-xs opacity-40"} "10"]]]]
-
-  ;; опциональные блоки (collapse)
-  [:div {:class "border-t border-base-300 pt-4 mt-2"}
-   [:p {:class "text-xs opacity-50 mb-3 tracking-wide uppercase"} "Опционально"]
-
-   ;; фокус
-   [:div {:class "collapse collapse-arrow bg-base-300/50 mb-2 rounded-lg"}
-    [:input {:type "checkbox"
-             :_ "on change
-                   if me.checked
-                     remove [disabled] from #focus
-                   else
-                     add [disabled] to #focus"}]
-    [:div {:class "collapse-title text-sm font-medium min-h-0 py-3"} "Фокус"]
-    [:div {:class "collapse-content"}
-     [:div {:class "form-control"}
-      [:input {:type "range" :name "focus" :min "0" :max "10" :value "5"
-               :id "focus" :data-optional true :disabled true
-               :class "range range-info" :style "height: 2rem"
-               :_ "on input set #focus-value.textContent to my.value"}]
-      [:div {:class "flex justify-between mt-0.5 px-0.5"}
-       [:span {:class "text-xs opacity-40"} "0"]
-       [:span {:id "focus-value" :class "text-sm font-semibold tabular-nums"} "5"]
-       [:span {:class "text-xs opacity-40"} "10"]]]]]
-
-   ;; сон
-   [:div {:class "collapse collapse-arrow bg-base-300/50 mb-2 rounded-lg"}
-    [:input {:type "checkbox"
-             :_ "on change
-                   if me.checked
-                     remove [disabled] from #sleep_hours
-                   else
-                     add [disabled] to #sleep_hours"}]
-    [:div {:class "collapse-title text-sm font-medium min-h-0 py-3"} "Сон (ч)"]
-    [:div {:class "collapse-content"}
-     [:input {:type "number" :name "sleep_hours" :id "sleep_hours"
-              :data-optional true :disabled true
-              :step "0.1" :min "0" :max "24"
-              :placeholder "7.5"
-              :class "input input-bordered w-full"}]]]
-
-   ;; заметка
-   [:div {:class "collapse collapse-arrow bg-base-300/50 mb-2 rounded-lg"}
-    [:input {:type "checkbox"
-             :_ "on change
-                   if me.checked
-                     remove [disabled] from #note
-                   else
-                     add [disabled] to #note"}]
-    [:div {:class "collapse-title text-sm font-medium min-h-0 py-3"} "Заметка"]
-    [:div {:class "collapse-content"}
-     [:textarea {:name "note" :id "note" :rows "3" :maxlength "500"
-                 :data-optional true :disabled true
-                 :placeholder "..."
-                 :class "textarea textarea-bordered w-full"}]]]
-
-   ;; активность
-   [:div {:class "collapse collapse-arrow bg-base-300/50 mb-2 rounded-lg"}
-    [:input {:type "checkbox"
-             :_ "on change
-                   if me.checked
-                     remove [disabled] from #activity
-                   else
-                     add [disabled] to #activity"}]
-    [:div {:class "collapse-title text-sm font-medium min-h-0 py-3"} "Активность"]
-    [:div {:class "collapse-content"}
-     [:input {:type "text" :name "activity" :id "activity"
-              :data-optional true :disabled true
-              :placeholder "..."
-              :class "input input-bordered w-full"}]]]]
-
-  ;; кнопка сохранения (htmx-disabled на время запроса)
-  [:button {:type "submit" :class "btn btn-primary w-full h-12 mt-4"}
-   "Сохранить"]]
-
-
- ])
+   ;; ── Модалка подтверждения удаления ──
+   [:dialog {:id "del-insight-1" :class "modal modal-bottom sm:modal-middle"}
+    [:div {:class "modal-box"}
+     [:h3 {:class "text-lg font-bold mb-2"} "Удалить инсайт?"]
+     [:p {:class "text-sm opacity-70 mb-4"}
+      "Действие необратимо. Записи и состояния сохранятся."]
+     [:div {:class "modal-action"}
+      [:form {:method "dialog"}
+       [:button {:class "btn btn-ghost h-11 min-h-11"} "Отмена"]]
+      [:button {:class "btn btn-error h-11 min-h-11"
+                :hx-delete "/insights/1"
+                :_ "on htmx:afterRequest
+                       remove #insight-page
+                       then settle window.location.href = '/insights'"}
+       "Удалить"]]]
+    [:form {:method "dialog" :class "modal-backdrop"}
+     [:button "close"]]]])
 
 ;; ============================================================
 

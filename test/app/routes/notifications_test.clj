@@ -131,3 +131,22 @@
                               {:builder-fn next.jdbc.result-set/as-unqualified-maps})
           date (:last_summary_date (first rows))]
       (is (= (str (java.time.LocalDate/now)) date)))))
+
+(def ^:private past-slot-time?
+  #'app.routes.notifications/past-slot-time?)
+
+(deftest past-slot-time-comparison
+  (testing "past-slot-time? сравнивает время числово (минуты с полуночи)"
+    (with-redefs-fn {#'app.routes.notifications/current-minutes (fn [] 600)}
+      (fn []
+        (is (true? (past-slot-time? "08:00")) "слот раньше сейчас → true")
+        (is (false? (past-slot-time? "18:00")) "слот позже сейчас → false")
+        (is (true? (past-slot-time? "10:00")) "слот равен сейчас → true")))
+    (with-redefs-fn {#'app.routes.notifications/current-minutes (fn [] 0)}
+      (fn []
+        (is (true? (past-slot-time? "00:00")) "полночь → true")))
+    (with-redefs-fn {#'app.routes.notifications/current-minutes (fn [] 1439)}
+      (fn []
+        (is (true? (past-slot-time? "23:59")) "23:59 при 23:59 → true")))
+    (is (nil? (past-slot-time? nil)) "nil → nil")
+    (is (nil? (past-slot-time? "invalid")) "невалидный формат → nil")))

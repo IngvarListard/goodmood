@@ -34,14 +34,20 @@
     (raw-state-label latest)
     nil))
 
+(defn- current-minutes
+  "Текущее локальное время в минутах с полуночи (0..1439)."
+  []
+  (let [now (java.time.LocalTime/now)]
+    (+ (* (.getHour now) 60) (.getMinute now))))
+
 (defn- past-slot-time?
-  "Вернуть true, если текущее время локально уже прошло время слота (HH:MM)."
+  "Вернуть true, если текущее локальное время уже прошло время слота (HH:MM).
+    Сравнение в минутах с полуночи (числовое), не строками."
   [time-str]
   (when (and time-str (re-matches #"^\d{2}:\d{2}$" time-str))
     (let [[h m] (mapv parse-long (str/split time-str #":"))
-          now-hhmm (str (java.time.LocalTime/now))]
-      (>= (str/join ":" [(format "%02d" h) (format "%02d" m)])
-          (subs now-hhmm 0 5)))))
+          slot-minutes (+ (* h 60) m)]
+      (>= (current-minutes) slot-minutes))))
 
 (defn pending-insight
   "GET /feed/pending-insight — фрагмент баннера «пока тебя не было».

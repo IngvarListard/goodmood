@@ -289,13 +289,18 @@
 
 (defn chat-response
   "Фрагмент сообщений чата для #chat-response. messages — вектор сообщений
-   из ai_chat_messages. crisis? — показывать алерт с проф. помощью сверху."
-  [{:keys [crisis? messages]}]
+   из ai_chat_messages. crisis? — показывать алерт с проф. помощью сверху.
+   error? — показать фолбэк-пузырь ассистента (не сохраняется в БД)."
+  [{:keys [crisis? error? messages]}]
   [:div {:id "chat-response" :class "space-y-2" :data-testid "chat-response"}
    (when crisis? (crisis-alert))
    (for [m messages]
      ^{:key (:id m)}
-     (chat-bubble m))])
+     (chat-bubble m))
+   (when error?
+     [:div {:class "chat chat-start" :data-testid "chat-error-bubble"}
+      [:div {:class "chat-bubble chat-bubble-error text-sm"}
+       (i18n/t :ai/chat-error-fallback)]])])
 
 (defn- chat-disclaimer
   "Disclaimer «не заменяет терапию» при первом открытии чата."

@@ -199,6 +199,7 @@
        :chat-crisis-title "You may need support right now"
        :chat-crisis-hotline "Helpline: 8-800-2000-122"
        :chat-crisis-112 "Emergency: 112"
+       :chat-error-fallback "Could not get a response, please try again later"
        :toggle-episode-warning "Episode onset warning"
        :episode-warning-title "It looks like recent days resemble a past pattern. Want to look at what helped then?"
        :episode-warning-why "why?"

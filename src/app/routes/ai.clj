@@ -165,6 +165,7 @@
             _ (when reply (ai/save-chat-message! ds uid "assistant" reply))
             crisis? (ai/needs-crisis-response? trimmed)]
         (html-response 200 (views/chat-response {:crisis? crisis?
+                                                 :error? (nil? reply)
                                                  :messages (ai/chat-history ds uid)}))))))
 
 (defn chat-disclaimer

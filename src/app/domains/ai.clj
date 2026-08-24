@@ -86,7 +86,7 @@
    ошибке сети или не-2xx возвращает nil (graceful)."
   [model messages]
   (let [key (api-key)]
-    (when (seq key)
+    (if (seq key)
       (try
         (let [resp (http/post
                     openrouter-url
@@ -103,7 +103,8 @@
                 nil)))
         (catch Exception e
           (println "OpenRouter call failed:" (.getMessage e))
-          nil)))))
+          nil))
+      (println "OpenRouter API key not set — skipping AI call"))))
 
 (defn- parse-findings
   "Распарсить content в вектор находок, валидированных по схеме.

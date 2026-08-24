@@ -367,6 +367,22 @@
                 (str/includes? body "помощ"))
             "ответ содержит напоминание о профессиональной помощи / телефон доверия")))))
 
+(deftest test-chat-nil-reply-shows-fallback
+  (testing "при nil-ответе (нет ключа / сеть / non-200) — фолбэк-пузырь, user сохранён, assistant НЕ сохранён"
+    (add-today-entry!)
+    (with-redefs [domains/call-chat (fn [_ _] nil)]
+      (let [response (post-json-form "/ai/chat" {:message "мне тревожно"})
+            body (body-text response)]
+        (is (= 200 (:status response)))
+        (is (str/includes? body "chat-error-bubble") "показан фолбэк-пузырь")
+        (is (or (str/includes? body "Не удалось получить ответ")
+                (str/includes? body "Could not get"))
+            "фолбэк содержит текст ошибки")))
+    (let [rows (jdbc/execute! @ds-atom ["SELECT role FROM ai_chat_messages WHERE user_id = 1"]
+                              {:builder-fn rs/as-unqualified-maps})]
+      (is (= 1 (count rows)) "сохранено только user-сообщение")
+      (is (= #{"user"} (set (map :role rows))) "assistant-фолбэк не сохранён в БД"))))
+
 (deftest test-novel-advice-off-by-default-on-feed
   (testing "novel advice выключен по умолчанию: секция ai-novel-advice не показывается на /feed"
     (let [body (body-text (get-html "/feed"))]

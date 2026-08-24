@@ -59,6 +59,46 @@ clj -M -m app.core
 curl http://localhost:3000/
 ```
 
+# Env-переменные
+
+| Переменная | Обязательна | Описание |
+|---|---|---|
+| `GOODMOOD_SESSION_SECRET` | да | Секрет для подписи cookie-сессий (`system.clj`) |
+| `OPENROUTER_API_KEY` | нет | Ключ OpenRouter для AI-функций. Без него все AI-функции возвращают nil (graceful degradation) |
+
+# Обзор фич/доменов
+
+- **entries** (`routes/entries.clj`) — записи состояния: энергия, тревога, фокус, настроение, сон, заметки
+- **feed** (`routes/feed.clj`) — главная страница: текущее состояние, AI-инсайты, polling-баннеры
+- **check-in** (`routes/check_in.clj`) — пошаговый чек-ин
+- **medications** (`routes/medications.clj`) — CRUD медикаментов, лог приёма, активация/деактивация
+- **insights** (`routes/insights.clj`) — инсайты: контекст + советы себе, привязка к state-меткам
+- **state periods** (`routes/state_periods.clj`) — marking эпизодов, группировка записей
+- **notifications** (`routes/notifications.clj`) — 3 слота (утро/день/вечер), баннеры
+- **ai** (`routes/ai.clj`, `domains/ai.clj`) — корреляции, ярлыки, советы, чат, предупреждения об эпизодах
+- **settings** (через `routes/app.clj`) — настройки уведомлений и AI
+
+# i18n
+
+- `app.i18n`, функция `t` (`i18n/t :key`), локали `:ru` (по умолчанию) и `:en`
+- Переводы в `resources/i18n/{ru,en}.edn`
+- Локаль определяется middleware `wrap-locale` (cookie > Accept-Language > умолчание)
+- При добавлении новых текстов — добавляй ключи в оба файла
+
+# Миграции
+
+- `resources/migrations/` — SQL-миграции формата `NNN-name.up.sql` / `NNN-name.down.sql`
+- migratus, автозапуск при старте системы (`system.clj` → `:db/migrate`)
+- Текущие 13 миграций: users, entries, medications, insights, notification-settings, ai-findings, ai-settings, state-periods, ai-chat-messages, episode-warnings
+
+# AI-домен
+
+- Внешний API: OpenRouter (`https://openrouter.ai/api/v1/chat/completions`), ключ через `OPENROUTER_API_KEY`
+- Opt-in per-function: master-toggle + individual (correlations, labels, advice, novel-advice, episode-warning)
+- Graceful nil: при отсутствии ключа / ошибке сети / non-200 — `call-chat` возвращает nil, AI-секции не показываются
+- Модели определены в `domains/ai.clj` (`correlation-model`, `advice-model`, `chat-model`, `episode-warning-model`)
+- AI-чат: при nil-ответе показывается фолбэк-сообщение (не сохраняется в БД)
+
 # E2E-тестирование фронтенда
 
 - При работе над фронтендом **проверяй свою реализацию через Playwright MCP** (подключён в `.opencode/opencode.json`): открывай страницы, кликай, проверяй htmx-свапы в реальном браузере. Это часть девического лупа.

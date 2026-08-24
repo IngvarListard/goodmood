@@ -1,6 +1,7 @@
 (ns app.views.feed
   (:require [app.domains.entries :as domains]
             [app.i18n :as i18n]
+            [app.views.ai :as ai]
             [app.views.insights :as insights]
             [app.views.layout :as layout]
             [app.views.navigation :as navigation]
@@ -10,11 +11,15 @@
 
 (defn- entry-label
   "Вернуть локализованный ярлык состояния записи.
-   Если state_label задан — использовать его (override), иначе вычислить rule-based."
+   state_label хранится как 'state/<key>' или '<key>' (raw); свободный текст
+   AI-предложения («тревожный интроверт») отображается как есть."
   [entry]
-  (let [label-kw (or (some-> (:state-label entry) keyword)
-                     (domains/state-label entry))]
-    (i18n/t label-kw)))
+  (let [raw (:state-label entry)
+        key (when (and raw (not (str/starts-with? raw "state/")) (not (str/blank? raw)))
+              (keyword "state" raw))
+        label-kw (or key (some-> raw keyword) (domains/state-label entry))
+        translated (i18n/t label-kw)]
+    (if (string? translated) translated (or raw (name label-kw)))))
 
 (defn- format-time
   "Извлечь время «HH:MM» из created_at (формат SQLite datetime('now'))."
@@ -89,7 +94,7 @@
    insight: 1 релевантный инсайт или nil.
    В мягком состоянии (low/mixed) виджет поднимается выше hero — акцент
    на совете, не на фиксации боли (Decision 14.4)."
-  [today-entries state-label insight]
+  [today-entries state-label insight & [ai-advice]]
   (let [soft? (and state-label (contains? #{"low" "mixed"} state-label))]
     [:section {:class "mb-6"}
      [:h2 {:class "text-sm font-medium opacity-60 mb-2 uppercase tracking-wide"}
@@ -97,10 +102,10 @@
      (if (seq today-entries)
        (let [latest (first today-entries)
              rest-entries (rest today-entries)
-             soft-order? (list (insights/feed-widget state-label insight)
+             soft-order? (list (insights/feed-widget state-label insight ai-advice)
                                (hero-card latest))
              normal-order? (list (hero-card latest)
-                                 (insights/feed-widget state-label insight))]
+                                 (insights/feed-widget state-label insight ai-advice))]
          [:div
           (if soft?
             soft-order?
@@ -139,9 +144,10 @@
    Последняя запись сегодня — hero-карточка с розой; остальные — компактные.
    Под hero — виджет инсайтов (state-label, insight).
    request: ring-запрос; entries: вектор записей (date desc, created_at desc).
-   opts: map с ключами :toast-insight (toast после сохранения) и
-   :summary (map {:show :csrf :state-label :insight} для вечерней сводки)."
-  [request entries state-label insight & [{:keys [toast-insight summary]}]]
+   opts: map с ключами :toast-insight (toast после сохранения),
+   :summary (map {:show :csrf :state-label :insight} для вечерней сводки) и
+   :ai (map {:csrf :correlations :label :advice} для секций Фазы 5)."
+  [request entries state-label insight & [{:keys [toast-insight summary ai]}]]
   (let [grouped (group-by :date entries)
         today (str (java.time.LocalDate/now))
         today-entries (get grouped today)
@@ -156,7 +162,16 @@
                  (notifications/pending-insight-fragment)
                  [:div {:class "mb-6"}
                   [:h1 {:class "text-2xl font-bold"} (i18n/t :feed/title)]]
-                 (today-section today-entries state-label insight)
+                 (when ai
+                   (today-section today-entries state-label insight
+                                  {:csrf (:csrf ai)
+                                   :findings (:advice ai)}))
+                 (when (and ai (seq (:label ai)))
+                   (ai/ai-state-label (:csrf ai) (:label ai)))
+                 (when (and ai (seq (:correlations ai)))
+                   (ai/ai-correlations (:csrf ai) (:correlations ai)))
+                 (when-not ai
+                   (today-section today-entries state-label insight))
                  (for [date past-dates]
                    (past-day-section date (get grouped date)))
                  (fab)]]

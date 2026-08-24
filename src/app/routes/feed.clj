@@ -1,5 +1,6 @@
 (ns app.routes.feed
-  (:require [app.domains.entries :as entries]
+  (:require [app.domains.ai :as ai]
+            [app.domains.entries :as entries]
             [app.domains.insights :as insights]
             [app.domains.notification-settings :as notif-domains]
             [app.views.feed :as views]
@@ -12,12 +13,31 @@
    :headers {"Content-Type" "text/html; charset=utf-8"}
    :body (str (html body))})
 
+(defn- ai-findings
+  "Собрать AI-находки для /feed с учётом per-function opt-out.
+   Возвращает map {:csrf :correlations :label :advice} или nil (AI отключён).
+   label — вектор находок type=label (view берёт первый)."
+  [ds user-id csrf-token]
+  (when (ai/ai-enabled? ds user-id)
+    (let [correlations (when (ai/correlations-enabled? ds user-id)
+                         (ai/list-correlations ds user-id))
+          label (when (ai/labels-enabled? ds user-id)
+                  (ai/list-labels ds user-id))
+          advice (when (ai/advice-enabled? ds user-id)
+                   (ai/list-advice ds user-id))]
+      (when (or (seq correlations) (seq label) (seq advice))
+        {:csrf        csrf-token
+         :correlations correlations
+         :label       label
+         :advice      advice}))))
+
 (defn- raw-state-label
   "Вернуть raw state_label строки (без префикса :state/), если он задан;
    иначе вычислить rule-based из осей."
   [entry]
-  (or (:state-label entry)
-      (-> (entries/state-label entry) name (str/replace "state/" ""))))
+  (if-let [l (:state-label entry)]
+    (str/replace l "state/" "")
+    (-> (entries/state-label entry) name (str/replace "state/" ""))))
 
 (defn- saved-toast-insight
   "Вернуть инсайт для toast «только что сохранил», когда /feed открыт с
@@ -43,6 +63,29 @@
          (or (nil? evening)
              (not= (:last-summary-date evening) today)))))
 
+(defn- ensure-ai-analysis!
+  "Запустить фоновый анализ (корреляции/ярлык/советы) при первом обращении
+   после порога. Не блокирует UI: анализ выполняется в отдельных потоках,
+   результат кэшируется в ai_findings и подхватывается при следующем
+   polling (Decision 5)."
+  [ds user-id latest-state-label]
+  (when (ai/ai-enabled? ds user-id)
+    (when (and (ai/correlations-enabled? ds user-id)
+               (ai/correlation-analysis-needed? ds user-id))
+      (future (try (ai/analyze-correlations ds user-id)
+                   (catch Exception e
+                     (println "Background correlation analysis failed:" (.getMessage e))))))
+    (when (and (ai/labels-enabled? ds user-id)
+               (ai/label-analysis-needed? ds user-id latest-state-label))
+      (future (try (ai/propose-state-label ds user-id latest-state-label)
+                   (catch Exception e
+                     (println "Background label proposal failed:" (.getMessage e))))))
+    (when (and (ai/advice-enabled? ds user-id)
+               (ai/advice-analysis-needed? ds user-id))
+      (future (try (ai/generate-advice-from-insights ds user-id)
+                   (catch Exception e
+                     (println "Background advice generation failed:" (.getMessage e))))))))
+
 (defn page
   "Показать ленту записей («мой день») для аутентифицированного пользователя.
    Под hero-карточкой рендерится виджет инсайтов: 1 релевантный по
@@ -55,16 +98,22 @@
         today-entries (filter #(= today (:date %)) entries)
         latest (first today-entries)
         state-label (when latest (raw-state-label latest))
+        ;; Ручной ярлык (сохранённый в entries.state_label), если задан.
+        ;; AI-ярлык предлагается только при его отсутствии (spec Phase 5).
+        manual-label (when latest (:state-label latest))
         insight (when state-label
                   (insights/matching-insight ds user-id state-label))
         saved? (= "1" (get-in request [:query-params "saved"]))
         toast-insight (saved-toast-insight ds user-id saved?)
         settings (notif-domains/get-settings ds user-id)
         summary? (summary-showing? settings today today-entries)
-        summary-insight (when summary? insight)]
+        summary-insight (when summary? insight)
+        _ (ensure-ai-analysis! ds user-id manual-label)
+        ai (ai-findings ds user-id (get-in request [:anti-forgery-token]))]
     (html-response 200 (views/page request entries state-label insight
                                    {:toast-insight toast-insight
                                     :summary {:show summary?
                                               :csrf (get-in request [:anti-forgery-token])
                                               :state-label state-label
-                                              :insight summary-insight}}))))
+                                              :insight summary-insight}
+                                    :ai ai}))))

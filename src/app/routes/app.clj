@@ -16,6 +16,8 @@
             [app.domains.entries :as domains]
             [app.domains.insights :as insights-domains]
             [app.domains.medications :as med-domains]
+            [app.domains.ai :as ai-domains]
+            [app.routes.ai :as ai-routes]
             [app.routes.auth :as auth]
             [app.routes.check-in :as check-in]
             [app.routes.entries :as entries]
@@ -104,8 +106,9 @@
 (defn- settings-page-handler
   [ds request]
   (let [uid (get-in request [:identity :id])
-        settings (notif-domains/get-settings ds uid)]
-    (html-response 200 (settings/page request settings))))
+        notif-settings (notif-domains/get-settings ds uid)
+        ai-settings (ai-domains/get-settings ds uid)]
+    (html-response 200 (settings/page request notif-settings ai-settings))))
 
 (defn- anti-forgery-error-handler
   [_]
@@ -195,7 +198,19 @@
     ["/notifications/summary-dismiss"
      {:post {:handler (partial notifications/summary-dismiss ds)}}]
     ["/settings/notifications"
-     {:post {:handler (partial notifications/settings-update ds)}}]]
+     {:post {:handler (partial notifications/settings-update ds)}}]
+    ["/settings/ai"
+     {:post {:handler (partial ai-routes/settings-update ds)}}]
+    ["/ai/correlations"
+     {:post {:handler (partial ai-routes/correlations-fragment ds)}}]
+    ["/ai/label"
+     {:post {:handler (partial ai-routes/state-label-fragment ds)}}]
+    ["/ai/label/apply"
+     {:post {:handler (partial ai-routes/apply-label ds)}}]
+    ["/ai/advice"
+     {:post {:handler (partial ai-routes/advice-fragment ds)}}]
+    ["/ai/findings/:id/feedback"
+     {:post {:handler (partial ai-routes/feedback ds)}}]]
    {:data {:coercion app-coercion
            :middleware [rc/coerce-request-middleware
                         rc/coerce-response-middleware]}}))
@@ -216,9 +231,9 @@
         (mw/require-auth router)
         mw/wrap-identity
         mw/wrap-locale
-(anti-forgery/wrap-anti-forgery
-          {:read-token mw/read-csrf-token
-           :error-handler anti-forgery-error-handler})
+        (anti-forgery/wrap-anti-forgery
+         {:read-token mw/read-csrf-token
+          :error-handler anti-forgery-error-handler})
         (session/wrap-session (session-config session-secret))
         muuntaja/wrap-format
         params/wrap-params)))

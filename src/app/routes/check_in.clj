@@ -14,8 +14,9 @@
   "Вернуть raw state_label строки (без префикса :state/), если задан;
    иначе вычислить rule-based из осей."
   [entry]
-  (or (:state-label entry)
-      (-> (entries/state-label entry) name (str/replace "state/" ""))))
+  (if-let [l (:state-label entry)]
+    (str/replace l "state/" "")
+    (-> (entries/state-label entry) name (str/replace "state/" ""))))
 
 (defn- soft-mode?
   "Вернуть true, если последняя запись пользователя в состоянии low/mixed —

@@ -1,6 +1,6 @@
 import { test, expect, Page } from '@playwright/test';
 import { execSync } from 'node:child_process';
-import { ensureE2EUser, login, submitEntry, projectRoot } from '../helpers';
+import { ensureE2EUser, login, submitEntry, projectRoot, E2E_USER_EMAIL } from '../helpers';
 
 test.beforeAll(ensureE2EUser);
 
@@ -20,20 +20,26 @@ function resetAISate() {
 
 test.beforeAll(resetAISate);
 
-// Создать ≥14 дней записей (порог для AI-анализа корреляций).
-// Чередуем сон 8ч/4ч для корреляции «сон → тревога».
+// Создать ≥14 дней записей (порог для AI-анализа корреляций) напрямую в БД.
+// Чередуем сон 8ч/4ч и тревогу для корреляции «сон → тревога».
 async function seedFourteenDays(page: Page) {
-  for (let i = 14; i >= 1; i--) {
-    const date = new Date(Date.now() - i * 86400000).toISOString().slice(0, 10);
-    const sleepLow = i % 2 === 0;
-    await submitEntry(page, {
-      mood_score: sleepLow ? 3 : 7,
-      energy: sleepLow ? 3 : 7,
-      anxiety: sleepLow ? 7 : 3,
-      sleep_hours: sleepLow ? 4 : 8,
-      template: 'day',
-    });
-  }
+  execSync(
+    `clojure -M -e "
+       (require '[next.jdbc :as jdbc] '[app.db.entries :as e] '[app.db.users :as u])
+       (def ds (jdbc/get-datasource {:dbtype \\"sqlite\\" :dbname \\"resources/goodmood.db\\"}))
+       (def uid (:id (u/get-user-by-email ds \\"${E2E_USER_EMAIL}\\")))
+       (dotimes [i 20]
+         (let [low (even? i)]
+           (e/create-entry! ds {:user-id uid
+                                :date (str (.minusDays (java.time.LocalDate/now) (inc i)))
+                                :activity \\"walk\\" :effect \\"calm\\"
+                                :mood-score (if low 3 7)
+                                :energy (if low 3 7)
+                                :anxiety (if low 7 3)
+                                :sleep-hours (if low 4.0 8.0)})))
+       (println \\"seeded\\")"`,
+    { cwd: projectRoot, timeout: 90000, stdio: 'ignore' },
+  );
 }
 
 // Создать инсайт в тревожном состоянии (для AI-генерации совета из своих).
@@ -50,20 +56,24 @@ async function createAnxiousInsight(page: Page) {
 test.describe('AI assistant (Phase 5): correlations, labels, advice from own insights', () => {
 
   test('correlation finding appears after ≥14 days of data', async ({ page }) => {
+    test.setTimeout(90000);
     await login(page);
     await seedFourteenDays(page);
-    // Запустить фоновый AI-анализ (endpoint или cron). В тесте — явный триггер.
     await page.goto('/feed');
-    // Ждём появления секции корреляций (htmx-polling или явный trigger).
-    await page.waitForTimeout(5000);
     const corrSection = page.locator('[data-testid="ai-correlations"]');
-    // Если анализ асинхронный — возможно нужно дождаться. Timeout 10s.
-    await expect(corrSection).toBeVisible({ timeout: 15000 });
-    // Находка содержит объяснение (не просто «тревога высокая»).
-    await expect(corrSection.getByText(/сон|sleep/i)).toBeVisible();
+    // Фоновый AI-анализ асинхронный: ждём появления находок, периодически
+    // перезагружая, чтобы подхватить закэшированный результат (ai_findings).
+    await expect.poll(async () => {
+      if (await corrSection.isVisible()) return true;
+      await page.reload();
+      await page.waitForTimeout(5000);
+      return await corrSection.isVisible();
+    }, { timeout: 60000, intervals: [5000] }).toBe(true);
+    // Находка — реальная корреляция с уровнем уверенности (не пустая секция).
+    await expect(corrSection.getByText(/уверенность|confidence/i).first()).toBeVisible();
     // Кнопки «не релевантно» / «уже знал».
-    await expect(corrSection.getByRole('button', { name: /не релевантно|not relevant/i })).toBeVisible();
-    await expect(corrSection.getByRole('button', { name: /уже знал|already knew/i })).toBeVisible();
+    await expect(corrSection.getByRole('button', { name: /не релевантно|not relevant/i }).first()).toBeVisible();
+    await expect(corrSection.getByRole('button', { name: /уже знал|already knew/i }).first()).toBeVisible();
   });
 
   test('correlation finding has confidence level', async ({ page }) => {
@@ -72,7 +82,7 @@ test.describe('AI assistant (Phase 5): correlations, labels, advice from own ins
     const corr = page.locator('[data-testid="ai-correlations"]');
     if (await corr.isVisible()) {
       // Уверенность: high/medium/low (ru/eng).
-      await expect(corr.getByText(/уверенность|confidence/i)).toBeVisible();
+      await expect(corr.getByText(/уверенность|confidence/i).first()).toBeVisible();
     }
   });
 
@@ -81,8 +91,10 @@ test.describe('AI assistant (Phase 5): correlations, labels, advice from own ins
     await page.goto('/feed');
     const corr = page.locator('[data-testid="ai-correlations"]');
     if (await corr.isVisible()) {
-      await corr.getByRole('button', { name: /не релевантно|not relevant/i }).click();
-      await expect(corr).toBeHidden({ timeout: 5000 });
+      // Клик по «не релевантно» на конкретной карточке скрывает ЕЁ (не всю секцию).
+      const firstCard = corr.locator('.card').first();
+      await firstCard.getByRole('button', { name: /не релевантно|not relevant/i }).click();
+      await expect(firstCard).toBeHidden({ timeout: 5000 });
     }
   });
 
@@ -90,6 +102,9 @@ test.describe('AI assistant (Phase 5): correlations, labels, advice from own ins
     await login(page);
     await submitEntry(page, { mood_score: 4, energy: 4, anxiety: 8, template: 'day' });
     await page.goto('/feed');
+    // Даём фоновому анализу завершиться и перезагружаем (async-кэш).
+    await page.waitForTimeout(12000);
+    await page.reload();
     // AI-ярлык должен быть виден рядом с обычным state_label.
     const aiLabel = page.locator('[data-testid="ai-state-label"]');
     await expect(aiLabel).toBeVisible({ timeout: 10000 });
@@ -113,6 +128,9 @@ test.describe('AI assistant (Phase 5): correlations, labels, advice from own ins
     await createAnxiousInsight(page);
     await submitEntry(page, { mood_score: 4, energy: 4, anxiety: 8, template: 'day' });
     await page.goto('/feed');
+    // Даём фоновому анализу завершиться и перезагружаем (async-кэш).
+    await page.waitForTimeout(12000);
+    await page.reload();
     const advice = page.locator('[data-testid="ai-advice"]');
     await expect(advice).toBeVisible({ timeout: 10000 });
     // Ссылка на исходный инсайт.

@@ -1,5 +1,6 @@
 (ns app.views.insights
   (:require [app.i18n :as i18n]
+            [app.views.ai :as ai]
             [app.views.layout :as layout]
             [app.views.navigation :as navigation]
             [clojure.string :as str]))
@@ -310,23 +311,23 @@
            (for [cat categories]
              [:option {:value cat} (category-label cat)])]]
 
-[:div {:class "form-control"}
-           [:label {:class "label"}
-            [:span {:class "label-text"} (i18n/t :insights/advice-label)]]
-           [:p {:class "text-sm opacity-60 mb-2"} (i18n/t :insights/advice-hint)]
-           [:div {:id "advice-list" :class "space-y-2"}
-            (advice-item 0 nil)]
-           [:button {:type "button"
-                     :class "btn btn-ghost btn-sm h-11 min-h-11 mt-2"
-                     :hx-get "/insights/advice-item"
-                     :hx-target "#advice-list"
-                     :hx-swap "beforeend"}
-            [:svg {:xmlns "http://www.w3.org/2000/svg"
-                   :width 20 :height 20 :viewBox "0 0 24 24"
-                   :fill "none" :stroke "currentColor"
-                   :stroke-width 2.5 :stroke-linecap "round" :stroke-linejoin "round"}
-             [:path {:d "M12 5v14M5 12h14"}]]
-            (i18n/t :insights/add-advice)]]
+         [:div {:class "form-control"}
+          [:label {:class "label"}
+           [:span {:class "label-text"} (i18n/t :insights/advice-label)]]
+          [:p {:class "text-sm opacity-60 mb-2"} (i18n/t :insights/advice-hint)]
+          [:div {:id "advice-list" :class "space-y-2"}
+           (advice-item 0 nil)]
+          [:button {:type "button"
+                    :class "btn btn-ghost btn-sm h-11 min-h-11 mt-2"
+                    :hx-get "/insights/advice-item"
+                    :hx-target "#advice-list"
+                    :hx-swap "beforeend"}
+           [:svg {:xmlns "http://www.w3.org/2000/svg"
+                  :width 20 :height 20 :viewBox "0 0 24 24"
+                  :fill "none" :stroke "currentColor"
+                  :stroke-width 2.5 :stroke-linecap "round" :stroke-linejoin "round"}
+            [:path {:d "M12 5v14M5 12h14"}]]
+           (i18n/t :insights/add-advice)]]
 
          [:div {:class "form-control"}
           [:label {:class "label" :for "identity"}
@@ -544,7 +545,7 @@
           (format-date (:created-at insight))]
          [:button {:type "button"
                    :class "btn btn-ghost btn-sm h-11 min-h-11 px-3 text-error"
-:aria-label (i18n/t :insights/delete-insight)
+                   :aria-label (i18n/t :insights/delete-insight)
                    :_ (str "on click toggle .modal-open on #del-insight-" id)}
           [:svg {:xmlns "http://www.w3.org/2000/svg"
                  :width 18 :height 18 :viewBox "0 0 24 24"
@@ -576,8 +577,9 @@
 (defn feed-widget
   "Виджет для /feed: заголовок + 1 компактная карточка или онбординг.
    state-label: текущий state_label (string, напр. \"anxiety\").
-   insight: 1 релевантный инсайт или nil."
-  [state-label insight]
+   insight: 1 релевантный инсайт или nil.
+   ai-advice: map {:csrf :findings} или nil — рендерит AI-совет под виджетом."
+  [state-label insight & [{:keys [csrf findings]}]]
   (when state-label
     [:section {:class "mb-4" :id "feed-insights"}
      [:h2 {:class "text-sm font-medium opacity-60 mb-2 uppercase tracking-wide"}
@@ -608,4 +610,6 @@
          (i18n/t :insights/onboarding-state {:state (state-label-text state-label)})]
         [:a {:href (str "/insights/new?state_label=" state-label)
              :class "btn btn-primary btn-sm h-11 min-h-11 px-4"}
-         (i18n/t :insights/onboarding-state-create)]])]))
+         (i18n/t :insights/onboarding-state-create)]])
+     ;; AI-совет под виджетом инсайтов (независимо от наличия matching-инсайта)
+     (when findings (ai/ai-advice csrf findings))]))

@@ -1,12 +1,20 @@
 import { defineConfig } from '@playwright/test';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import fs from 'node:fs';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 // Корень проекта (родитель e2e/)
 const projectRoot = path.resolve(__dirname, '..');
+
+// Ключ OpenRouter (для AI-фич в e2e). Файл в gitignore.
+const OPENROUTER_API_KEY =
+  process.env.OPENROUTER_API_KEY ||
+  (fs.existsSync(path.join(projectRoot, 'OPENROUTER_API_KEY'))
+    ? fs.readFileSync(path.join(projectRoot, 'OPENROUTER_API_KEY'), 'utf8').trim()
+    : '');
 
 export default defineConfig({
   testDir: './tests',
@@ -38,6 +46,7 @@ export default defineConfig({
       GOODMOOD_SESSION_SECRET: 'e2e-secret',
       GOODMOOD_ADMIN_PASSWORD: 'e2e-admin-password',
       GOODMOOD_ADMIN_EMAIL: 'admin@goodmood.test',
+      OPENROUTER_API_KEY,
     },
   },
 });

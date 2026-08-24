@@ -38,3 +38,15 @@
                 :where [:= :user_id user-id]
                 :order-by [[:date :desc] [:created_at :desc]]})
    default-opts))
+
+(defn set-state-label!
+  "Установить ручной state_label записи (ограничено user-id).
+   Возвращает обновлённую запись или nil (чужая запись / несуществующий id)."
+  [ds user-id id label]
+  (jdbc/execute-one!
+   ds
+   (sql/format {:update :entries
+                :set {:state_label label}
+                :where [:and [:= :id id] [:= :user_id user-id]]
+                :returning [:*]})
+   default-opts))

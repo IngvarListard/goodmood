@@ -5,9 +5,7 @@
 Инсайт-артефакт — структурированная единица «совета себе» с привязкой к контексту состояния. Хранится отдельно от дневниковых записей и подбирается системой по текущему `state_label` (rule-based exact match, Фаза 3) для отображения в /feed. Ядро продуктовой ценности: доступ к собственным инсайтам именно в тот момент, когда они нужны.
 
 `[ref: A2-q2, A2-q4, A4-q5, A3-q3, OQ3]`
-
-## ADDED Requirements
-
+## Requirements
 ### Requirement: Migration 007 creates insights table
 The system SHALL provide migration 007 that creates the `insights` table with columns `id`, `user_id` (FK to `users`), `context` (TEXT NOT NULL), `category` (TEXT NOT NULL, CHECK IN `productivity/coping/identity/general`), `advice_to_self` (TEXT NOT NULL, JSON-array of strings), `identity` (TEXT, nullable), `state_label` (TEXT, nullable), `entry_id` (INTEGER, nullable, NO foreign key to `entries`), `created_at`, `updated_at`. An index `idx_insights_user_state` on `(user_id, state_label)` SHALL be created.
 
@@ -229,3 +227,18 @@ The system SHALL include `/insights` in the bottom navigation (`nav-items`), mak
 - **WHEN** пользователь открывает любую страницу с навигацией
 - **THEN** видит 5 пунктов: /feed, /check-in, /insights, /medications, /settings
 - **AND** `/insights` отмечен активным при нахождении на ней
+
+### Requirement: AI advice widget under insights
+The system SHALL display an AI-synthesised advice (`ai-advice`) in the /feed insights area, generated from the user's own historical insights with context similar to the current state. The widget SHALL show a human-readable explanation («почему этот совет?»), a link to the originating insight («из твоего инсайта от …»), and a «пожаловаться» button. If the user has no own insights or AI is disabled, the widget SHALL NOT appear.
+
+#### Scenario: AI advice shown with source link
+- **WHEN** у пользователя есть исторические инсайты с близким к текущему контекстом и AI-советы включены
+- **THEN** под виджетом инсайтов на /feed показывается секция `ai-advice`
+- **AND** совет содержит ссылку «из твоего инсайта от …» на исходный инсайт
+- **AND** совет содержит кнопку «почему этот совет?» с объяснением
+- **AND** совет содержит кнопку «пожаловаться»
+
+#### Scenario: No own insights → no AI advice
+- **WHEN** у пользователя нет ни одного инсайта (или AI-советы отключены)
+- **THEN** секция `ai-advice` не показывается на /feed
+

@@ -1,5 +1,6 @@
 (ns app.views.settings
   (:require [app.i18n :as i18n]
+            [app.views.ai :as ai]
             [app.views.layout :as layout]
             [app.views.navigation :as navigation]
             [app.views.notifications :as notifications]))
@@ -43,14 +44,16 @@
 
 (defn page
   "Страница настроек: информация о пользователе, переключатель языка, выход
-   и секция настроек уведомлений.
-   request: ring-запрос; notif-slots: вектор строк из user_notification_settings."
-  [request notif-slots]
+   и секции настроек уведомлений и AI-помощника.
+   request: ring-запрос; notif-slots: вектор строк из user_notification_settings;
+   ai-settings: map настроек AI."
+  [request notif-slots & [ai-settings]]
   (let [identity (:identity request)
         csrf (:anti-forgery-token request)
         content [:div {:class "max-w-2xl mx-auto p-4"}
                  [:h1 {:class "text-2xl font-bold mb-4"} (i18n/t :nav/settings)]
                  (user-card identity request)
+                 (when ai-settings (ai/ai-settings-section csrf ai-settings))
                  (notifications/settings-section csrf notif-slots)]]
     (layout/layout {:title (i18n/t :nav/settings)
                     :active :settings

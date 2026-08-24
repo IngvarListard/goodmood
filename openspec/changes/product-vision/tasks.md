@@ -92,18 +92,18 @@
 - [x] 6.6 `openspec validate`, реализация, `openspec status`, `openspec archive`.
 - [x] 6.7 Отметить Фазу 6 ✅ в `product-vision/tasks.md`. Change архивирован: `2026-08-24-add-ai-chat-and-periods`.
 
-## 7. Фаза 7 — AI: предупреждение эпизода (осторожно)
+## 7. Фаза 7 — AI: предупреждение эпизода (осторожно) ✅
 
 **Цель фазы:** AI предсказывает возможный начало эпизода с guardrails.
 **Капабилити:** `ai-assistant` (Фаза 7 часть).
 **Блокирующие open questions:** OQ8 (часть 3 — guardrails для предсказания).
 
-- [ ] 7.1 Принять решение по OQ8 (часть 3): пороги уверенности, opt-in, объяснимость, выключаемость, «пожаловаться на ложную тревогу».
-- [ ] 7.2 Создать change `add-ai-episode-warning` (proposal/design/specs/tasks). Delta-спеки: `ai-assistant` (modified — Фаза 7 часть).
-- [ ] 7.3 Реализовать: предсказание с guardrails, opt-in, объяснимый вывод, лёгкое выключение.
-- [ ] 7.4 Тесты: сценарии из `specs/ai-assistant/spec.md` (Фаза 7 часть) — особенно «AI ошибся, эпизода нет → пользователь не должен получить тревожное уведомление».
-- [ ] 7.5 `openspec validate`, реализация, `openspec status`, `openspec archive`.
-- [ ] 7.6 Отметить Фазу 7 ✅ в `product-vision/tasks.md`.
+- [x] 7.1 Принять решение по OQ8 (часть 3): пороги уверенности, opt-in, объяснимость, выключаемость, «пожаловаться на ложную тревогу».
+- [x] 7.2 Создать change `add-ai-episode-warning` (proposal/design/specs/tasks). Delta-спеки: `ai-assistant` (modified — Фаза 7 часть).
+- [x] 7.3 Реализовать: предсказание с guardrails, opt-in, объяснимый вывод, лёгкое выключение.
+- [x] 7.4 Тесты: сценарии из `specs/ai-assistant/spec.md` (Фаза 7 часть) — особенно «AI ошибся, эпизода нет → пользователь не должен получить тревожное уведомление».
+- [x] 7.5 `openspec validate`, реализация, `openspec status`, `openspec archive`.
+- [x] 7.6 Отметить Фазу 7 ✅ в `product-vision/tasks.md`. Change архивирован: `2026-08-24-add-ai-episode-warning`.
 
 ## 8. Сквозные задачи
 

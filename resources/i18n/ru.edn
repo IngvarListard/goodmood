@@ -198,7 +198,17 @@
        :chat-disclaimer-accept "Продолжить"
        :chat-crisis-title "Тебе сейчас может быть нужна поддержка"
        :chat-crisis-hotline "Телефон доверия: 8-800-2000-122"
-       :chat-crisis-112 "Экстренная помощь: 112"}
+       :chat-crisis-112 "Экстренная помощь: 112"
+       :toggle-episode-warning "Предупреждение о возможном начале эпизода"
+       :episode-warning-title "Похоже, последние дни похожи на твой прежний паттерн. Хочешь посмотреть, что помогало тогда?"
+       :episode-warning-why "почему?"
+       :episode-warning-why-note "Это не диагноз — только наблюдение по твоим данным за последние дни. Окончательное решение всегда за тобой."
+       :episode-warning-disable "выключить"
+       :episode-warning-false-alarm "ложная тревога"}
+  :crisis {:resource-title "Тебе сейчас может быть нужна поддержка"
+           :resource-support "Ты не один. Профессиональная помощь рядом."
+           :resource-hotline "Телефон доверия: 8-800-2000-122"
+           :resource-112 "Экстренная помощь: 112"}
   :periods {:start "Начать период"
             :start-title "Отметь период"
             :presets "Быстрый выбор"

@@ -46,7 +46,9 @@ export async function login(page: Page, email = E2E_USER_EMAIL, password = E2E_U
 // hyperscript редиректит на /feed, где появляется hero-карточка последней записи.
 export async function submitEntry(
   page: Page,
-  { mood = 5, energy = 5, anxiety = 5, note = '' } = {},
+  { mood = 5, mood_score, energy = 5, anxiety = 5, note = '', sleep_hours }: {
+    mood?: number; mood_score?: number; energy?: number; anxiety?: number; note?: string; sleep_hours?: number;
+  } = {},
 ) {
   await page.goto('/check-in');
   const setRange = (name: string, value: number) =>
@@ -60,10 +62,27 @@ export async function submitEntry(
       },
       [name, value] as const,
     );
-  await setRange('mood_score', mood);
+  const moodValue = mood_score ?? mood;
+  await setRange('mood_score', moodValue);
   await setRange('energy', energy);
   await setRange('anxiety', anxiety);
+  if (sleep_hours !== undefined) {
+    // Раскрыть optional-блок сна, вписать значение.
+    await page.locator('input[name="sleep_hours"]').evaluate((el) => {
+      const collapse = el.closest('.collapse');
+      const toggle = collapse?.querySelector('input[type="checkbox"]') as HTMLInputElement | null;
+      if (toggle && !toggle.checked) toggle.click();
+    });
+    await page.locator('input[name="sleep_hours"]').evaluate((el) => el.removeAttribute('disabled'));
+    await page.fill('input[name="sleep_hours"]', String(sleep_hours));
+  }
   if (note) {
+    // Раскрыть optional-блок (DaisyUI collapse → checkbox) и вписать заметку.
+    await page.locator('textarea[name="note"]').evaluate((el) => {
+      const collapse = el.closest('.collapse');
+      const toggle = collapse?.querySelector('input[type="checkbox"]') as HTMLInputElement | null;
+      if (toggle && !toggle.checked) toggle.click();
+    });
     await page.locator('textarea[name="note"]').evaluate((el) => el.removeAttribute('disabled'));
     await page.fill('textarea[name="note"]', note);
   }

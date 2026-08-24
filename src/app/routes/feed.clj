@@ -93,7 +93,11 @@
                (ai/novel-analysis-needed? ds user-id))
       (future (try (ai/generate-novel-advice ds user-id)
                    (catch Exception e
-                     (println "Background novel advice failed:" (.getMessage e))))))))
+                     (println "Background novel advice failed:" (.getMessage e))))))
+    (when (ai/episode-analysis-needed? ds user-id)
+      (future (try (ai/analyze-episode-trend ds user-id)
+                   (catch Exception e
+                     (println "Background episode trend analysis failed:" (.getMessage e))))))))
 
 (defn page
   "Показать ленту записей («мой день») для аутентифицированного пользователя.
@@ -119,6 +123,7 @@
         summary-insight (when summary? insight)
         _ (ensure-ai-analysis! ds user-id manual-label)
         ai (ai-findings ds user-id (get-in request [:anti-forgery-token]))
+        episode (ai/current-episode-signal ds user-id)
         active-period (periods/active-period ds user-id)
         periods-list (periods/list-periods ds user-id)
         period {:active active-period
@@ -126,6 +131,8 @@
                 :csrf (get-in request [:anti-forgery-token])}]
     (html-response 200 (views/page request entries state-label insight
                                    {:toast-insight toast-insight
+                                    :csrf (get-in request [:anti-forgery-token])
+                                    :episode episode
                                     :summary {:show summary?
                                               :csrf (get-in request [:anti-forgery-token])
                                               :state-label state-label

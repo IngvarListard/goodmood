@@ -71,14 +71,16 @@
       decorate-row))
 
 (defn- default-settings
-  "Настройки AI по умолчанию (все функции включены, novel advice выключен)."
+  "Настройки AI по умолчанию (все функции включены, novel advice и
+   предупреждения эпизодов выключены — opt-in Фазы 7)."
   [user-id]
-  {:user-id              user-id
-   :master-enabled       1
-   :correlations-enabled 1
-   :labels-enabled       1
-   :advice-enabled       1
-   :allow-novel-advice   0})
+  {:user-id               user-id
+   :master-enabled        1
+   :correlations-enabled  1
+   :labels-enabled        1
+   :advice-enabled        1
+   :allow-novel-advice    0
+   :episode-warning-enabled 0})
 
 (defn get-ai-settings
   "Прочитать настройки AI пользователя или nil (нет строки)."
@@ -93,27 +95,88 @@
 (defn set-ai-settings!
   "Сохранить настройки AI пользователя (upsert по user_id).
    Принимает map {:master-enabled :correlations-enabled :labels-enabled
-   :advice-enabled :allow-novel-advice} — значения 0/1 (novel default 0).
-   Возвращает сохранённую строку."
-  [ds user-id {:keys [master-enabled correlations-enabled labels-enabled advice-enabled allow-novel-advice]}]
+   :advice-enabled :allow-novel-advice :episode-warning-enabled} — значения
+   0/1 (novel и episode-warning default 0). Возвращает сохранённую строку."
+  [ds user-id {:keys [master-enabled correlations-enabled labels-enabled
+                      advice-enabled allow-novel-advice episode-warning-enabled]}]
   (letfn [(flag [v] (if (or (nil? v) (= v "false") (= v "") (= v "0") (= v 0) (false? v)) 0 1))]
     (jdbc/execute-one!
      ds
      (sql/format {:insert-into :user_ai_settings
-                  :values     [{:user_id              user-id
-                                :master_enabled       (flag master-enabled)
-                                :correlations_enabled (flag correlations-enabled)
-                                :labels_enabled       (flag labels-enabled)
-                                :advice_enabled       (flag advice-enabled)
-                                :allow_novel_advice   (flag allow-novel-advice)}]
+                  :values     [{:user_id               user-id
+                                :master_enabled        (flag master-enabled)
+                                :correlations_enabled  (flag correlations-enabled)
+                                :labels_enabled        (flag labels-enabled)
+                                :advice_enabled        (flag advice-enabled)
+                                :allow_novel_advice    (flag allow-novel-advice)
+                                :episode_warning_enabled (flag episode-warning-enabled)}]
                   :on-conflict :user-id
-                  :do-update-set {:master_enabled       (flag master-enabled)
-                                  :correlations_enabled (flag correlations-enabled)
-                                  :labels_enabled       (flag labels-enabled)
-                                  :advice_enabled       (flag advice-enabled)
-                                  :allow_novel_advice   (flag allow-novel-advice)}
+                  :do-update-set {:master_enabled        (flag master-enabled)
+                                  :correlations_enabled  (flag correlations-enabled)
+                                  :labels_enabled        (flag labels-enabled)
+                                  :advice_enabled        (flag advice-enabled)
+                                  :allow_novel_advice    (flag allow-novel-advice)
+                                  :episode_warning_enabled (flag episode-warning-enabled)}
                   :returning [:*]})
      default-opts)))
+
+;; ──────────────────────────────────────────────────────────────
+;; Episode warnings (Фаза 7) — предупреждения о начале эпизода
+;; ──────────────────────────────────────────────────────────────
+
+(defn insert-warning!
+  "Создать предупреждение о возможном начале эпизода.
+   type: 'depressive'|'hypomanic'; pattern-description — текст-объяснение
+   паттерна; confidence — число 0.0-1.0; dismissed — 0 (показывать) или 1
+   (логировать «не показано», например при низкой уверенности)."
+  [ds {:keys [user-id type pattern-description confidence dismissed]}]
+  (jdbc/execute-one!
+   ds
+   (sql/format {:insert-into :episode_warnings
+                :values     [{:user_id             user-id
+                              :type                type
+                              :pattern_description pattern-description
+                              :confidence          confidence
+                              :dismissed           (or dismissed 0)}]
+                :returning [:*]})
+   default-opts))
+
+(defn get-warnings
+  "Активные (dismissed=0) предупреждения пользователя, последние сверху."
+  [ds user-id]
+  (jdbc/execute!
+   ds
+   (sql/format {:select [:*]
+                :from   [:episode_warnings]
+                :where  [:and [:= :user_id user-id]
+                         [:= :dismissed 0]]
+                :order-by [[:id :desc]]})
+   default-opts))
+
+(defn set-warning-feedback!
+  "Пометить предупреждение feedback'ом и скрыть (dismissed=1) без удаления.
+   Ограничено user-id. Возвращает обновлённую строку или nil."
+  [ds user-id id feedback]
+  (jdbc/execute-one!
+   ds
+   (sql/format {:update :episode_warnings
+                :set    {:feedback  feedback
+                         :dismissed 1}
+                :where  [:and [:= :id id] [:= :user_id user-id]]
+                :returning [:*]})
+   default-opts))
+
+(defn dismiss-warning!
+  "Скрыть предупреждение (dismissed=1) без feedback. Ограничено user-id.
+   Возвращает обновлённую строку или nil."
+  [ds user-id id]
+  (jdbc/execute-one!
+   ds
+   (sql/format {:update :episode_warnings
+                :set    {:dismissed 1}
+                :where  [:and [:= :id id] [:= :user_id user-id]]
+                :returning [:*]})
+   default-opts))
 
 ;; ──────────────────────────────────────────────────────────────
 ;; AI-чат (кэш сообщений)

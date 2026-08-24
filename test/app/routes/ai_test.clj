@@ -386,3 +386,158 @@
                                     :allow_novel_advice "1"})
     (is (false? (domains/novel-advice-enabled? @ds-atom 1))
         "master OFF выключает novel advice в любой момент")))
+
+;; --- Phase 7: episode warnings (routes) ---
+
+(defn- seed-episode-warning!
+  "Создать активное предупреждение эпизода для текущего пользователя (user-id 1)."
+  [& [type pattern]]
+  (db/insert-warning! @ds-atom
+                      {:user-id 1
+                       :type (or type "hypomanic")
+                       :pattern-description (or pattern "энергия растёт, сон падает")
+                       :confidence 0.9}))
+
+(defn- no-episode-ai
+  "Мок AI, который не генерирует новых предупреждений (фон-анализ не создаёт активных warnings)."
+  [f]
+  (with-redefs [domains/call-chat
+                (fn [_ _] "{\"type\":\"none\",\"confidence\":0,\"pattern\":\"\"}")]
+    (f)))
+
+(deftest test-episode-warning-off-by-default-on-feed
+  (testing "opt-in OFF: даже при активном warning в БД /feed НЕ рендерит episode-warning"
+    (add-today-entry!)
+    (seed-episode-warning!)
+    (no-episode-ai
+     (fn []
+       (let [body (body-text (get-html "/feed"))]
+         (is (not (str/includes? body "data-testid=\"episode-warning\""))
+             "opt-in OFF → предупреждение не показывается"))))))
+
+(deftest test-episode-warning-shown-when-enabled
+  (testing "opt-in ON + активный warning → /feed рендерит episode-warning"
+    (add-today-entry!)
+    (post-json-form "/settings/ai" {:master_enabled "1" :correlations_enabled "1"
+                                    :labels_enabled "1" :advice_enabled "1"
+                                    :episode_warning_enabled "1"})
+    (seed-episode-warning!)
+    (no-episode-ai
+     (fn []
+       (let [body (body-text (get-html "/feed"))]
+         (is (str/includes? body "data-testid=\"episode-warning\"") "секция предупреждения рендерится")
+         (is (str/includes? body "энергия растёт") "объяснение паттерна показано"))))))
+
+(deftest test-episode-warning-low-confidence-log-only
+  (testing "только log-only (dismissed=1) warning в БД → /feed НЕ показывает episode-warning"
+    (add-today-entry!)
+    (post-json-form "/settings/ai" {:master_enabled "1" :correlations_enabled "1"
+                                    :labels_enabled "1" :advice_enabled "1"
+                                    :episode_warning_enabled "1"})
+    (let [w (db/insert-warning! @ds-atom {:user-id 1 :type "hypomanic"
+                                          :pattern-description "низкая уверенность"
+                                          :confidence 0.75})]
+      (db/set-warning-feedback! @ds-atom 1 (:id w) "false_alarm"))
+    (no-episode-ai
+     (fn []
+       (let [body (body-text (get-html "/feed"))]
+         (is (not (str/includes? body "data-testid=\"episode-warning\""))
+             "log-only warning не показывается на /feed"))))))
+
+(deftest test-episode-warning-feedback-route
+  (testing "POST /ai/episode-warning/:id/feedback записывает feedback и скрывает warning"
+    (let [id (:id (seed-episode-warning! "depressive" "сон падает"))
+          response (post-json-form (str "/ai/episode-warning/" id "/feedback") {:feedback "false_alarm"})]
+      (is (= 200 (:status response)))
+      (let [row (first (jdbc/execute! @ds-atom
+                                      ["SELECT feedback,dismissed FROM episode_warnings WHERE id=?" id]
+                                      {:builder-fn rs/as-unqualified-maps}))]
+        (is (= "false_alarm" (:feedback row)) "feedback записан в episode_warnings.feedback")
+        (is (= 1 (:dismissed row)) "warning скрыт (dismissed)"))
+      (is (= [] (db/get-warnings @ds-atom 1)) "после feedback активных warnings нет"))))
+
+(deftest test-episode-warning-dismiss-route
+  (testing "POST /ai/episode-warning/:id/dismiss скрывает warning"
+    (let [id (:id (seed-episode-warning!))
+          response (post-json-form (str "/ai/episode-warning/" id "/dismiss") {})]
+      (is (= 200 (:status response)))
+      (let [row (first (jdbc/execute! @ds-atom
+                                      ["SELECT dismissed FROM episode_warnings WHERE id=?" id]
+                                      {:builder-fn rs/as-unqualified-maps}))]
+        (is (= 1 (:dismissed row)) "dismiss скрывает warning"))
+      (is (= [] (db/get-warnings @ds-atom 1))))))
+
+(deftest test-episode-warning-fragment-endpoint
+  (testing "GET /ai/episode-warning возвращает фрагмент предупреждения при активном warning"
+    (post-json-form "/settings/ai" {:master_enabled "1" :correlations_enabled "1"
+                                    :labels_enabled "1" :advice_enabled "1"
+                                    :episode_warning_enabled "1"})
+    (seed-episode-warning! "hypomanic" "энергия растёт, сон падает")
+    (let [body (body-text (get-html "/ai/episode-warning"))]
+      (is (str/includes? body "data-testid=\"episode-warning\"") "фрагмент содержит предупреждение")
+      (is (str/includes? body "энергия растёт") "фрагмент показывает объяснение паттерна"))))
+
+(deftest test-episode-warning-fragment-empty-without-opt-in
+  (testing "GET /ai/episode-warning без opt-in возвращает пустой фрагмент"
+    (let [body (body-text (get-html "/ai/episode-warning"))]
+      (is (str/blank? body) "нет opt-in → пустой фрагмент"))))
+
+(deftest test-episode-warning-feedback-requires-auth
+  (testing "неавторизованный POST к episode-warning роутам отклоняется"
+    (doseq [uri ["/ai/episode-warning/1/feedback" "/ai/episode-warning/1/dismiss" "/ai/episode-warning/disable"]]
+      (let [response ((app) {:request-method :post :uri uri
+                             :headers {"content-type" "application/json" "accept" "text/html"}
+                             :body (java.io.ByteArrayInputStream. (.getBytes "{}"))})]
+        (is (some? (:status response)) uri)
+        (is (not= 200 (:status response)) (str uri " роут не должен быть публичным"))))))
+
+(deftest test-episode-warning-disable-route
+  (testing "POST /ai/episode-warning/disable выключает opt-in (выключение в один клик из warning)"
+    (post-json-form "/settings/ai" {:master_enabled "1" :correlations_enabled "1"
+                                    :labels_enabled "1" :advice_enabled "1"
+                                    :episode_warning_enabled "1"})
+    (is (= 1 (:episode-warning-enabled (domains/get-settings @ds-atom 1))))
+    (let [response (post-json-form "/ai/episode-warning/disable" {})]
+      (is (= 200 (:status response)))
+      (is (= 0 (:episode-warning-enabled (domains/get-settings @ds-atom 1)))
+          "opt-out сохраняется после disable"))))
+
+(deftest test-episode-warning-settings-toggle
+  (testing "POST /settings/ai toggle episode_warning_enabled"
+    (post-json-form "/settings/ai" {:master_enabled "1" :correlations_enabled "1"
+                                    :labels_enabled "1" :advice_enabled "1"
+                                    :episode_warning_enabled "1"})
+    (is (= 1 (:episode-warning-enabled (domains/get-settings @ds-atom 1)))
+        "включение opt-in через настройки")
+    (post-json-form "/settings/ai" {:master_enabled "1" :correlations_enabled "1"
+                                    :labels_enabled "1" :advice_enabled "1"
+                                    :episode_warning_enabled "0"})
+    (is (= 0 (:episode-warning-enabled (domains/get-settings @ds-atom 1)))
+        "выключение opt-in через настройки")))
+
+(deftest test-episode-warning-settings-default-off
+  (testing "/settings рендерит toggle episode-warning (по умолчанию off)"
+    (let [body (body-text (get-html "/settings"))]
+      (is (str/includes? body "episode-warning-toggle") "toggle episode-warning рендерится на /settings"))))
+
+(deftest test-episode-warning-crisis-shows-resource-not-warning
+  (testing "кризисные слова в последней записи → /feed показывает ресурс, НЕ episode-warning"
+    (db.entries/create-entry! @ds-atom {:user-id 1 :date (today)
+                                        :activity "walk" :effect "calm"
+                                        :mood-score 1 :energy 1 :anxiety 5
+                                        :note "не хочу жить, всё бессмысленно"})
+    (post-json-form "/settings/ai" {:master_enabled "1" :correlations_enabled "1"
+                                    :labels_enabled "1" :advice_enabled "1"
+                                    :episode_warning_enabled "1"})
+    (seed-episode-warning! "depressive" "сон падает")
+    (no-episode-ai
+     (fn []
+       (let [body (body-text (get-html "/feed"))]
+         (is (or (str/includes? body "телефон")
+                 (str/includes? body "довери")
+                 (str/includes? body "8-800")
+                 (str/includes? body "помощ")
+                 (str/includes? body "112"))
+             "кризис показывает ресурс проф. помощи")
+         (is (not (str/includes? body "data-testid=\"episode-warning\""))
+             "при кризисе предупреждение об эпизоде НЕ показывается"))))))

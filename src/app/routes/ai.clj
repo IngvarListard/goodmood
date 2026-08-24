@@ -176,3 +176,59 @@
     (-> (html-response 200 (views/chat-panel csrf false (ai/chat-history ds uid)))
         (assoc :session (assoc (or (:session request) {})
                                :ai-chat-disclaimer-dismissed true)))))
+
+;; ──────────────────────────────────────────────────────────────
+;; Episode warnings (Фаза 7) — guardrails, opt-in, feedback
+;; ──────────────────────────────────────────────────────────────
+
+(defn episode-warning-fragment
+  "GET /ai/episode-warning — фрагмент предупреждения/кризис-баннера для /feed
+   (поллинг). Пустой — ничего не рендерится (слот исчезает по outerHTML)."
+  [ds request]
+  (let [uid (user-id request)]
+    (html-response 200 (views/episode-warning-fragment
+                        (csrf-token request)
+                        (ai/current-episode-signal ds uid)))))
+
+(defn episode-warning-feedback
+  "POST /ai/episode-warning/:id/feedback — сохранить feedback («ложная тревога»)
+   и скрыть предупреждение. Параметр feedback из form/body."
+  [ds request]
+  (let [uid (user-id request)
+        id (some-> (get-in request [:path-params :id]) parse-long)
+        feedback (get (merge (:form-params request)
+                             (:body-params request)
+                             (:params request))
+                      :feedback)
+        result (when (and id feedback)
+                 (ai/give-episode-warning-feedback ds uid id feedback))]
+    (if result
+      {:status 200
+       :headers {"Content-Type" "text/plain; charset=utf-8"}
+       :body ""}
+      {:status 404
+       :headers {"Content-Type" "text/plain; charset=utf-8"}
+       :body "Not found"})))
+
+(defn episode-warning-dismiss
+  "POST /ai/episode-warning/:id/dismiss — скрыть предупреждение без feedback."
+  [ds request]
+  (let [uid (user-id request)
+        id (some-> (get-in request [:path-params :id]) parse-long)
+        result (when id (ai/dismiss-episode-warning ds uid id))]
+    (if result
+      {:status 200
+       :headers {"Content-Type" "text/plain; charset=utf-8"}
+       :body ""}
+      {:status 404
+       :headers {"Content-Type" "text/plain; charset=utf-8"}
+       :body "Not found"})))
+
+(defn episode-warning-disable
+  "POST /ai/episode-warning/disable — выключить предупреждения об эпизодах
+   в один клик (opt-out persists, активные предупреждения скрываются).
+   Возвращает пустой фрагмент (скрывает)."
+  [ds request]
+  (let [uid (user-id request)]
+    (ai/disable-episode-warnings! ds uid)
+    (html-response 200 nil)))

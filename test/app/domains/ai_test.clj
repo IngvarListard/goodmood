@@ -3,6 +3,7 @@
             [app.db.entries :as db.entries]
             [app.db.insights :as db.insights]
             [app.domains.ai :as domains]
+            [clojure.string :as str]
             [clojure.test :refer [deftest is testing use-fixtures]]
             [migratus.core :as migratus]
             [next.jdbc :as jdbc]
@@ -313,3 +314,124 @@
     (with-redefs [domains/call-chat (fn [_ _] "спокойное дыхание поможет")]
       (let [reply (domains/chat-reply @ds-atom user-id [] "мне тревожно")]
         (is (= "спокойное дыхание поможет" reply))))))
+
+;; --- Phase 7: episode warnings ---
+
+(defn- add-trend!
+  "Создать n записей с восходящим трендом (энергия/настроение растут, тревога/сон падают),
+  заканчивающихся сегодня — данные, похожие на начало маниакального эпизода."
+  [& [n]]
+  (let [n (or n 3)]
+    (dotimes [i n]
+      (db.entries/create-entry! @ds-atom
+                                {:user-id user-id
+                                 :date (str (.minusDays (java.time.LocalDate/now) (- n i)))
+                                 :activity "walk"
+                                 :effect "calm"
+                                 :mood-score (+ 5 i)
+                                 :energy (+ 5 i)
+                                 :anxiety (- 5 i)
+                                 :sleep-hours (+ 7.0 i)}))))
+
+(deftest test-episode-warning-enabled-default-off
+  (testing "opt-in предупреждений эпизодов по умолчанию OFF; toggle включается/выключается"
+    (is (false? (domains/episode-warning-enabled? @ds-atom user-id))
+        "opt-in OFF по умолчанию")
+    (domains/set-episode-warning-enabled! @ds-atom user-id 1)
+    (is (true? (domains/episode-warning-enabled? @ds-atom user-id))
+        "включение через set-episode-warning-enabled!")
+    (domains/set-episode-warning-enabled! @ds-atom user-id false)
+    (is (false? (domains/episode-warning-enabled? @ds-atom user-id))
+        "opt-out сохраняется")))
+
+(deftest test-episode-warning-needed-gated-by-opt-in
+  (testing "episode-warning-needed? ложен, пока opt-in OFF (даже при выраженном паттерне)"
+    (add-trend! 3)
+    (is (false? (domains/episode-warning-needed? @ds-atom user-id))
+        "без opt-in предупреждение не нужно")
+    (domains/set-episode-warning-enabled! @ds-atom user-id 1)
+    (is (true? (domains/episode-warning-needed? @ds-atom user-id))
+        "после opt-in предупреждение нужно")))
+
+(deftest test-episode-trend-high-confidence-stores-warning
+  (testing "confidence > 0.75 (0.85): analyze-episode-trend сохраняет активное предупреждение"
+    (add-trend! 3)
+    (domains/set-episode-warning-enabled! @ds-atom user-id 1)
+    (with-redefs [domains/call-chat
+                  (fn [_ _] "{\"type\":\"hypomanic\",\"confidence\":0.85,\"pattern\":\"энергия растёт, сон падает — похоже на начало мании\"}")]
+      (let [result (domains/analyze-episode-trend @ds-atom user-id)]
+        (is (= "hypomanic" (:type result)))
+        (is (= 0.85 (:confidence result)))
+        (is (str/includes? (:pattern-description result) "энергия растёт")
+            "объяснение паттерна сохранено")))
+    (let [active (db/get-warnings @ds-atom user-id)]
+      (is (= 1 (count active)) "одно активное предупреждение")
+      (is (= "hypomanic" (:type (first active))))
+      (is (= 0 (:dismissed (first active)))))))
+
+(deftest test-episode-trend-low-confidence-log-only
+  (testing "confidence ≤ 0.75 (0.75) НЕ создаёт активного предупреждения, но логирует (dismissed=1)"
+    (add-trend! 3)
+    (domains/set-episode-warning-enabled! @ds-atom user-id 1)
+    (with-redefs [domains/call-chat
+                  (fn [_ _] "{\"type\":\"hypomanic\",\"confidence\":0.75,\"pattern\":\"низкая уверенность\"}")]
+      (let [result (domains/analyze-episode-trend @ds-atom user-id)]
+        (is (nil? (:id result)) "низкая уверенность не возвращает активного warning")))
+    (is (= [] (db/get-warnings @ds-atom user-id))
+        "активных предупреждений нет")
+    (let [rows (jdbc/execute! @ds-atom ["SELECT * FROM episode_warnings"]
+                              {:builder-fn rs/as-unqualified-maps})]
+      (is (= 1 (count rows)) "паттерн залогирован в episode_warnings")
+      (is (= 1 (:dismissed (first rows))) "log-only помечен dismissed=1 (не показывается)"))))
+
+(deftest test-episode-trend-confidence-boundaries
+  (testing "границы: 0.74 и 0.75 → нет предупреждения, 0.76 → есть"
+    (add-trend! 3)
+    (domains/set-episode-warning-enabled! @ds-atom user-id 1)
+    (doseq [[conf expected-active] [[0.74 0] [0.75 0] [0.76 1]]]
+      (with-redefs [domains/call-chat
+                    (fn [_ _] (str "{\"type\":\"hypomanic\",\"confidence\":" conf ",\"pattern\":\"x\"}"))]
+        (domains/analyze-episode-trend @ds-atom user-id)
+        (is (= expected-active (count (db/get-warnings @ds-atom user-id)))
+            (str "confidence " conf " → активных предупреждений " expected-active))))))
+
+(deftest test-episode-latest-note-crisis
+  (testing "кризисные слова в последней записи распознаются (→ ресурс, не предупреждение)"
+    (is (false? (domains/latest-note-crisis? @ds-atom user-id))
+        "без записей кризиса нет")
+    (db.entries/create-entry! @ds-atom {:user-id user-id :date (str (java.time.LocalDate/now))
+                                        :activity "walk" :effect "calm"
+                                        :mood-score 1 :energy 1 :anxiety 5
+                                        :note "не хочу жить, всё бессмысленно"})
+    (is (true? (domains/latest-note-crisis? @ds-atom user-id))
+        "кризисные слова распознаются в последней записи")))
+
+(deftest test-episode-warning-feedback-and-dismiss
+  (testing "give-episode-warning-feedback и dismiss скрывают предупреждение"
+    (let [w (db/insert-warning! @ds-atom
+                                {:user-id user-id :type "depressive"
+                                 :pattern-description "сон падает" :confidence 0.85})
+          id (:id w)]
+      (domains/give-episode-warning-feedback @ds-atom user-id id "false_alarm")
+      (is (= [] (db/get-warnings @ds-atom user-id)) "после feedback предупреждение скрыто")
+      (let [row (first (jdbc/execute! @ds-atom
+                                      ["SELECT feedback,dismissed FROM episode_warnings WHERE id=?" id]
+                                      {:builder-fn rs/as-unqualified-maps}))]
+        (is (= "false_alarm" (:feedback row)) "feedback записан в episode_warnings.feedback")
+        (is (= 1 (:dismissed row)) "warning dismissed"))
+      (let [w2 (db/insert-warning! @ds-atom {:user-id user-id :type "hypomanic"
+                                             :pattern-description "энергия растёт" :confidence 0.8})
+            id2 (:id w2)]
+        (domains/dismiss-episode-warning @ds-atom user-id id2)
+        (let [row (first (jdbc/execute! @ds-atom
+                                        ["SELECT dismissed FROM episode_warnings WHERE id=?" id2]
+                                        {:builder-fn rs/as-unqualified-maps}))]
+          (is (= 1 (:dismissed row)) "dismiss скрывает предупреждение"))))))
+
+(deftest test-episode-warning-disable-all
+  (testing "disable-episode-warnings! выключает opt-in (opt-out в один клик)"
+    (domains/set-episode-warning-enabled! @ds-atom user-id 1)
+    (is (true? (domains/episode-warning-enabled? @ds-atom user-id)))
+    (domains/disable-episode-warnings! @ds-atom user-id)
+    (is (false? (domains/episode-warning-enabled? @ds-atom user-id))
+        "opt-out сохраняется после disable-episode-warnings!")))

@@ -198,9 +198,9 @@
 
 (defn ai-settings-section
   "Секция «AI» для /settings: master-toggle + per-function тумблеры (вкл.
-   novel-советы opt-in)."
+   novel-советы и предупреждения эпизодов — оба opt-in, default off)."
   [csrf-token {:keys [master-enabled correlations-enabled labels-enabled
-                      advice-enabled allow-novel-advice]}]
+                      advice-enabled allow-novel-advice episode-warning-enabled]}]
   [:div {:class "mb-6"}
    [:h2 {:class "text-sm font-medium opacity-60 mb-1 uppercase tracking-wide"}
     (i18n/t :ai/settings-title)]
@@ -232,6 +232,11 @@
      [:span {:class "label-text"} (i18n/t :ai/toggle-novel-advice)]
      (ai-toggle-input "allow_novel_advice" (not= allow-novel-advice 0)
                       {:data-testid "allow-novel-advice-toggle"})]
+    [:div {:class "divider my-1"}]
+    [:div {:class "flex items-center justify-between gap-3"}
+     [:span {:class "label-text"} (i18n/t :ai/toggle-episode-warning)]
+     (ai-toggle-input "episode_warning_enabled" (not= episode-warning-enabled 0)
+                      {:data-testid "episode-warning-toggle"})]
     [:button {:type "submit" :class "btn btn-primary w-full h-12 mt-4"}
      (i18n/t :notifications/save)]]])
 
@@ -341,3 +346,83 @@
                   :placeholder (i18n/t :ai/chat-placeholder)}]
       [:button {:type "submit" :class "btn btn-primary h-auto min-h-11 px-4"}
        (i18n/t :ai/chat-send)]]]]])
+
+;; ──────────────────────────────────────────────────────────────
+;; Episode warnings (Фаза 7) — opt-in, мягкий copy, guardrails
+;; ──────────────────────────────────────────────────────────────
+
+(defn crisis-resource-banner
+  "Баннер ресурсов профессиональной помощи (кризис приоритетнее
+   предупреждения об эпизоде)."
+  []
+  [:div {:class "alert alert-error shadow-sm mb-4" :data-testid "crisis-resource"}
+   [:div {:class "flex flex-col gap-1 text-sm"}
+    [:p {:class "font-medium"} (i18n/t :crisis/resource-title)]
+    [:p (i18n/t :crisis/resource-support)]
+    [:p (i18n/t :ai/chat-crisis-hotline)]
+    [:p (i18n/t :ai/chat-crisis-112)]]])
+
+(defn episode-warning
+  "Мягкое предупреждение о возможном начале эпизода (opt-in, confidence > 0.75).
+   Не тревожное: поддерживающая формулировка, объяснение паттерна, лёгкое
+   выключение и false-alarm feedback."
+  [csrf-token warning]
+  (when warning
+    (let [w-id (:id warning)
+          why-id (str "episode-warning-why-" w-id)]
+      [:div {:class "alert alert-info shadow-sm mb-4"
+             :id "episode-warning"
+             :data-testid "episode-warning"}
+       [:div {:class "w-full"}
+        [:p {:class "text-sm font-medium"}
+         (i18n/t :ai/episode-warning-title)]
+        [:p {:class "text-sm opacity-80 mt-1"}
+         (:pattern-description warning)]
+        [:div {:class "mt-2 flex flex-wrap gap-2"}
+         [:button {:type "button"
+                   :class "btn btn-ghost btn-xs h-9 min-h-9 px-2"
+                   :_ (str "on click toggle .hidden on #" why-id)}
+          (i18n/t :ai/episode-warning-why)]
+         [:button {:type "button"
+                   :class "btn btn-ghost btn-xs h-9 min-h-9 px-2"
+                   :hx-post "/ai/episode-warning/disable"
+                   :hx-ext "json-enc"
+                   :hx-target "closest [data-testid='episode-warning']"
+                   :hx-swap "outerHTML"
+                   :hx-vals (json/generate-string
+                             {"__anti-forgery-token" csrf-token})}
+          (i18n/t :ai/episode-warning-disable)]
+         [:button {:type "button"
+                   :class "btn btn-ghost btn-xs h-9 min-h-9 px-2"
+                   :hx-post (str "/ai/episode-warning/" w-id "/feedback")
+                   :hx-ext "json-enc"
+                   :hx-target "closest [data-testid='episode-warning']"
+                   :hx-swap "outerHTML"
+                   :hx-vals (json/generate-string
+                             {"__anti-forgery-token" csrf-token
+                              "feedback" "false_alarm"})}
+          (i18n/t :ai/episode-warning-false-alarm)]]
+        [:p {:id why-id
+             :class "episode-warning-why hidden text-xs opacity-60 mt-1"}
+         (i18n/t :ai/episode-warning-why-note)]]])))
+
+(defn episode-warning-slot
+  "Polling-слот для /feed: запрашивает /ai/episode-warning, заменяет себя
+   предупреждением/кризис-баннером или исчезает (hx-swap outerHTML).
+   Только every-таймер (без load): ответ-слот не порождает цикл мгновенных
+   запросов."
+  []
+  [:div {:id "episode-warning-slot"
+         :hx-get "/ai/episode-warning"
+         :hx-trigger "every 5s"
+         :hx-swap "outerHTML"}])
+
+(defn episode-warning-fragment
+  "Фрагмент секции предупреждений для /feed: кризис-баннер приоритетнее
+   паттерна. signal — map {:crisis? :enabled? :warning}."
+  [csrf-token {:keys [crisis? enabled? warning]}]
+  (cond
+    crisis? (crisis-resource-banner)
+    warning (episode-warning csrf-token warning)
+    enabled? (episode-warning-slot)
+    :else nil))

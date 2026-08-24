@@ -27,6 +27,19 @@
   "Порог: анализ корреляций запускается при >= 14 дней записей."
   14)
 
+(def min-episode-trend-days
+  "Порог: анализ тренда эпизода запускается при >= 3 записей."
+  3)
+
+(def confidence-threshold
+  "Порог уверенности для показа предупреждения об эпизоде (> 0.75).
+   При <= 0.75 паттерн логируется (dismissed=1), но не показывается."
+  0.75)
+
+(def episode-warning-model
+  "Модель для анализа тренда эпизодов (OpenRouter, deepseek)."
+  "deepseek/deepseek-chat")
+
 (declare list-advice)
 
 (defn api-key
@@ -59,6 +72,13 @@
    [:explanation :string]
    [:confidence [:enum "high" "medium" "low"]]
    [:source_refs [:vector :int]]])
+
+(def episode-warning-schema
+  "Схема ответа AI для анализа тренда эпизода (type/confidence/pattern)."
+  [:map {:closed true}
+   [:type [:enum "depressive" "hypomanic" "none"]]
+   [:confidence [:double {:min 0 :max 1}]]
+   [:pattern :string]])
 
 (defn call-chat
   "Отправить запрос в OpenRouter и вернуть текст ответа модели (или nil).
@@ -344,11 +364,12 @@
     1))
 
 (def ^:private default-ai-settings
-  {:master-enabled       1
-   :correlations-enabled 1
-   :labels-enabled       1
-   :advice-enabled       1
-   :allow-novel-advice   0})
+  {:master-enabled        1
+   :correlations-enabled  1
+   :labels-enabled        1
+   :advice-enabled        1
+   :allow-novel-advice    0
+   :episode-warning-enabled 0})
 
 (defn get-settings
   "Настройки AI пользователя: сохранённые, либо значения по умолчанию
@@ -360,7 +381,8 @@
 (defn update-settings
   "Обновить настройки AI пользователя. Принимает мапу с ключами
    master_enabled / correlations_enabled / labels_enabled / advice_enabled /
-   allow_novel_advice (из form/JSON). Возвращает обновлённые настройки."
+   allow_novel_advice / episode_warning_enabled (из form/JSON). Возвращает
+   обновлённые настройки."
   [ds user-id params]
   (let [master (coerce-enabled (or (get params :master_enabled)
                                    (get params "master_enabled")))
@@ -371,13 +393,16 @@
         advice (coerce-enabled (or (get params :advice_enabled)
                                    (get params "advice_enabled")))
         novel (coerce-enabled (or (get params :allow_novel_advice)
-                                  (get params "allow_novel_advice")))]
+                                  (get params "allow_novel_advice")))
+        episode-warning (coerce-enabled (or (get params :episode_warning_enabled)
+                                            (get params "episode_warning_enabled")))]
     (db/set-ai-settings! ds user-id
-                         {:master-enabled       master
-                          :correlations-enabled correlations
-                          :labels-enabled       labels
-                          :advice-enabled       advice
-                          :allow-novel-advice   novel})))
+                         {:master-enabled        master
+                          :correlations-enabled  correlations
+                          :labels-enabled        labels
+                          :advice-enabled        advice
+                          :allow-novel-advice    novel
+                          :episode-warning-enabled episode-warning})))
 
 (defn ai-enabled?
   "Включён ли master-toggle AI для пользователя."
@@ -546,3 +571,149 @@
    history — вектор сообщений из ai_chat_messages (без текущего)."
   [ds user-id history user-message]
   (call-chat chat-model (chat-messages ds user-id history user-message)))
+
+;; ──────────────────────────────────────────────────────────────
+;; Episode warnings (Фаза 7) — opt-in, guardrails, trend analysis
+;; ──────────────────────────────────────────────────────────────
+
+(defn episode-warning-enabled?
+  "Включены ли предупреждения об эпизодах (master-toggle + opt-in)."
+  [ds user-id]
+  (and (ai-enabled? ds user-id)
+       (not= 0 (:episode-warning-enabled (get-settings ds user-id)))))
+
+(defn set-episode-warning-enabled!
+  "Включить/выключить предупреждения об эпизодах (opt-in). Сохраняет текущие
+   настройки, меняя только episode_warning_enabled. Возвращает настройки."
+  [ds user-id enabled]
+  (let [s (get-settings ds user-id)]
+    (db/set-ai-settings! ds user-id
+                         {:master-enabled       (:master-enabled s)
+                          :correlations-enabled (:correlations-enabled s)
+                          :labels-enabled       (:labels-enabled s)
+                          :advice-enabled       (:advice-enabled s)
+                          :allow-novel-advice   (:allow-novel-advice s)
+                          :episode-warning-enabled (if enabled 1 0)})))
+
+(defn disable-episode-warnings!
+  "Выключить предупреждения об эпизодах в один клик: снять opt-out и скрыть
+   все активные предупреждения (dismissed=1), чтобы после повторного
+   включения не всплывали устаревшие."
+  [ds user-id]
+  (doseq [w (db/get-warnings ds user-id)]
+    (db/dismiss-warning! ds user-id (:id w)))
+  (set-episode-warning-enabled! ds user-id false))
+
+(defn latest-note-crisis?
+  "Проверить последние записи на кризис-ключевые слова в заметках (note).
+   Кризис приоритетнее предупреждения об эпизоде."
+  [ds user-id]
+  (boolean (some #(needs-crisis-response? (:note %))
+                 (entries/get-entries ds user-id))))
+
+(defn- avg-of
+  "Среднее значение ключа по записям (nil-safe)."
+  [key rows]
+  (let [vals (keep key rows)]
+    (when (seq vals)
+      (double (/ (reduce + vals) (count vals))))))
+
+(defn- trend-summary
+  "Числовая сводка тренда: средние по последним 3 и предыдущим 3 записям.
+   Делает выраженные тренды видимыми для модели."
+  [rows]
+  (let [recent (take 3 rows)
+        prior  (take 3 (drop 3 rows))
+        fmt    (fn [label key]
+                 (str label "=" (avg-of key recent) " (раньше: " (avg-of key prior) ")"))]
+    (->> [(fmt "энергия" :energy)
+          (fmt "тревога" :anxiety)
+          (fmt "настроение" :mood-score)
+          (fmt "сон" :sleep-hours)]
+         (str/join ", "))))
+
+(defn- episode-trend-prompt
+  "Промпт анализа тренда: числовая сводка (последние vs предыдущие) +
+   компактный список записей. Просим модель ставить высокую уверенность
+   честно — только при явном устойчивом тренде."
+  [rows]
+  (str "Ты — внимательный помощник человека с биполярным расстройством. "
+       "Посмотри на числовую сводку тренда его дневника и определи, похожи ли "
+       "последние дни на начало депрессивного (спад: энергия/настроение падает, "
+       "сон нарушен) или маниакального / гипоманиакального (подъём: энергия и "
+       "настроение растут, сон резко уменьшается) эпизода. Это НЕ диагноз — "
+       "просто наблюдение по данным. Не преувеличивай и не выдумывай.\n"
+       "Оцени уверенность честно: для явного устойчивого тренда (например "
+       "энергия растёт по нарастающей, сон снижается) ставь confidence > 0.75; "
+       "для слабых или смешанных данных — ниже, не рискуй.\n"
+       "Верни ТОЛЬКО JSON: {\"type\":\"depressive|hypomanic|none\","
+       "\"confidence\":0.0-1.0,\"pattern\":\"короткое объяснение паттерна "
+       "по-русски, напр.: последние 3 дня энергия растёт, сон падает\"}.\n"
+       "Числовая сводка (последние 3 vs предыдущие 3):\n" (trend-summary rows)
+       "\nЗаписи (свежие сверху):\n" (str/join "\n" (map format-entry rows))))
+
+(defn analyze-episode-trend
+  "Проанализировать тренд последних записей. При выраженном паттерне
+   (type != none и confidence > 0.75) сохраняет предупреждение (dismissed=0).
+   При низкой уверенности (type != none, confidence <= 0.75) паттерн
+   логируется (dismissed=1 — маркер «не показано»). type=none — ничего не
+   сохраняется. Возвращает активное предупреждение или nil.
+   Записи из БД приходят свежие сверху (created_at DESC) — для анализа тренда
+   переворачиваем в хронологическом порядке (старые → новые), чтобы восходящий
+   тренд был виден модели как рост."
+  [ds user-id]
+  (let [rows (->> (entries/get-entries ds user-id) reverse vec)]
+    (when (>= (count rows) min-episode-trend-days)
+      (when-let [content (call-chat episode-warning-model
+                                    [{:role "user" :content (episode-trend-prompt rows)}])]
+        (when-let [parsed (first (parse-findings episode-warning-schema content))]
+          (let [{:keys [type confidence pattern]} parsed]
+            (when (not= "none" type)
+              (db/insert-warning! ds
+                                  {:user-id             user-id
+                                   :type                type
+                                   :pattern-description pattern
+                                   :confidence          confidence
+                                   :dismissed           (if (> confidence confidence-threshold) 0 1)}))))))
+    (first (db/get-warnings ds user-id))))
+
+(defn episode-warning-needed?
+  "Нужно ли запускать анализ тренда: opt-in, нет активного предупреждения
+   (last warning отсутствует/устарел)."
+  [ds user-id]
+  (and (episode-warning-enabled? ds user-id)
+       (empty? (db/get-warnings ds user-id))))
+
+(defn episode-analysis-needed?
+  "Нужно ли запустить анализ тренда: opt-in, нет активного предупреждения и
+   нет кризис-сигналов (кризис приоритетнее паттерна)."
+  [ds user-id]
+  (and (episode-warning-needed? ds user-id)
+       (not (latest-note-crisis? ds user-id))))
+
+(defn current-episode-signal
+  "Сигнал для /feed: кризис приоритетнее предупреждения.
+   Возвращает {:crisis? bool :enabled? bool :warning warning-or-nil}."
+  [ds user-id]
+  (if (latest-note-crisis? ds user-id)
+    {:crisis? true :enabled? false :warning nil}
+    (let [enabled? (episode-warning-enabled? ds user-id)]
+      {:crisis? false
+       :enabled? enabled?
+       :warning (when enabled? (first (db/get-warnings ds user-id)))})))
+
+(def episode-warning-feedback-types
+  "Допустимые feedback предупреждений об эпизоде (Фаза 7)."
+  #{"false_alarm"})
+
+(defn give-episode-warning-feedback
+  "Сохранить feedback («ложная тревога») и скрыть предупреждение
+   (dismissed=1). Возвращает обновлённое предупреждение или nil."
+  [ds user-id warning-id feedback]
+  {:pre [(contains? episode-warning-feedback-types feedback)]}
+  (db/set-warning-feedback! ds user-id warning-id feedback))
+
+(defn dismiss-episode-warning
+  "Скрыть предупреждение без feedback (dismissed=1). Возвращает строку или nil."
+  [ds user-id warning-id]
+  (db/dismiss-warning! ds user-id warning-id))

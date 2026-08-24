@@ -221,3 +221,95 @@
                                     {:builder-fn rs/as-unqualified-maps}))]
       (is (= "already-known" (:feedback row)))
       (is (= 1 (:hidden row))))))
+
+(deftest test-needs-crisis-response-detects-keywords
+  (testing "признаки кризиса (ключевые слова) распознаются"
+    (is (true? (domains/needs-crisis-response? "не хочу жить")))
+    (is (not (domains/needs-crisis-response? "просто тревожный день, плохо спал"))
+        "обычная жалоба — не кризис")
+    (is (not (domains/needs-crisis-response? "")))))
+
+(deftest test-novel-advice-off-by-default
+  (testing "novel advice opt-in по умолчанию OFF: генерация не вызывается, модель не дёргается"
+    (is (false? (domains/novel-advice-enabled? @ds-atom user-id))
+        "novel-advice по умолчанию выключен")
+    (let [called (atom 0)]
+      (with-redefs [domains/call-chat
+                    (fn [model messages] (swap! called inc)
+                      "{\"advice\":\"дыхание по квадрату\"}")]
+        (is (= [] (domains/generate-novel-advice @ds-atom user-id))
+            "при OFF novel-совет не генерируется")
+        (is (zero? @called) "call-chat не вызывается при выключенном opt-in")))))
+
+(deftest test-novel-advice-optin-toggle-and-enabled
+  (testing "allow_novel_advice: по умолчанию OFF, включается, master OFF отключает"
+    (is (false? (domains/novel-advice-enabled? @ds-atom user-id)))
+    (domains/update-settings @ds-atom user-id
+                             {:master_enabled 1 :correlations_enabled 1
+                              :labels_enabled 1 :advice_enabled 1
+                              :allow_novel_advice 1})
+    (is (true? (domains/novel-advice-enabled? @ds-atom user-id))
+        "включить novel advice можно")
+    (domains/update-settings @ds-atom user-id {:master_enabled 0})
+    (is (false? (domains/novel-advice-enabled? @ds-atom user-id))
+        "master OFF отключает и novel advice")))
+
+(deftest test-novel-advice-generated-when-no-own-insights
+  (testing "при opt-in и без своих advice-находок AI может предложить технику из общей базы с пометкой novel"
+    (domains/update-settings @ds-atom user-id
+                             {:master_enabled 1 :correlations_enabled 1
+                              :labels_enabled 1 :advice_enabled 1
+                              :allow_novel_advice 1})
+    (with-redefs [domains/call-chat
+                  (fn [_ _] "{\"advice\":\"дыхание по квадрату\",\"explanation\":\"общая DBT-техника\",\"confidence\":\"high\",\"source_refs\":[]}")]
+      (let [items (domains/generate-novel-advice @ds-atom user-id)]
+        (is (= 1 (count items)) "novel-совет сохранён и возвращён")
+        (let [item (first items)]
+          (is (= "advice" (:type item)))
+          (is (true? (get-in item [:content :novel])) "совет помечен как novel (не из своих записей)"))))))
+
+(deftest test-novel-advice-priority-own-insights
+  (testing "при релевантных своих advice-находках novel не генерируется (приоритет своим)"
+    (domains/update-settings @ds-atom user-id
+                             {:master_enabled 1 :correlations_enabled 1
+                              :labels_enabled 1 :advice_enabled 1
+                              :allow_novel_advice 1})
+    (db/insert-finding! @ds-atom
+                        {:user-id user-id :type "advice"
+                         :content {:message "дыхание из твоего инсайта" :explanation "e"}
+                         :confidence "high" :source-refs []})
+    (let [called (atom 0)]
+      (with-redefs [domains/call-chat
+                    (fn [_ _] (swap! called inc) "{\"advice\":\"новая DBT-техника\"}")]
+        (is (= [] (domains/generate-novel-advice @ds-atom user-id))
+            "свои советы имеют приоритет над novel")
+        (is (zero? @called) "AI не вызывается, когда уже есть свои советы")))))
+
+(deftest test-novel-advice-list-filters-novel
+  (testing "list-novel-advice возвращает только novel-советы (novel=true)"
+    (db/insert-finding! @ds-atom
+                        {:user-id user-id :type "advice"
+                         :content {:message "из своих записей" :explanation "e" :novel false}
+                         :confidence "medium" :source-refs []})
+    (db/insert-finding! @ds-atom
+                        {:user-id user-id :type "advice"
+                         :content {:message "новая DBT-техника" :explanation "x" :novel true}
+                         :confidence "medium" :source-refs []})
+    (let [novel (domains/list-novel-advice @ds-atom user-id)]
+      (is (= 1 (count novel)) "в списке novel — только novel-находки")
+      (is (true? (get-in (first novel) [:content :novel])))
+      (is (= "новая DBT-техника" (get-in (first novel) [:content :message]))))))
+
+(deftest test-chat-save-and-history
+  (testing "сообщения чата сохраняются и читаются в хронологическом порядке"
+    (domains/save-chat-message! @ds-atom user-id "user" "привет")
+    (domains/save-chat-message! @ds-atom user-id "assistant" "привет!")
+    (let [history (domains/chat-history @ds-atom user-id)]
+      (is (= 2 (count history)))
+      (is (= ["user" "assistant"] (mapv :role history)) "сообщения в порядке записи"))))
+
+(deftest test-chat-reply-normal-message
+  (testing "обычное сообщение получает ответ чата (AI с контекстом)"
+    (with-redefs [domains/call-chat (fn [_ _] "спокойное дыхание поможет")]
+      (let [reply (domains/chat-reply @ds-atom user-id [] "мне тревожно")]
+        (is (= "спокойное дыхание поможет" reply))))))

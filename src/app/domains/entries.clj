@@ -1,5 +1,6 @@
 (ns app.domains.entries
-  (:require [app.db.entries :as db]))
+  (:require [app.db.entries :as db]
+            [app.db.state-periods :as periods]))
 
 (def create-entry-schema
   [:map
@@ -44,19 +45,22 @@
 (defn create-entry
   [ds user-id {:keys [activity effect mood_score energy anxiety focus
                       sleep_hours note template state_label state_period_id]}]
-  (db/create-entry! ds {:user-id user-id
-                        :date (today)
-                        :activity (non-nil-str activity)
-                        :effect (non-nil-str effect)
-                        :mood-score mood_score
-                        :energy energy
-                        :anxiety anxiety
-                        :focus focus
-                        :sleep-hours sleep_hours
-                        :note note
-                        :template template
-                        :state-label state_label
-                        :state-period-id state_period_id}))
+  ;; При создании записи, если активен период состояния и не передан явный
+  ;; state_period_id — привязать запись к активному периоду (Decision 6.1).
+  (let [sp-id (or state_period_id (periods/get-active-period-id ds user-id))]
+    (db/create-entry! ds {:user-id user-id
+                          :date (today)
+                          :activity (non-nil-str activity)
+                          :effect (non-nil-str effect)
+                          :mood-score mood_score
+                          :energy energy
+                          :anxiety anxiety
+                          :focus focus
+                          :sleep-hours sleep_hours
+                          :note note
+                          :template template
+                          :state-label state_label
+                          :state-period-id sp-id})))
 
 (defn list-entries
   [ds user-id]

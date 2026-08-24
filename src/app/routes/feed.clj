@@ -3,6 +3,7 @@
             [app.domains.entries :as entries]
             [app.domains.insights :as insights]
             [app.domains.notification-settings :as notif-domains]
+            [app.domains.state-periods :as periods]
             [app.views.feed :as views]
             [clojure.string :as str]
             [hiccup2.core :refer [html]]))
@@ -24,12 +25,15 @@
           label (when (ai/labels-enabled? ds user-id)
                   (ai/list-labels ds user-id))
           advice (when (ai/advice-enabled? ds user-id)
-                   (ai/list-advice ds user-id))]
-      (when (or (seq correlations) (seq label) (seq advice))
-        {:csrf        csrf-token
+                   (ai/list-advice ds user-id))
+          novel (when (ai/novel-advice-enabled? ds user-id)
+                  (ai/list-novel-advice ds user-id))]
+      (when (or (seq correlations) (seq label) (seq advice) (seq novel))
+        {:csrf         csrf-token
          :correlations correlations
-         :label       label
-         :advice      advice}))))
+         :label        label
+         :advice       advice
+         :novel        novel}))))
 
 (defn- raw-state-label
   "Вернуть raw state_label строки (без префикса :state/), если он задан;
@@ -84,7 +88,12 @@
                (ai/advice-analysis-needed? ds user-id))
       (future (try (ai/generate-advice-from-insights ds user-id)
                    (catch Exception e
-                     (println "Background advice generation failed:" (.getMessage e))))))))
+                     (println "Background advice generation failed:" (.getMessage e))))))
+    (when (and (ai/novel-advice-enabled? ds user-id)
+               (ai/novel-analysis-needed? ds user-id))
+      (future (try (ai/generate-novel-advice ds user-id)
+                   (catch Exception e
+                     (println "Background novel advice failed:" (.getMessage e))))))))
 
 (defn page
   "Показать ленту записей («мой день») для аутентифицированного пользователя.
@@ -109,11 +118,17 @@
         summary? (summary-showing? settings today today-entries)
         summary-insight (when summary? insight)
         _ (ensure-ai-analysis! ds user-id manual-label)
-        ai (ai-findings ds user-id (get-in request [:anti-forgery-token]))]
+        ai (ai-findings ds user-id (get-in request [:anti-forgery-token]))
+        active-period (periods/active-period ds user-id)
+        periods-list (periods/list-periods ds user-id)
+        period {:active active-period
+                :list periods-list
+                :csrf (get-in request [:anti-forgery-token])}]
     (html-response 200 (views/page request entries state-label insight
                                    {:toast-insight toast-insight
                                     :summary {:show summary?
                                               :csrf (get-in request [:anti-forgery-token])
                                               :state-label state-label
                                               :insight summary-insight}
+                                    :period period
                                     :ai ai}))))

@@ -19,9 +19,15 @@
   "Модель для советов из своих инсайтов."
   "z-ai/glm-5.2")
 
+(def chat-model
+  "Модель для AI-чата."
+  "deepseek/deepseek-chat")
+
 (def min-days-threshold
   "Порог: анализ корреляций запускается при >= 14 дней записей."
   14)
+
+(declare list-advice)
 
 (defn api-key
   "Ключ OpenRouter из окружения OPENROUTER_API_KEY или nil."
@@ -238,7 +244,7 @@
                                          :explanation (:explanation parsed)}
                                :confidence (:confidence parsed)
                                :source-refs (vec (:source_refs parsed))}))))
-    (db/get-findings ds user-id "advice")))
+    (list-advice ds user-id)))
 
 ;; ──────────────────────────────────────────────────────────────
 ;; Guardrails и feedback
@@ -266,9 +272,12 @@
   (db/get-findings ds user-id "label"))
 
 (defn list-advice
-  "Список не скрытых AI-советов пользователя."
+  "Список не скрытых AI-советов пользователя из своих инсайтов
+   (novel-советы исключаются — они помечены content.novel=true)."
   [ds user-id]
-  (db/get-findings ds user-id "advice"))
+  (->> (db/get-findings ds user-id "advice")
+       (remove #(get-in % [:content :novel]))
+       vec))
 
 (defn label-analysis-needed?
   "Нужно ли предложить AI-ярлык: есть записи, нет ручного ярлыка и ещё нет
@@ -310,11 +319,11 @@
     (db/set-feedback! ds user-id (:id f) "already-known")))
 
 (defn advice-analysis-needed?
-  "Нужно ли сгенерировать AI-совет: есть свои инсайты и ещё нет
-   сохранённого advice-finding."
+  "Нужно ли сгенерировать AI-совет из своих инсайтов: есть свои инсайты и ещё
+   нет сохранённого своего advice-finding (novel-советы не учитываются)."
   [ds user-id]
   (and (seq (insights/get-insights ds user-id))
-       (empty? (db/get-findings ds user-id "advice"))))
+       (empty? (list-advice ds user-id))))
 
 (defn all-findings
   "Все не скрытые находки пользователя (для /feed)."
@@ -338,7 +347,8 @@
   {:master-enabled       1
    :correlations-enabled 1
    :labels-enabled       1
-   :advice-enabled       1})
+   :advice-enabled       1
+   :allow-novel-advice   0})
 
 (defn get-settings
   "Настройки AI пользователя: сохранённые, либо значения по умолчанию
@@ -349,8 +359,8 @@
 
 (defn update-settings
   "Обновить настройки AI пользователя. Принимает мапу с ключами
-   master_enabled / correlations_enabled / labels_enabled / advice_enabled
-   (из form/JSON). Возвращает обновлённые настройки."
+   master_enabled / correlations_enabled / labels_enabled / advice_enabled /
+   allow_novel_advice (из form/JSON). Возвращает обновлённые настройки."
   [ds user-id params]
   (let [master (coerce-enabled (or (get params :master_enabled)
                                    (get params "master_enabled")))
@@ -359,12 +369,15 @@
         labels (coerce-enabled (or (get params :labels_enabled)
                                    (get params "labels_enabled")))
         advice (coerce-enabled (or (get params :advice_enabled)
-                                   (get params "advice_enabled")))]
+                                   (get params "advice_enabled")))
+        novel (coerce-enabled (or (get params :allow_novel_advice)
+                                  (get params "allow_novel_advice")))]
     (db/set-ai-settings! ds user-id
                          {:master-enabled       master
                           :correlations-enabled correlations
                           :labels-enabled       labels
-                          :advice-enabled       advice})))
+                          :advice-enabled       advice
+                          :allow-novel-advice   novel})))
 
 (defn ai-enabled?
   "Включён ли master-toggle AI для пользователя."
@@ -388,3 +401,148 @@
   [ds user-id]
   (and (ai-enabled? ds user-id)
        (not= 0 (:advice-enabled (get-settings ds user-id)))))
+
+;; ──────────────────────────────────────────────────────────────
+;; Novel advice (Decision 6.2) — opt-in, помечены «не из твоих записей»
+;; ──────────────────────────────────────────────────────────────
+
+(defn novel-advice-enabled?
+  "Включены ли novel-советы (master-toggle + allow_novel_advice)."
+  [ds user-id]
+  (and (ai-enabled? ds user-id)
+       (not= 0 (:allow-novel-advice (get-settings ds user-id)))))
+
+(defn- novel-prompt
+  "Промпт novel-совета: общая техника DBT/CBT, не на основе записей."
+  []
+  (str "Ты — внимательный помощник для человека с биполярным расстройством. "
+       "Предложи один конкретный приём самопомощи из общей практики (DBT/CBT): "
+       "навык толерантности к дистрессу, переснижение мыслей или копинг-стратегию. "
+       "Это НЕ основано на его записях — общая техника. Дай краткий совет и объясни, "
+       "почему он работает.\n"
+       "Верни ТОЛЬКО JSON: "
+       "{\"advice\":\"...\",\"explanation\":\"...\",\"confidence\":\"high|medium|low\"}."))
+
+(defn list-novel-advice
+  "Список novel-советов пользователя (content.novel=true)."
+  [ds user-id]
+  (->> (db/get-findings ds user-id "advice")
+       (filter #(get-in % [:content :novel]))
+       vec))
+
+(defn generate-novel-advice
+  "Сгенерировать novel-совет (общая DBT/CBT техника), если он opt-in включён и
+   нет своих advice-находок (приоритет своим, Decision 6.2). Сохраняет находку
+   type=advice с content.novel=true. Возвращает актуальный список novel-советов."
+  [ds user-id]
+  (when (and (novel-advice-enabled? ds user-id)
+             (empty? (list-advice ds user-id)))
+    (let [content (call-chat advice-model
+                             [{:role "user" :content (novel-prompt)}])
+          parsed (first (parse-findings advice-schema content))]
+      (when parsed
+        (db/insert-finding! ds
+                            {:user-id user-id
+                             :type "advice"
+                             :content {:message (:advice parsed)
+                                       :explanation (:explanation parsed)
+                                       :novel true}
+                             :confidence (:confidence parsed)
+                             :source-refs []}))))
+  (list-novel-advice ds user-id))
+
+(defn novel-analysis-needed?
+  "Нужно ли сгенерировать novel-совет: опция включена, нет своих советов и ещё
+   нет сохранённого novel-совета."
+  [ds user-id]
+  (and (novel-advice-enabled? ds user-id)
+       (empty? (list-advice ds user-id))
+       (empty? (list-novel-advice ds user-id))))
+
+;; ──────────────────────────────────────────────────────────────
+;; AI-чат (Decision 6.3) + кризис-гвардиейл
+;; ──────────────────────────────────────────────────────────────
+
+(def crisis-keywords
+  "Ключевые слова кризиса (ru/en) — при совпадении ответ включает напоминание
+   о профессиональной помощи (телефон доверия / 112)."
+  #{"не хочу жить" "не хочу больше жить" "покончить с собой" "покончить с жизнью"
+    "суицид" "самоубийство" "хочу умереть" "лучше не существовать" "исчезнуть"
+    "навредить себе" "себе навредить" "kill myself" "suicide" "don't want to live"
+    "want to die" "end it all" "self harm" "self-harm" "hurt myself" "cut myself"})
+
+(defn needs-crisis-response?
+  "Вернуть true, если текст сообщения содержит признаки кризиса (ключ. слова)."
+  [text]
+  (when (and text (seq (str text)))
+    (let [lower (str/lower-case (str text))]
+      (boolean (some #(str/includes? lower %) crisis-keywords)))))
+
+(defn save-chat-message!
+  "Сохранить сообщение чата (role: user|assistant)."
+  [ds user-id role content]
+  (db/save-message! ds {:user-id user-id :role role :content content}))
+
+(defn chat-history
+  "Последние n сообщений чата пользователя в хронологическом порядке."
+  ([ds user-id]
+   (db/get-messages ds user-id 8))
+  ([ds user-id n]
+   (db/get-messages ds user-id n)))
+
+(defn- rose-line
+  "Компактная строка розы ветров последней записи."
+  [entry]
+  (when entry
+    (str "Роза ветров последней записи: энергия=" (or (:energy entry) "-")
+         " тревога=" (or (:anxiety entry) "-")
+         " фокус=" (or (:focus entry) "-")
+         " настроение=" (or (:mood-score entry) "-"))))
+
+(defn- entry-line
+  "Компактная строка записи для контекста чата."
+  [{:keys [date energy anxiety focus mood-score sleep-hours note]}]
+  (str date " | энергия=" (or energy "-")
+       " тревога=" (or anxiety "-")
+       " фокус=" (or focus "-")
+       " настроение=" (or mood-score "-")
+       " сон=" (or sleep-hours "-")
+       (when (seq note) (str " · " note))))
+
+(defn- insight-line
+  "Компактная строка инсайта (контекст → советы)."
+  [insight]
+  (str (:context insight) " → " (str/join " · " (take 3 (:advice-to-self insight)))))
+
+(defn- chat-context
+  "Собрать текстовый контекст чата: роза + последние записи + свои инсайты."
+  [ds user-id]
+  (let [rows (entries/get-entries ds user-id)
+        insights-rows (insights/get-insights ds user-id)]
+    (str/join "\n"
+              (concat
+               [(rose-line (first rows))]
+               (map entry-line (take 5 rows))
+               [(str "Свои инсайты:\n"
+                     (str/join "\n" (map insight-line (take 5 insights-rows))))]))))
+
+(defn chat-messages
+  "Сформировать сообщения модели: system-контекст (роза + записи + инсайты),
+   история и текущее сообщение пользователя."
+  [ds user-id history user-message]
+  (let [context (chat-context ds user-id)]
+    (concat
+     [{:role :system
+       :content (str "Ты — тёплый поддерживающий помощник для человека с биполярным "
+                     "расстройством. Отвечай кратко и по-русски. Опирайся на контекст "
+                     "и его собственные инсайты, не выдумывай чужой опыт. Если в его "
+                     "словах есть признаки кризиса — напомни про профессиональную помощь.\n\n"
+                     "КОНТЕКСТ ПОЛЬЗОВАТЕЛЯ:\n" context)}]
+     (map #(select-keys % [:role :content]) history)
+     [{:role :user :content user-message}])))
+
+(defn chat-reply
+  "Получить ответ ассистента на сообщение пользователя (текст) или nil.
+   history — вектор сообщений из ai_chat_messages (без текущего)."
+  [ds user-id history user-message]
+  (call-chat chat-model (chat-messages ds user-id history user-message)))

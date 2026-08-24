@@ -7,6 +7,7 @@
             [app.views.navigation :as navigation]
             [app.views.notifications :as notifications]
             [app.views.rose :as rose]
+            [app.views.state-periods :as sp]
             [clojure.string :as str]))
 
 (defn- entry-label
@@ -139,15 +140,37 @@
           :stroke-width 2.5 :stroke-linecap "round" :stroke-linejoin "round"}
     [:path {:d "M12 5v14M5 12h14"}]]])
 
+(defn- chat-launcher
+  "Кнопка «чат» на /feed — открывает панель ai-chat (htmx-get на /ai/chat)."
+  []
+  [:button {:type "button"
+            :class "btn btn-outline btn-sm h-11 min-h-11"
+            :hx-get "/ai/chat"
+            :hx-target "#ai-chat-open"
+            :hx-swap "innerHTML"
+            :aria-label (i18n/t :ai/chat-open)}
+   (i18n/t :ai/chat-open)])
+
+(defn- period-banner
+  "Баннер периода: активный — индикатор + «закрыть», иначе — «начать период».
+   period: map {:active :list :csrf}."
+  [period]
+  (let [csrf (:csrf period)
+        active (:active period)]
+    (if active
+      (sp/active-indicator csrf active)
+      (sp/start-banner csrf))))
+
 (defn page
   "Отрендерить страницу /feed: лента записей, сгруппированных по дням.
    Последняя запись сегодня — hero-карточка с розой; остальные — компактные.
    Под hero — виджет инсайтов (state-label, insight).
    request: ring-запрос; entries: вектор записей (date desc, created_at desc).
    opts: map с ключами :toast-insight (toast после сохранения),
-   :summary (map {:show :csrf :state-label :insight} для вечерней сводки) и
-   :ai (map {:csrf :correlations :label :advice} для секций Фазы 5)."
-  [request entries state-label insight & [{:keys [toast-insight summary ai]}]]
+   :summary (map {:show :csrf :state-label :insight} для вечерней сводки),
+   :period (map {:active :list :csrf} для секции периода) и
+   :ai (map {:csrf :correlations :label :advice :novel} для секций AI)."
+  [request entries state-label insight & [{:keys [toast-insight summary period ai]}]]
   (let [grouped (group-by :date entries)
         today (str (java.time.LocalDate/now))
         today-entries (get grouped today)
@@ -162,6 +185,11 @@
                  (notifications/pending-insight-fragment)
                  [:div {:class "mb-6"}
                   [:h1 {:class "text-2xl font-bold"} (i18n/t :feed/title)]]
+                 [:div {:class "mb-4"}
+                  (chat-launcher)
+                  [:div {:id "ai-chat-open"}]]
+                 (when period
+                   (period-banner period))
                  (when ai
                    (today-section today-entries state-label insight
                                   {:csrf (:csrf ai)
@@ -170,8 +198,12 @@
                    (ai/ai-state-label (:csrf ai) (:label ai)))
                  (when (and ai (seq (:correlations ai)))
                    (ai/ai-correlations (:csrf ai) (:correlations ai)))
+                 (when (and ai (seq (:novel ai)))
+                   (ai/ai-novel-advice (:csrf ai) (:novel ai)))
                  (when-not ai
                    (today-section today-entries state-label insight))
+                 (when period
+                   (sp/period-list (:list period)))
                  (for [date past-dates]
                    (past-day-section date (get grouped date)))
                  (fab)]]

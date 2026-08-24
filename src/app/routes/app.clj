@@ -25,6 +25,7 @@
             [app.routes.insights :as insights]
             [app.routes.medications :as med-routes]
             [app.routes.notifications :as notifications]
+            [app.routes.state-periods :as period-routes]
             [app.domains.notification-settings :as notif-domains]
             [app.views.entries :as views]
             [app.views.settings :as settings]))
@@ -210,7 +211,18 @@
     ["/ai/advice"
      {:post {:handler (partial ai-routes/advice-fragment ds)}}]
     ["/ai/findings/:id/feedback"
-     {:post {:handler (partial ai-routes/feedback ds)}}]]
+     {:post {:handler (partial ai-routes/feedback ds)}}]
+    ["/ai/chat"
+     {:get {:handler (partial ai-routes/chat-panel ds)}
+      :post {:handler (partial ai-routes/chat-send ds)}}]
+    ["/ai/chat/disclaimer"
+     {:post {:handler (partial ai-routes/chat-disclaimer ds)}}]
+    ["/ai/novel-advice"
+     {:post {:handler (partial ai-routes/novel-advice-fragment ds)}}]
+    ["/periods/start"
+     {:post {:handler (partial period-routes/start ds)}}]
+    ["/periods/:id/end"
+     {:post {:handler (partial period-routes/end ds)}}]]
    {:data {:coercion app-coercion
            :middleware [rc/coerce-request-middleware
                         rc/coerce-response-middleware]}}))

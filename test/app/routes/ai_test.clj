@@ -323,3 +323,66 @@
                            :body (java.io.ByteArrayInputStream. (.getBytes "{}"))})]
       (is (some? (:status response)))
       (is (not= 200 (:status response))))))
+
+;; --- Phase 6: AI chat + novel advice ---
+
+(deftest test-chat-requires-auth
+  (testing "POST /ai/chat без авторизации отклоняется (чат не публичный)"
+    (let [response ((app) {:request-method :post :uri "/ai/chat"
+                           :headers {"content-type" "application/json" "accept" "text/html"}
+                           :body (java.io.ByteArrayInputStream. (.getBytes "{}"))})]
+      (is (some? (:status response)))
+      (is (not= 200 (:status response))))))
+
+(deftest test-chat-normal-message-responds-with-context
+  (testing "чат on-demand: обычное сообщение получает ответ (в секции chat-response)"
+    (add-today-entry!)
+    (with-redefs [domains/call-chat (fn [model messages] "спокойное дыхание 4-7-8 поможет")]
+      (let [response (post-json-form "/ai/chat" {:message "мне тревожно, не могу уснуть"})
+            body (body-text response)]
+        (is (= 200 (:status response)))
+        (is (str/includes? body "chat-response") "ответ размещается в chat-response")
+        (is (str/includes? body "спокойное дыхание 4-7-8") "ответ содержит AI-совет")))))
+
+(deftest test-chat-persists-messages
+  (testing "сообщения чата сохраняются (кэш) с ролями user и assistant"
+    (add-today-entry!)
+    (with-redefs [domains/call-chat (fn [model messages] "ответ")]
+      (post-json-form "/ai/chat" {:message "привет"}))
+    (let [rows (jdbc/execute! @ds-atom ["SELECT role FROM ai_chat_messages"]
+                              {:builder-fn rs/as-unqualified-maps})]
+      (is (= 2 (count rows)) "сохранены сообщение пользователя и ответ AI")
+      (is (= #{"user" "assistant"} (set (map :role rows)))))))
+
+(deftest test-chat-crisis-keywords-return-resource
+  (testing "кризисные слова: ответ содержит ресурс проф. помощи вместе с обычным ответом (не заменяет его как единственную реакцию)"
+    (add-today-entry!)
+    (with-redefs [domains/call-chat (fn [_ messages] "обычный поддерживающий ответ")]
+      (let [response (post-json-form "/ai/chat" {:message "не хочу жить"})
+            body (body-text response)]
+        (is (= 200 (:status response)))
+        (is (or (str/includes? body "телефон")
+                (str/includes? body "довери")
+                (str/includes? body "8-800")
+                (str/includes? body "помощ"))
+            "ответ содержит напоминание о профессиональной помощи / телефон доверия")))))
+
+(deftest test-novel-advice-off-by-default-on-feed
+  (testing "novel advice выключен по умолчанию: секция ai-novel-advice не показывается на /feed"
+    (let [body (body-text (get-html "/feed"))]
+      (is (not (str/includes? body "ai-novel-advice"))))))
+
+(deftest test-novel-advice-opt-in-toggle
+  (testing "allow_novel_advice включается через /settings/ai, master OFF отключает"
+    (post-json-form "/settings/ai" {:master_enabled "1" :correlations_enabled "1"
+                                    :labels_enabled "1" :advice_enabled "1"
+                                    :allow_novel_advice "1"})
+    (is (= 1 (:allow-novel-advice (domains/get-settings @ds-atom 1)))
+        "включение novel advice через настройки")
+    (is (true? (domains/novel-advice-enabled? @ds-atom 1))
+        "novel-advice активен после включения")
+    (post-json-form "/settings/ai" {:master_enabled "0" :correlations_enabled "1"
+                                    :labels_enabled "1" :advice_enabled "1"
+                                    :allow_novel_advice "1"})
+    (is (false? (domains/novel-advice-enabled? @ds-atom 1))
+        "master OFF выключает novel advice в любой момент")))

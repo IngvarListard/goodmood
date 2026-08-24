@@ -71,13 +71,14 @@
       decorate-row))
 
 (defn- default-settings
-  "Настройки AI по умолчанию (все функции включены)."
+  "Настройки AI по умолчанию (все функции включены, novel advice выключен)."
   [user-id]
   {:user-id              user-id
    :master-enabled       1
    :correlations-enabled 1
    :labels-enabled       1
-   :advice-enabled       1})
+   :advice-enabled       1
+   :allow-novel-advice   0})
 
 (defn get-ai-settings
   "Прочитать настройки AI пользователя или nil (нет строки)."
@@ -92,20 +93,53 @@
 (defn set-ai-settings!
   "Сохранить настройки AI пользователя (upsert по user_id).
    Принимает map {:master-enabled :correlations-enabled :labels-enabled
-   :advice-enabled} — значения 0/1. Возвращает сохранённую строку."
-  [ds user-id {:keys [master-enabled correlations-enabled labels-enabled advice-enabled]}]
+   :advice-enabled :allow-novel-advice} — значения 0/1 (novel default 0).
+   Возвращает сохранённую строку."
+  [ds user-id {:keys [master-enabled correlations-enabled labels-enabled advice-enabled allow-novel-advice]}]
+  (letfn [(flag [v] (if (or (nil? v) (= v "false") (= v "") (= v "0") (= v 0) (false? v)) 0 1))]
+    (jdbc/execute-one!
+     ds
+     (sql/format {:insert-into :user_ai_settings
+                  :values     [{:user_id              user-id
+                                :master_enabled       (flag master-enabled)
+                                :correlations_enabled (flag correlations-enabled)
+                                :labels_enabled       (flag labels-enabled)
+                                :advice_enabled       (flag advice-enabled)
+                                :allow_novel_advice   (flag allow-novel-advice)}]
+                  :on-conflict :user-id
+                  :do-update-set {:master_enabled       (flag master-enabled)
+                                  :correlations_enabled (flag correlations-enabled)
+                                  :labels_enabled       (flag labels-enabled)
+                                  :advice_enabled       (flag advice-enabled)
+                                  :allow_novel_advice   (flag allow-novel-advice)}
+                  :returning [:*]})
+     default-opts)))
+
+;; ──────────────────────────────────────────────────────────────
+;; AI-чат (кэш сообщений)
+;; ──────────────────────────────────────────────────────────────
+
+(defn save-message!
+  "Сохранить сообщение чата (role: user|assistant). Возвращает строку."
+  [ds {:keys [user-id role content]}]
   (jdbc/execute-one!
    ds
-   (sql/format {:insert-into :user_ai_settings
-                :values     [{:user_id              user-id
-                              :master_enabled       master-enabled
-                              :correlations_enabled correlations-enabled
-                              :labels_enabled       labels-enabled
-                              :advice_enabled       advice-enabled}]
-                :on-conflict :user-id
-                :do-update-set {:master_enabled       master-enabled
-                                :correlations_enabled correlations-enabled
-                                :labels_enabled       labels-enabled
-                                :advice_enabled       advice-enabled}
+   (sql/format {:insert-into :ai_chat_messages
+                :values [{:user_id user-id :role role :content content}]
                 :returning [:*]})
    default-opts))
+
+(defn get-messages
+  "Последние limit сообщений чата пользователя в хронологическом порядке
+   (самое старое — первое). Пусто, если сообщений нет."
+  [ds user-id limit]
+  (->> (jdbc/execute!
+        ds
+        (sql/format {:select [:*]
+                     :from [:ai_chat_messages]
+                     :where [:= :user_id user-id]
+                     :order-by [[:id :desc]]
+                     :limit limit})
+        default-opts)
+       reverse
+       vec))

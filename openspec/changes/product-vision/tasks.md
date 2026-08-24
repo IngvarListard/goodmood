@@ -78,19 +78,19 @@
 - [x] 5.5 `openspec validate`, реализация, `openspec status`, `openspec archive`.
 - [x] 5.6 Отметить Фазу 5 ✅ в `product-vision/tasks.md`. Change архивирован: `2026-08-24-add-ai-correlations`.
 
-## 6. Фаза 6 — AI: новые советы, чат + «период состояния»
+## 6. Фаза 6 — AI: новые советы, чат + «период состояния» ✅
 
 **Цель фазы:** AI генерирует новые советы (не из своих заметок), чатится в плохом состоянии; «период состояния» (вариант в гранулярности).
 **Капабилити:** `ai-assistant` (Фаза 6 часть), `entry-granularity` (вариант в).
 **Блокирующие open questions:** OQ7 (модель данных периода состояния), OQ8 (часть 2).
 
-- [ ] 6.1 Принять решение по OQ7: модель данных для периода состояния.
-- [ ] 6.2 Принять решение по OQ8 (часть 2): guardrails для новых советов и чата.
-- [ ] 6.3 Создать change `add-ai-chat-and-periods` (proposal/design/specs/tasks). Delta-спеки: `ai-assistant` (modified — Фаза 6 часть), `entry-granularity` (modified — вариант в).
-- [ ] 6.4 Реализовать: AI-чат в плохом состоянии, AI-генерация новых советов (с opt-in), UI для отметки начала/конца периода состояния, привязка записей к периоду.
-- [ ] 6.5 Тесты: сценарии из `specs/ai-assistant/spec.md` (Фаза 6 часть) и `specs/entry-granularity/spec.md` (вариант в).
-- [ ] 6.6 `openspec validate`, реализация, `openspec status`, `openspec archive`.
-- [ ] 6.7 Отметить Фазу 6 ✅ в `product-vision/tasks.md`.
+- [x] 6.1 Принять решение по OQ7: модель данных для периода состояния.
+- [x] 6.2 Принять решение по OQ8 (часть 2): guardrails для новых советов и чата.
+- [x] 6.3 Создать change `add-ai-chat-and-periods` (proposal/design/specs/tasks). Delta-спеки: `ai-assistant` (modified — Фаза 6 часть), `entry-granularity` (modified — вариант в).
+- [x] 6.4 Реализовать: AI-чат в плохом состоянии, AI-генерация новых советов (с opt-in), UI для отметки начала/конца периода состояния, привязка записей к периоду.
+- [x] 6.5 Тесты: сценарии из `specs/ai-assistant/spec.md` (Фаза 6 часть) и `specs/entry-granularity/spec.md` (вариант в).
+- [x] 6.6 `openspec validate`, реализация, `openspec status`, `openspec archive`.
+- [x] 6.7 Отметить Фазу 6 ✅ в `product-vision/tasks.md`. Change архивирован: `2026-08-24-add-ai-chat-and-periods`.
 
 ## 7. Фаза 7 — AI: предупреждение эпизода (осторожно)
 

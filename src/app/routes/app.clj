@@ -256,4 +256,5 @@
           :error-handler anti-forgery-error-handler})
         (session/wrap-session (session-config session-secret))
         muuntaja/wrap-format
-        params/wrap-params)))
+        params/wrap-params
+        mw/wrap-request-log)))

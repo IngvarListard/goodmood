@@ -26,6 +26,39 @@
           i18n/normalize-locale
           i18n/supported-locale))
 
+(defn wrap-request-log
+  "Логгер HTTP-запросов (access log в stdout). Печатает метод, путь, статус,
+   длительность в мс и id пользователя (если аутентифицирован). Исключения
+   оборачивает в 500 и логирует стектрейс. Комментарии на русском, сам лог —
+   на английском, в машиночитаемом формате."
+  [handler]
+  (fn [request]
+    (let [start (System/nanoTime)
+          method (str/upper-case (name (or (:request-method request) :get)))
+          uri (:uri request)
+          query (:query-string request)
+          path (if (seq query) (str uri "?" query) uri)]
+      (try
+        (let [response (handler request)
+              status (or (:status response) 200)
+              elapsed-ms (-> (- (System/nanoTime) start) (/ 1e6) double (Math/round))
+              uid (get-in request [:identity :id])]
+          (println (format "%s %s -> %d (%dms) user=%s"
+                           (.format (java.time.LocalDateTime/now)
+                                    (java.time.format.DateTimeFormatter/ofPattern
+                                     "yyyy-MM-dd HH:mm:ss.SSS"))
+                           path status elapsed-ms (or (some-> uid str) "-")))
+          response)
+        (catch Throwable e
+          (println (format "%s %s -> [ERROR] %s"
+                          (java.time.Instant/now)
+                          path
+                          (.getMessage e)))
+          (.printStackTrace e)
+          {:status 500
+           :headers {"Content-Type" "text/plain; charset=utf-8"}
+           :body "Internal Server Error"})))))
+
 (defn wrap-locale
   "Определить локаль запроса (cookie gm-locale > Accept-Language > умолчание),
    привязать к i18n/*locale* и добавить как :locale в request."

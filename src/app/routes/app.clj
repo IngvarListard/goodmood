@@ -219,6 +219,14 @@
      {:post {:handler (partial ai-routes/chat-disclaimer ds)}}]
     ["/ai/novel-advice"
      {:post {:handler (partial ai-routes/novel-advice-fragment ds)}}]
+    ["/ai/episode-warning"
+     {:get {:handler (partial ai-routes/episode-warning-fragment ds)}}]
+    ["/ai/episode-warning/disable"
+     {:post {:handler (partial ai-routes/episode-warning-disable ds)}}]
+    ["/ai/episode-warning/:id/feedback"
+     {:post {:handler (partial ai-routes/episode-warning-feedback ds)}}]
+    ["/ai/episode-warning/:id/dismiss"
+     {:post {:handler (partial ai-routes/episode-warning-dismiss ds)}}]
     ["/periods/start"
      {:post {:handler (partial period-routes/start ds)}}]
     ["/periods/:id/end"

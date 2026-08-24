@@ -170,7 +170,7 @@
    :summary (map {:show :csrf :state-label :insight} для вечерней сводки),
    :period (map {:active :list :csrf} для секции периода) и
    :ai (map {:csrf :correlations :label :advice :novel} для секций AI)."
-  [request entries state-label insight & [{:keys [toast-insight summary period ai]}]]
+  [request entries state-label insight & [{:keys [toast-insight summary period ai csrf episode]}]]
   (let [grouped (group-by :date entries)
         today (str (java.time.LocalDate/now))
         today-entries (get grouped today)
@@ -183,6 +183,8 @@
                                                  (:state-label summary)
                                                  (:insight summary)))
                  (notifications/pending-insight-fragment)
+                 (when episode
+                   (ai/episode-warning-fragment csrf episode))
                  [:div {:class "mb-6"}
                   [:h1 {:class "text-2xl font-bold"} (i18n/t :feed/title)]]
                  [:div {:class "mb-4"}

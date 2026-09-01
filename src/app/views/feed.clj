@@ -57,13 +57,13 @@
   [{:keys [created-at] :as entry}]
   [:li [:div {:class "card bg-base-200 shadow-sm"}
         [:div {:class "card-body p-3"}
-         [:div {:class "flex items-center gap-2 mb-1 flex-wrap"}
-          [:span {:class "text-xs uppercase tracking-wide opacity-50"}
-           (i18n/t :feed/state-label)]
-          [:span {:class "badge badge-secondary badge-sm"} (entry-label entry)]
-          [:span {:class "text-xs opacity-70 tabular-nums ml-auto"}
-           (format-time created-at)]]
-         [:p {:class "text-sm opacity-85"} (axes-line entry)]]]])
+          [:div {:class "flex items-center gap-2 mb-1 flex-wrap"}
+           [:span {:class "text-xs uppercase tracking-wide text-base-content/60"}
+            (i18n/t :feed/state-label)]
+           [:span {:class "badge badge-secondary badge-sm"} (entry-label entry)]
+           [:span {:class "text-xs text-base-content/70 tabular-nums ml-auto"}
+            (format-time created-at)]]
+          [:p {:class "text-sm text-base-content/85"} (axes-line entry)]]]])
 
 (defn- hero-card
   "Hero-карточка последней записи сегодня: SVG-радар 200×200 + метаданные."
@@ -75,18 +75,18 @@
       (rose/radar (select-keys entry [:energy :anxiety :focus :mood-score]))]
      [:div {:class "flex-1 min-w-0 w-full"}
       [:div {:class "flex items-center gap-2 mb-1 flex-wrap"}
-       [:span {:class "text-xs uppercase tracking-wide opacity-50"}
-        (i18n/t :feed/state-label)]
-       [:span {:class "badge badge-secondary badge-lg"} (entry-label entry)]
-       [:span {:class "text-sm opacity-70 tabular-nums ml-auto"}
-        (format-time created-at)]]
-      [:p {:class "text-sm opacity-85"} (axes-line entry)]
-      (when sleep-hours
-        [:p {:class "text-sm opacity-60 mt-1"}
-         (str (i18n/t :entries/sleep) " "
-              (format "%.1f" (double sleep-hours)) " ч")])
-      (when (seq note)
-        [:p {:class "text-sm opacity-80 mt-2"} note])]]]])
+        [:span {:class "text-xs uppercase tracking-wide text-base-content/60"}
+         (i18n/t :feed/state-label)]
+        [:span {:class "badge badge-secondary badge-lg"} (entry-label entry)]
+        [:span {:class "text-sm text-base-content/70 tabular-nums ml-auto"}
+         (format-time created-at)]]
+       [:p {:class "text-sm text-base-content/85"} (axes-line entry)]
+       (when sleep-hours
+         [:p {:class "text-sm text-base-content/60 mt-1"}
+          (str (i18n/t :entries/sleep) " "
+               (format "%.1f" (double sleep-hours)) " ч")])
+       (when (seq note)
+         [:p {:class "text-sm text-base-content/80 mt-2"} note])]]]])
 
 (defn- today-section
   "Секция «Сегодня»: hero-карточка последней записи + виджет инсайтов +
@@ -98,7 +98,7 @@
   [today-entries state-label insight & [ai-advice]]
   (let [soft? (and state-label (contains? #{"low" "mixed"} state-label))]
     [:section {:class "mb-6"}
-     [:h2 {:class "text-sm font-medium opacity-60 mb-2 uppercase tracking-wide"}
+     [:h2 {:class "text-sm font-medium text-base-content/60 mb-2 uppercase tracking-wide"}
       (i18n/t :feed/today)]
      (if (seq today-entries)
        (let [latest (first today-entries)
@@ -114,16 +114,17 @@
           (when (seq rest-entries)
             [:ul {:class "space-y-2 mt-2"}
              (map compact-card rest-entries)])])
-       [:div {:class "text-center py-10"}
-        [:p {:class "opacity-70 mb-4"} (i18n/t :feed/empty)]
-        [:a {:href "/check-in" :class "btn btn-primary"}
+       [:div {:class "text-center py-16"}
+        [:h2 {:class "text-xl font-semibold text-base-content mb-2"} (i18n/t :feed/empty)]
+        [:p {:class "text-base-content/60 mb-6"} (i18n/t :feed/empty-desc)]
+        [:a {:href "/check-in" :class "btn btn-primary btn-lg px-8"}
          (i18n/t :feed/go-check-in)]])]))
 
 (defn- past-day-section
   "Секция прошлого дня: заголовок даты + компактные карточки."
   [date entries]
   [:section {:class "mb-6"}
-   [:h2 {:class "text-sm font-medium opacity-60 mb-2 uppercase tracking-wide"}
+   [:h2 {:class "text-sm font-medium text-base-content/60 mb-2 uppercase tracking-wide"}
     (day-header date)]
    [:ul {:class "space-y-2"}
     (map compact-card entries)]])
@@ -206,9 +207,9 @@
                    (today-section today-entries state-label insight))
                  (when period
                    (sp/period-list (:list period)))
-                 (for [date past-dates]
-                   (past-day-section date (get grouped date)))
-                 (fab)]]
+                  (for [date past-dates]
+                    (past-day-section date (get grouped date)))
+                  (when (seq entries) (fab))]]
     (layout/layout {:title (i18n/t :feed/title)
                     :active :feed
                     :request request}

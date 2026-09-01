@@ -63,9 +63,9 @@
          [:p {:class "text-sm font-medium"} (i18n/t :toast/hint-title)]
          [:p {:class "text-sm opacity-80 mt-1 line-clamp-1"} (:context insight)]
          (when first-advice
-           [:p {:class "text-sm opacity-70 mt-1 line-clamp-1"} first-advice])
+           [:p {:class "text-sm text-base-content/70 mt-1 line-clamp-1"} first-advice])
          [:a {:href (str "/insights/" (:id insight))
-              :class "link link-hover text-sm opacity-70 mt-1 inline-block"}
+              :class "link link-hover text-sm text-base-content/70 mt-1 inline-block"}
           (i18n/t :toast/hint-more)]]
         [:button {:type "button"
                   :class "btn btn-ghost btn-sm h-11 min-h-11 px-2 shrink-0"
@@ -92,9 +92,9 @@
        [:div
         [:p {:class "text-sm opacity-80 mt-1 line-clamp-1"} (:context insight)]
         (when-let [first-advice (first (:advice-to-self insight))]
-          [:p {:class "text-sm opacity-70 mt-1 line-clamp-1"} first-advice])
+          [:p {:class "text-sm text-base-content/70 mt-1 line-clamp-1"} first-advice])
         [:a {:href (str "/insights/" (:id insight))
-             :class "link link-hover text-sm opacity-70 mt-1 inline-block"}
+             :class "link link-hover text-sm text-base-content/70 mt-1 inline-block"}
          (i18n/t :toast/hint-more)]])]
     [:button {:type "button"
               :class "btn btn-ghost btn-sm h-11 min-h-11 px-2 shrink-0"
@@ -135,15 +135,15 @@
              {:state (i18n/t (keyword "state" state-label))})]
     (when insight
       [:div {:class "card bg-base-200/60 border border-base-300 p-3"}
-       [:p {:class "text-xs uppercase tracking-wide opacity-50 mb-1"}
+       [:p {:class "text-xs uppercase tracking-wide text-base-content/60 mb-1"}
         (i18n/t :feed-summary/past)]
        [:p {:class "text-sm opacity-85"} (:context insight)]
        (when-let [first-advice (first (:advice-to-self insight))]
-         [:p {:class "text-sm opacity-70"} first-advice])
+         [:p {:class "text-sm text-base-content/70"} first-advice])
        [:a {:href (str "/insights/" (:id insight))
-            :class "link link-hover text-sm opacity-70 mt-1 inline-block"}
+            :class "link link-hover text-sm text-base-content/70 mt-1 inline-block"}
         (i18n/t :toast/hint-more)]])
-    [:p {:class "text-sm opacity-60 italic"}
+    [:p {:class "text-sm text-base-content/60 italic"}
      (i18n/t :feed-summary/closing)]]])
 
 ;; ──────────────────────────────────────────────────────────────
@@ -157,9 +157,9 @@
   [csrf-token slots]
   (let [slot-by-name (into {} (map (juxt :slot identity) slots))]
     [:div {:class "mb-6"}
-     [:h2 {:class "text-sm font-medium opacity-60 mb-1 uppercase tracking-wide"}
+     [:h2 {:class "text-sm font-medium text-base-content/60 mb-1 uppercase tracking-wide"}
       (i18n/t :notifications/title)]
-     [:p {:class "text-xs opacity-50 mb-3"}
+     [:p {:class "text-xs text-base-content/60 mb-3"}
       (i18n/t :notifications/subtitle)]
      [:div {:id "notif-status" :class "mb-2"}]
      [:form {:hx-post "/settings/notifications"
@@ -167,23 +167,23 @@
              :hx-swap "innerHTML"
              :class "card bg-base-200 p-4"}
       [:input {:type "hidden" :name "__anti-forgery-token" :value csrf-token}]
-      (for [slot slot-order
-            :let [row (get slot-by-name slot)
-                  on? (enabled? row)
-                  time (or (:time row) (get default-times slot))]]
-        ^{:key slot}
-        [:div
-         [:div {:class "flex items-center justify-between gap-3"}
-          [:span {:class "label-text"} (slot-label slot)]
-          [:div {:class "flex items-center gap-2"}
-           [:input {:type "time" :name (str "time_" slot) :value time
-                    :class (str "input input-bordered w-24"
-                                (when-not on? " opacity-40"))
-                    :disabled (not on?)}]
-           [:input {:type "checkbox" :name (str "enabled_" slot)
-                    :class "toggle toggle-primary"
-                    :checked on?}]]]
-         [:div {:class "divider my-1"}]])
+      [:div {:class "divide-y divide-base-300"}
+       (for [slot slot-order
+             :let [row (get slot-by-name slot)
+                   on? (enabled? row)
+                   time (or (:time row) (get default-times slot))]]
+         ^{:key slot}
+         [:div {:class "py-3 first:pt-0 last:pb-0"}
+          [:div {:class "flex items-center justify-between gap-3"}
+           [:span {:class "label-text"} (slot-label slot)]
+           [:div {:class "flex items-center gap-2"}
+            [:input {:type "time" :name (str "time_" slot) :value time
+                     :class (str "input input-bordered w-24"
+                                 (when-not on? " text-base-content/40"))
+                     :disabled (not on?)}]
+            [:input {:type "checkbox" :name (str "enabled_" slot)
+                     :class "toggle toggle-primary"
+                     :checked on?}]]]])]
       [:button {:type "submit" :class "btn btn-primary w-full h-12 mt-4"}
        (i18n/t :notifications/save)]]]))
 

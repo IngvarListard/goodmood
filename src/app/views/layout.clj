@@ -23,7 +23,16 @@
    [:script {:src tailwind-src}]
    [:script {:src htmx-src}]
    [:script {:src json-enc-src}]
-   [:script {:src hyperscript-src}]])
+   [:script {:src hyperscript-src}]
+   [:style "
+    @theme {
+      --color-base-content: #e8e5df;
+      --color-base-content-60: #b8b5af;
+      --color-base-content-70: #ccc9c3;
+      --color-base-content-80: #d8d5ce;
+      --color-base-content-85: #e8e5df;
+    }
+   "]])
 
 (defn layout
   "Отрендерить полную HTML-страницу с навигацией и содержимым.

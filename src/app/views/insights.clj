@@ -71,7 +71,7 @@
             [:span {:class "badge badge-secondary badge-sm"} (category-label (:category insight))]
             (when (:state-label insight)
               [:span {:class "badge badge-ghost badge-sm"} (state-label-text (:state-label insight))])
-            [:span {:class "text-xs opacity-50 ml-auto tabular-nums"} (format-date (:created-at insight))]]
+            [:span {:class "text-xs text-base-content/60 ml-auto tabular-nums"} (format-date (:created-at insight))]]
            [:div {:class "flex items-center gap-1"}
             [:a {:href (str "/insights/" id)
                  :class "btn btn-ghost btn-sm h-11 min-h-11 px-3"}
@@ -88,7 +88,7 @@
           [:p {:class "text-sm mb-2 line-clamp-2"} (:context insight)]
           [:div {:id (str "advice-preview-" id)}
            (when first-advice
-             [:p {:class "text-sm opacity-70 line-clamp-1"} first-advice])
+              [:p {:class "text-sm text-base-content/70 line-clamp-1"} first-advice])
            (when (pos? extra-count)
              [:button {:type "button" :class "btn btn-ghost btn-xs mt-1"
                        :hx-get (str "/insights/" id "/advice-items")
@@ -96,12 +96,12 @@
                        :hx-swap "innerHTML"}
               (i18n/t :insights/more-advice {:n extra-count})])]
           (when identity-text
-            [:p {:class "text-sm italic opacity-70 mt-2 line-clamp-1"} identity-text])]]
+            [:p {:class "text-sm italic text-base-content/70 mt-2 line-clamp-1"} identity-text])]]
         dialog
         [:dialog {:id (str "del-insight-" id) :class "modal modal-bottom sm:modal-middle"}
          [:div {:class "modal-box"}
           [:h3 {:class "text-lg font-bold mb-2"} (i18n/t :insights/delete-confirm)]
-          [:p {:class "text-sm opacity-70 mb-4"} (i18n/t :insights/delete-confirm-text)]
+           [:p {:class "text-sm text-base-content/70 mb-4"} (i18n/t :insights/delete-confirm-text)]
           [:div {:class "modal-action"}
            [:form {:method "dialog"}
             [:button {:class "btn btn-ghost h-11 min-h-11"} (i18n/t :insights/cancel)]]
@@ -123,8 +123,8 @@
      (if (seq (:advice-to-self insight))
        [:ul {:class "text-sm space-y-1 opacity-85 mt-1"}
         (for [item (:advice-to-self insight)]
-          [:li [:span {:class "opacity-50 mr-1"} "•"] " " item])]
-       [:p {:class "text-sm opacity-50"} ""])]))
+          [:li [:span {:class "text-base-content/50 mr-1"} "•"] " " item])]
+       [:p {:class "text-sm text-base-content/50"} ""])]))
 
 (defn- insights-list
   "Список карточек инсайтов (без фильтра и заголовка) — для htmx-свалопа."
@@ -133,15 +133,15 @@
    (if (seq insights)
      (map #(insight-list-card csrf-token %) insights)
      [:div {:class "text-center py-10"}
-      [:p {:class "opacity-70 mb-1"} (i18n/t :insights/empty-category)]
-      [:p {:class "text-sm opacity-50"} (i18n/t :insights/empty-category-hint)]])])
+       [:p {:class "text-base-content/70 mb-1"} (i18n/t :insights/empty-category)]
+       [:p {:class "text-sm text-base-content/60"} (i18n/t :insights/empty-category-hint)]])])
 
 (defn- global-onboarding
   "Глобальный онбординг при отсутствии инсайтов."
   []
   [:div {:class "text-center py-16"}
    [:p {:class "text-lg mb-2"} (i18n/t :insights/onboarding-title)]
-   [:p {:class "text-sm opacity-70 mb-6 max-w-sm mx-auto"}
+    [:p {:class "text-sm text-base-content/70 mb-6 max-w-sm mx-auto"}
     (i18n/t :insights/onboarding-desc)]
    [:a {:href "/insights/new" :class "btn btn-primary"}
     (i18n/t :insights/onboarding-create)]])
@@ -167,7 +167,7 @@
          [:a {:href "/insights/new"
               :class "btn btn-primary btn-sm h-11 min-h-11 px-4"}
           (i18n/t :insights/new)]]
-        [:p {:class "text-sm opacity-70"} (i18n/t :insights/subtitle)]]]
+         [:p {:class "text-sm text-base-content/70"} (i18n/t :insights/subtitle)]]]
       (if global-empty?
         (global-onboarding)
         [:div {:class "card bg-base-200 shadow-sm mb-4"}
@@ -258,7 +258,7 @@
                  :stroke-width 2.5 :stroke-linecap "round" :stroke-linejoin "round"}
            [:path {:d "M15 18l-6-6 6-6"}]]]
          [:h1 {:class "text-2xl font-bold"} (i18n/t :insights/new-title)]]
-        [:p {:class "text-sm opacity-70"} (i18n/t :insights/subtitle)]]]
+         [:p {:class "text-sm text-base-content/70"} (i18n/t :insights/subtitle)]]]
 
       [:div {:class "card bg-base-200 shadow-sm"}
        [:div {:class "card-body p-4"}
@@ -283,7 +283,7 @@
                       :required true}
            (or context "")]
           [:label {:class "label"}
-           [:span {:class "label-text-alt opacity-60"}
+           [:span {:class "label-text-alt text-base-content/60"}
             (i18n/t :insights/context-hint)]]]
 
          [:div {:class "form-control"}
@@ -297,7 +297,7 @@
            (for [sl state-labels]
              (state-option state-label sl))]
           [:label {:class "label"}
-           [:span {:class "label-text-alt opacity-60"}
+           [:span {:class "label-text-alt text-base-content/60"}
             (i18n/t :insights/state-hint)]]]
 
          [:div {:class "form-control"}
@@ -314,7 +314,7 @@
          [:div {:class "form-control"}
           [:label {:class "label"}
            [:span {:class "label-text"} (i18n/t :insights/advice-label)]]
-          [:p {:class "text-sm opacity-60 mb-2"} (i18n/t :insights/advice-hint)]
+           [:p {:class "text-sm text-base-content/60 mb-2"} (i18n/t :insights/advice-hint)]
           [:div {:id "advice-list" :class "space-y-2"}
            (advice-item 0 nil)]
           [:button {:type "button"
@@ -333,13 +333,13 @@
           [:label {:class "label" :for "identity"}
            [:span {:class "label-text"}
             (i18n/t :insights/identity-label)
-            [:span {:class "opacity-50 ml-1"} (i18n/t :insights/identity-optional)]]]
+             [:span {:class "text-base-content/50 ml-1"} (i18n/t :insights/identity-optional)]]]
           [:textarea {:id "identity" :name "identity"
                       :class "textarea textarea-bordered w-full h-20"
                       :placeholder (i18n/t :insights/identity-placeholder)}
            ""]
           [:label {:class "label"}
-           [:span {:class "label-text-alt opacity-60"}
+           [:span {:class "label-text-alt text-base-content/60"}
             (i18n/t :insights/identity-hint)]]]
 
          [:div {:class "form-control mt-4"}
@@ -456,7 +456,7 @@
   [:div {:class "card bg-base-200 shadow-sm mb-4"}
    [:div {:class "card-body p-4"}
     [:div {:class "flex items-center justify-between mb-2"}
-     [:h2 {:class "text-sm font-medium opacity-60 uppercase tracking-wide"} label]
+     [:h2 {:class "text-sm font-medium text-base-content/60 uppercase tracking-wide"} label]
      [:button {:type "button"
                :class "btn btn-ghost btn-sm h-11 min-h-11 px-3"
                :hx-get edit-url
@@ -498,8 +498,8 @@
       [:div {:class "card bg-base-200 shadow-sm mb-4"}
        [:div {:class "card-body p-4"}
         [:div {:class "flex items-center justify-between mb-2"}
-         [:h2 {:class "text-sm font-medium opacity-60 uppercase tracking-wide"}
-          (i18n/t :insights/context-label)]
+          [:h2 {:class "text-sm font-medium text-base-content/60 uppercase tracking-wide"}
+           (i18n/t :insights/context-label)]
          [:button {:type "button"
                    :class "btn btn-ghost btn-sm h-11 min-h-11 px-3"
                    :hx-get (str "/insights/" id "/edit-context")
@@ -512,8 +512,8 @@
       [:div {:class "card bg-base-200 shadow-sm mb-4"}
        [:div {:class "card-body p-4"}
         [:div {:class "flex items-center justify-between mb-2"}
-         [:h2 {:class "text-sm font-medium opacity-60 uppercase tracking-wide"}
-          (i18n/t :insights/advice-label)]
+          [:h2 {:class "text-sm font-medium text-base-content/60 uppercase tracking-wide"}
+           (i18n/t :insights/advice-label)]
          [:button {:type "button"
                    :class "btn btn-ghost btn-sm h-11 min-h-11 px-3"
                    :hx-get (str "/insights/" id "/edit-advice")
@@ -527,8 +527,8 @@
         [:div {:class "card bg-base-200 shadow-sm mb-4"}
          [:div {:class "card-body p-4"}
           [:div {:class "flex items-center justify-between mb-2"}
-           [:h2 {:class "text-sm font-medium opacity-60 uppercase tracking-wide"}
-            (i18n/t :insights/identity-label)]
+            [:h2 {:class "text-sm font-medium text-base-content/60 uppercase tracking-wide"}
+             (i18n/t :insights/identity-label)]
            [:button {:type "button"
                      :class "btn btn-ghost btn-sm h-11 min-h-11 px-3"
                      :hx-get (str "/insights/" id "/edit-identity")
@@ -541,7 +541,7 @@
       [:div {:class "card bg-base-200 shadow-sm"}
        [:div {:class "card-body p-4"}
         [:div {:class "flex items-center justify-between flex-wrap gap-2"}
-         [:span {:class "text-xs opacity-50 tabular-nums"}
+          [:span {:class "text-xs text-base-content/60 tabular-nums"}
           (format-date (:created-at insight))]
          [:button {:type "button"
                    :class "btn btn-ghost btn-sm h-11 min-h-11 px-3 text-error"
@@ -558,11 +558,11 @@
       [:dialog {:id (str "del-insight-" id) :class "modal modal-bottom sm:modal-middle"}
        [:div {:class "modal-box"}
         [:h3 {:class "text-lg font-bold mb-2"} (i18n/t :insights/delete-confirm)]
-        [:p {:class "text-sm opacity-70 mb-4"} (i18n/t :insights/delete-confirm-text)]
-        [:div {:class "modal-action"}
-         [:form {:method "dialog"}
-          [:button {:class "btn btn-ghost h-11 min-h-11"} (i18n/t :insights/cancel)]]
-         [:button {:class "btn btn-error h-11 min-h-11"
+         [:p {:class "text-sm text-base-content/70 mb-4"} (i18n/t :insights/delete-confirm-text)]
+         [:div {:class "modal-action"}
+          [:form {:method "dialog"}
+           [:button {:class "btn btn-ghost h-11 min-h-11"} (i18n/t :insights/cancel)]]
+          [:button {:class "btn btn-error h-11 min-h-11"
                    :hx-delete (str "/insights/" id)
                    :hx-headers (str "{\"X-CSRF-Token\": \"" csrf-token "\"}")
                    :_ (str "on htmx:afterRequest settle window.location.href = '/insights'")}
@@ -582,8 +582,8 @@
   [state-label insight & [{:keys [csrf findings]}]]
   (when state-label
     [:section {:class "mb-4" :id "feed-insights"}
-     [:h2 {:class "text-sm font-medium opacity-60 mb-2 uppercase tracking-wide"}
-      (i18n/t :insights/widget-title)]
+      [:h2 {:class "text-sm font-medium text-base-content/60 mb-2 uppercase tracking-wide"}
+       (i18n/t :insights/widget-title)]
      (if insight
        [:div {:id "feed-insights-list" :class "space-y-2"}
         [:a {:href (str "/insights/" (:id insight))
@@ -591,10 +591,10 @@
          [:div {:class "card-body p-3"}
           [:div {:class "flex items-center gap-2 mb-1"}
            [:span {:class "badge badge-secondary badge-xs"} (category-label (:category insight))]
-           [:span {:class "text-xs opacity-50 ml-auto"} (format-date (:created-at insight))]]
+            [:span {:class "text-xs text-base-content/60 ml-auto"} (format-date (:created-at insight))]]
           [:p {:class "text-sm line-clamp-1"} (:context insight)]
-          (when-let [first-advice (first (:advice-to-self insight))]
-            [:p {:class "text-sm opacity-70 line-clamp-1"} first-advice])]]
+           (when-let [first-advice (first (:advice-to-self insight))]
+             [:p {:class "text-sm text-base-content/70 line-clamp-1"} first-advice])]]
         [:div {:class "mt-2"}
          [:a {:href (str "/insights/new?state_label=" state-label)
               :class "btn btn-ghost btn-sm h-11 min-h-11 px-3"}
@@ -606,7 +606,7 @@
           (i18n/t :insights/widget-record)]]]
        ;; Онбординг (fallback, OQ3)
        [:div {:class "text-center py-6 px-4"}
-        [:p {:class "text-sm opacity-70 mb-3"}
+        [:p {:class "text-sm text-base-content/70 mb-3"}
          (i18n/t :insights/onboarding-state {:state (state-label-text state-label)})]
         [:a {:href (str "/insights/new?state_label=" state-label)
              :class "btn btn-primary btn-sm h-11 min-h-11 px-4"}

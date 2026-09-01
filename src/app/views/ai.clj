@@ -35,9 +35,9 @@
   "Бейдж уровня уверенности находки."
   [confidence]
   (let [cls (case confidence
-              "high"   "badge-success"
+              "high" "badge-success"
               "medium" "badge-warning"
-              "low"    "badge-ghost"
+              "low" "badge-ghost"
               "badge-ghost")]
     [:span {:class (str "badge badge-sm " cls)}
      (i18n/t (keyword "ai" (str "confidence-" confidence)))]))
@@ -71,7 +71,7 @@
   [csrf-token findings]
   (when (seq findings)
     [:section {:class "mb-4" :id "ai-correlations" :data-testid "ai-correlations"}
-     [:h2 {:class "text-sm font-medium opacity-60 mb-2 uppercase tracking-wide"}
+     [:h2 {:class "text-sm font-medium text-base-content/60 mb-2 uppercase tracking-wide"}
       (i18n/t :ai/correlations-title)]
      [:div {:class "space-y-2"}
       (for [f findings]
@@ -127,7 +127,7 @@
                :class "btn btn-ghost btn-xs h-9 min-h-9 px-2 gap-1 normal-case"
                :aria-label (str (i18n/t :ai/label-proposal) " " display)}
          (when-not applied-label
-           [:span {:class "text-xs opacity-60"} (i18n/t :ai/label-proposal)])
+           [:span {:class "text-xs text-base-content/60"} (i18n/t :ai/label-proposal)])
          [:span {:class "text-sm"} display]
          (when (and (not applied-label) (first findings))
            (confidence-badge (:confidence (first findings))))]
@@ -155,7 +155,7 @@
        [:div {:class "card bg-base-200 border-primary/20 shadow-sm"}
         [:div {:class "card-body p-3"}
          [:div {:class "flex items-center gap-2 mb-1"}
-          [:span {:class "text-xs uppercase tracking-wide opacity-50"}
+          [:span {:class "text-xs uppercase tracking-wide text-base-content/60"}
            (i18n/t :ai/advice-title)]
           (confidence-badge (:confidence f))]
          [:p {:class "text-sm opacity-90"} message]
@@ -166,7 +166,7 @@
                       :_ "on click toggle .hidden on #ai-advice-why-detail"}
              (i18n/t :ai/advice-why-button)]
             [:p {:id "ai-advice-why-detail"
-                 :class "ai-advice-why hidden text-sm opacity-70 italic"}
+                 :class "ai-advice-why hidden text-sm text-base-content/70 italic"}
              (i18n/t :ai/advice-why {:explanation explanation})]])
          (when (seq (:source-refs f))
            [:div {:class "mt-2 flex flex-wrap gap-2"}
@@ -202,9 +202,9 @@
   [csrf-token {:keys [master-enabled correlations-enabled labels-enabled
                       advice-enabled allow-novel-advice episode-warning-enabled]}]
   [:div {:class "mb-6"}
-   [:h2 {:class "text-sm font-medium opacity-60 mb-1 uppercase tracking-wide"}
+   [:h2 {:class "text-sm font-medium text-base-content/60 mb-1 uppercase tracking-wide"}
     (i18n/t :ai/settings-title)]
-   [:p {:class "text-xs opacity-50 mb-3"} (i18n/t :ai/settings-subtitle)]
+   [:p {:class "text-xs text-base-content/60 mb-3"} (i18n/t :ai/settings-subtitle)]
    [:div {:id "ai-settings-status" :class "mb-2"}]
    [:form {:id "ai-settings-form"
            :hx-post "/settings/ai"
@@ -212,31 +212,27 @@
            :hx-swap "innerHTML"
            :class "card bg-base-200 p-4"}
     [:input {:type "hidden" :name "__anti-forgery-token" :value csrf-token}]
-    [:div {:class "flex items-center justify-between gap-3"}
-     [:span {:class "label-text"} (i18n/t :ai/master-toggle)]
-     (ai-toggle-input "master_enabled" (not= master-enabled 0) nil)]
-    [:div {:class "divider my-1"}]
-    [:div {:class "flex items-center justify-between gap-3"}
-     [:span {:class "label-text"} (i18n/t :ai/toggle-correlations)]
-     (ai-toggle-input "correlations_enabled" (not= correlations-enabled 0) nil)]
-    [:div {:class "divider my-1"}]
-    [:div {:class "flex items-center justify-between gap-3"}
-     [:span {:class "label-text"} (i18n/t :ai/toggle-labels)]
-     (ai-toggle-input "labels_enabled" (not= labels-enabled 0) nil)]
-    [:div {:class "divider my-1"}]
-    [:div {:class "flex items-center justify-between gap-3"}
-     [:span {:class "label-text"} (i18n/t :ai/toggle-advice)]
-     (ai-toggle-input "advice_enabled" (not= advice-enabled 0) nil)]
-    [:div {:class "divider my-1"}]
-    [:div {:class "flex items-center justify-between gap-3"}
-     [:span {:class "label-text"} (i18n/t :ai/toggle-novel-advice)]
-     (ai-toggle-input "allow_novel_advice" (not= allow-novel-advice 0)
-                      {:data-testid "allow-novel-advice-toggle"})]
-    [:div {:class "divider my-1"}]
-    [:div {:class "flex items-center justify-between gap-3"}
-     [:span {:class "label-text"} (i18n/t :ai/toggle-episode-warning)]
-     (ai-toggle-input "episode_warning_enabled" (not= episode-warning-enabled 0)
-                      {:data-testid "episode-warning-toggle"})]
+    [:div {:class "divide-y divide-base-300"}
+     [:div {:class "flex items-center justify-between gap-3 py-3 first:pt-0"}
+      [:span {:class "label-text"} (i18n/t :ai/master-toggle)]
+      (ai-toggle-input "master_enabled" (not= master-enabled 0) nil)]
+     [:div {:class "flex items-center justify-between gap-3 py-3"}
+      [:span {:class "label-text"} (i18n/t :ai/toggle-correlations)]
+      (ai-toggle-input "correlations_enabled" (not= correlations-enabled 0) nil)]
+     [:div {:class "flex items-center justify-between gap-3 py-3"}
+      [:span {:class "label-text"} (i18n/t :ai/toggle-labels)]
+      (ai-toggle-input "labels_enabled" (not= labels-enabled 0) nil)]
+     [:div {:class "flex items-center justify-between gap-3 py-3"}
+      [:span {:class "label-text"} (i18n/t :ai/toggle-advice)]
+      (ai-toggle-input "advice_enabled" (not= advice-enabled 0) nil)]
+     [:div {:class "flex items-center justify-between gap-3 py-3"}
+      [:span {:class "label-text"} (i18n/t :ai/toggle-novel-advice)]
+      (ai-toggle-input "allow_novel_advice" (not= allow-novel-advice 0)
+                       {:data-testid "allow-novel-advice-toggle"})]
+     [:div {:class "flex items-center justify-between gap-3 py-3 last:pb-0"}
+      [:span {:class "label-text"} (i18n/t :ai/toggle-episode-warning)]
+      (ai-toggle-input "episode_warning_enabled" (not= episode-warning-enabled 0)
+                       {:data-testid "episode-warning-toggle"})]]
     [:button {:type "submit" :class "btn btn-primary w-full h-12 mt-4"}
      (i18n/t :notifications/save)]]])
 
@@ -255,14 +251,14 @@
        [:div {:class "card bg-base-200 border-accent/20 shadow-sm"}
         [:div {:class "card-body p-3"}
          [:div {:class "flex items-center gap-2 mb-1"}
-          [:span {:class "text-xs uppercase tracking-wide opacity-50"}
+          [:span {:class "text-xs uppercase tracking-wide text-base-content/60"}
            (i18n/t :ai/novel-title)]
           (confidence-badge (:confidence f))]
          [:span {:class "badge badge-accent badge-outline badge-xs"}
           (i18n/t :ai/novel-note)]
          [:p {:class "text-sm opacity-90 mt-2"} message]
          (when explanation
-           [:p {:class "text-sm opacity-70 italic mt-1"} explanation])
+           [:p {:class "text-sm text-base-content/70 italic mt-1"} explanation])
          (feedback-buttons csrf-token (:id f) "advice")]]])))
 
 ;; ──────────────────────────────────────────────────────────────
@@ -408,7 +404,7 @@
                               "feedback" "false_alarm"})}
           (i18n/t :ai/episode-warning-false-alarm)]]
         [:p {:id why-id
-             :class "episode-warning-why hidden text-xs opacity-60 mt-1"}
+             :class "episode-warning-why hidden text-xs text-base-content/60 mt-1"}
          (i18n/t :ai/episode-warning-why-note)]]])))
 
 (defn episode-warning-slot

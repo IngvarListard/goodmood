@@ -44,21 +44,21 @@
      [:div {:class "flex items-center justify-between gap-3"}
       [:div {:class "flex items-center gap-3"}
        [:div
-        [:p {:class "font-medium text-base"} (:name medication)]
-        [:p {:class "text-sm opacity-60"}
-         (str (dose-str (:dose medication)) " " (:dose-unit medication)
-              " · " scheduled-time)]]
-       (when logged?
-         [:span {:class (str "badge badge-sm "
-                             (if (= "taken" status) "badge-success" "badge-warning"))}
-          (i18n/t (if (= "taken" status)
-                    :medications/taken
-                    :medications/skipped))])]
+         [:p {:class "font-medium text-base"} (:name medication)]
+         [:p {:class "text-sm text-base-content/70"}
+          (str (dose-str (:dose medication)) " " (:dose-unit medication)
+               " · " scheduled-time)]]
+        (when logged?
+          [:span {:class (str "badge badge-sm "
+                              (if (= "taken" status) "badge-success" "badge-warning badge-outline"))}
+           (i18n/t (if (= "taken" status)
+                     :medications/taken
+                     :medications/skipped))])]
       (if logged?
-        [:button {:type "submit"
-                  :name "status" :value "pending"
-                  :class "btn btn-ghost btn-sm h-11 min-h-11 px-3 text-sm opacity-50"}
-         (i18n/t :medications/cancel-log)]
+         [:button {:type "submit"
+                   :name "status" :value "pending"
+                   :class "btn btn-ghost btn-sm h-11 min-h-11 px-3 text-sm text-base-content/70"}
+          (i18n/t :medications/cancel-log)]
         [:div {:class "flex items-center gap-2"}
          [:button {:type "submit"
                    :name "status" :value "taken"
@@ -84,11 +84,11 @@
    [:div {:class "flex items-start justify-between gap-2"}
     [:div
      [:h3 {:class "text-lg font-semibold"} name]
-     [:p {:class "text-sm opacity-70"}
+     [:p {:class "text-sm text-base-content/70"}
       (str (dose-str dose) " " dose-unit " · " (schedule-str schedule))]]
     [:div {:class "flex items-center gap-2"}
      (when (= 1 sensitive)
-       [:span {:class "badge badge-neutral badge-sm"}
+       [:span {:class "badge badge-ghost badge-sm"}
         (i18n/t :medications/sensitive)])
      [:button {:type "button"
                :class "btn btn-ghost btn-sm h-11 min-h-11 px-3"
@@ -98,7 +98,7 @@
       (i18n/t :medications/edit)]]]
    [:div {:class "mt-3 pt-3 border-t border-base-300"}
 [:button {:type "button"
-               :class "btn btn-ghost btn-sm h-11 min-h-11 text-sm opacity-60"
+               :class "btn btn-ghost btn-sm h-11 min-h-11 text-sm text-base-content/60"
                :hx-post (str "/medications/" id "/deactivate")
                :hx-headers (str "{\"X-CSRF-Token\": \"" csrf-token "\"}")
                :hx-target "#med-content"
@@ -112,8 +112,8 @@
   [:div {:class "card bg-base-300/50 p-4" :id (str "med-" id)}
    [:div {:class "flex items-start justify-between gap-2"}
     [:div
-     [:h3 {:class "text-base font-medium opacity-70"} name]
-     [:p {:class "text-sm opacity-50"}
+     [:h3 {:class "text-base font-medium text-base-content/70"} name]
+     [:p {:class "text-sm text-base-content/60"}
       (str (dose-str dose) " " dose-unit " · " (schedule-str schedule))]]
     [:button {:type "button"
               :class "btn btn-ghost btn-sm h-11 min-h-11 px-3"
@@ -137,8 +137,8 @@
   "Онбординг-состояние для пустого реестра медикаментов."
   []
   [:div {:class "text-center py-12"}
-   [:p {:class "text-lg opacity-60 mb-2"} (i18n/t :medications/empty-title)]
-   [:p {:class "text-sm opacity-50 mb-6"} (i18n/t :medications/empty-desc)]
+   [:p {:class "text-lg text-base-content/70 mb-2"} (i18n/t :medications/empty-title)]
+   [:p {:class "text-sm text-base-content/60 mb-6"} (i18n/t :medications/empty-desc)]
    [:button {:type "button"
              :class "btn btn-primary h-12 px-6"
              :hx-get "/medications/new"
@@ -204,7 +204,7 @@
                 :value (when (:schedule med) (schedule-str (:schedule med)))
                 :class "input input-bordered w-full h-12"}]
        [:label {:class "label"}
-        [:span {:class "label-text-alt text-xs opacity-50"}
+        [:span {:class "label-text-alt text-xs text-base-content/60"}
          (i18n/t :medications/schedule-hint)]]]
       [:div {:class "form-control mb-4 flex-row items-center justify-between"}
        [:span {:class "text-base font-medium"} (i18n/t :medications/sensitive-label)]
@@ -256,7 +256,7 @@
                             :hx-target "#med-modal-box"
                             :_ "on htmx:afterRequest call #med-modal.showModal()"}
                    (i18n/t :medications/add)]]
-                 [:p {:class "text-sm opacity-70 mb-6"}
+                 [:p {:class "text-sm text-base-content/70 mb-6"}
                   (i18n/t :medications/description)]
                  (page-content csrf-token meds slots)]]
     (layout/layout {:title (i18n/t :medications/title)

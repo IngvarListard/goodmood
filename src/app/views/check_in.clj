@@ -6,10 +6,10 @@
 (defn- value-row
   "Отрендерить подпись значения слайдера: минимум, текущее значение, максимум."
   [value-id]
-  [:div {:class "flex justify-between mt-0.5 px-0.5"}
-   [:span {:class "text-xs opacity-40"} "0"]
-   [:span {:id value-id :class "text-sm font-semibold tabular-nums"} "5"]
-   [:span {:class "text-xs opacity-40"} "10"]])
+   [:div {:class "flex justify-between mt-0.5 px-0.5"}
+    [:span {:class "text-xs text-base-content/60"} "0"]
+    [:span {:id value-id :class "text-sm font-semibold tabular-nums"} "5"]
+    [:span {:class "text-xs text-base-content/60"} "10"]])
 
 (defn- range-field
   "Отрендерить range-поле ядра: label, слайдер с отображением текущего значения.
@@ -67,16 +67,16 @@
    чтобы мягкий режим мог скрыть их одним toggle (Decision 14.4)."
   []
   [:div {:id "soft-targets"}
-   (range-field (i18n/t :entries/energy) "energy" "energy" "range-success")
-   (range-field (i18n/t :entries/anxiety) "anxiety" "anxiety" "range-warning")
+   (range-field (i18n/t :entries/energy) "energy" "energy" "range-primary")
+   (range-field (i18n/t :entries/anxiety) "anxiety" "anxiety" "range-primary")
    [:div {:class "border-t border-base-300 pt-4 mt-2"}
-    [:p {:class "text-xs opacity-50 mb-3 tracking-wide uppercase"}
+    [:p {:class "text-xs text-base-content/60 mb-3 tracking-wide uppercase"}
      (i18n/t :entries/optional)]
     (optional-block (i18n/t :entries/focus) "focus"
                     [:div {:class "form-control"}
                      [:input {:type "range" :name "focus" :min "0" :max "10" :value "5"
-                              :id "focus" :data-optional true :disabled true
-                              :class "range range-info" :style "height: 2rem"
+                               :id "focus" :data-optional true :disabled true
+                               :class "range range-primary" :style "height: 2rem"
                               :_ "on input set #focus-value.textContent to my.value"}]
                      (value-row "focus-value")])
     (optional-block (i18n/t :entries/sleep) "sleep_hours"
@@ -112,7 +112,7 @@
     [:div {:class "flex-1 min-w-0"}
      [:p {:class "text-sm font-medium"}
       (i18n/t :check-in/soft-mode-title)]
-     [:p {:class "text-sm opacity-80 mt-1"}
+     [:p {:class "text-sm text-base-content/80 mt-1"}
       (i18n/t :check-in/soft-mode-desc)]
      [:div {:class "flex gap-2 mt-2 flex-wrap"}
       [:button {:type "button"

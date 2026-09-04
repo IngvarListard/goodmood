@@ -118,6 +118,18 @@
     .gm-gradient {
       background: linear-gradient(135deg, #6366f1, #7c5ce0);
     }
+    /* Glow-слайдер: нативный range, трек 8px, белый тумб с двойным свечением */
+    .gm-range { -webkit-appearance: none; appearance: none; height: 8px; border-radius: 9999px; background: var(--color-base-300); width: 100%; }
+    .gm-range::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 20px; height: 20px; border-radius: 50%; background: #ffffff; box-shadow: 0 0 15px rgba(255,255,255,0.8), 0 0 25px rgba(94,92,230,0.8); cursor: pointer; }
+    .gm-range::-moz-range-thumb { width: 20px; height: 20px; border: none; border-radius: 50%; background: #ffffff; box-shadow: 0 0 15px rgba(255,255,255,0.8), 0 0 25px rgba(94,92,230,0.8); cursor: pointer; }
+    /* Активный сегмент segmented control (check-in): hyperscript тогглит
+       только класс tab-active, плашка рисуется здесь */
+    .gm-segment .tab-active {
+      background: var(--color-primary);
+      color: var(--color-primary-content);
+      border-radius: 12px;
+      font-weight: 500;
+    }
    "]])
 
 (defn layout

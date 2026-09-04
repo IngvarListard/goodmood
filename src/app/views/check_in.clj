@@ -6,77 +6,99 @@
 (defn- value-row
   "Отрендерить подпись значения слайдера: минимум, текущее значение, максимум."
   [value-id]
-   [:div {:class "flex justify-between mt-0.5 px-0.5"}
-    [:span {:class "text-xs text-base-content/60"} "0"]
-    [:span {:id value-id :class "text-sm font-semibold tabular-nums"} "5"]
-    [:span {:class "text-xs text-base-content/60"} "10"]])
+  [:div {:class "flex justify-between mt-0.5 px-0.5"}
+   [:span {:class "text-xs text-base-content/60"} "0"]
+   [:span {:id value-id :class "text-base font-bold tabular-nums"} "5"]
+   [:span {:class "text-xs text-base-content/60"} "10"]])
 
 (defn- range-field
   "Отрендерить range-поле ядра: label, слайдер с отображением текущего значения.
    field-id: суффикс id для value-спана, name: имя поля формы."
-  [label field-id name color]
+  [label field-id name]
   [:div {:class "form-control mb-5"}
    [:div {:class "label px-0"}
     [:span {:class "label-text text-base font-medium"} label]]
    [:input {:type "range" :name name :min "0" :max "10" :value "5"
-            :class (str "range " color)
-            :style "height: 2rem"
+            :class "gm-range"
             :_ (str "on input put my value into #" field-id "-value")}]
    (value-row (str field-id "-value"))])
 
+(defn- template-tab
+  "Кнопка сегмента segmented control. Классы tab/tab-active — скрытые хуки
+   hyperscript-переключателя; вне родителя .tabs daisyUI их не стилизует.
+   Активная плашка (bg primary, radius 12px) рисуется CSS-правилом
+   .gm-segment .tab-active в layout.clj — hyperscript тогглит только класс."
+  [{:keys [key label active]}]
+  [:button {:type "button"
+            :class (str "tab"
+                        (when active " tab-active")
+                        " flex-1 py-[10px] text-[13px] "
+                        "text-base-content/60 hover:text-base-content "
+                        "transition-colors")
+            :data-template key
+            :role "tab"
+            :_ "on click
+                  remove .tab-active from .tab
+                  add .tab-active to me
+                  set #template-value.value to @data-template"}
+   label])
+
 (defn- template-tabs
-  "Отрендерить переключатель шаблонов (утро/день/вечер/событие)."
+  "Отрендерить переключатель шаблонов (утро/день/вечер/событие) — segmented
+   control по макету design/otmetka.html: inset-контейнер, разделители.
+   gm-segment — хук для CSS-стилизации активного сегмента."
   []
-  [:div {:class "tabs tabs-boxed mb-4"}
-   (map (fn [{:keys [key label active]}]
-          [:button {:type "button"
-                    :class (str "tab" (when active " tab-active"))
-                    :data-template key
-                    :role "tab"
-                    :_ "on click
-                          remove .tab-active from .tab
-                          add .tab-active to me
-                          set #template-value.value to @data-template"}
-           label])
-        [{:key "morning" :label (i18n/t :template/morning) :active true}
+  [:div {:class (str "gm-segment flex bg-base-300 rounded-2xl p-[5px] "
+                     "shadow-[inset_0_2px_4px_rgba(0,0,0,0.1)] mb-8")}
+   (->> [{:key "morning" :label (i18n/t :template/morning) :active true}
          {:key "day" :label (i18n/t :template/day)}
          {:key "evening" :label (i18n/t :template/evening)}
-         {:key "event" :label (i18n/t :template/event)}])
+         {:key "event" :label (i18n/t :template/event)}]
+        (map template-tab)
+        (interleave
+         (repeat [:div {:class "w-px bg-base-content/10 my-2 mx-1"}]))
+        (drop 1))
    [:input {:type "hidden" :name "template" :id "template-value" :value "morning"}]])
 
 (defn- optional-block
   "Отрендерить опциональный коллапс-блок: чекбокс-переключатель, заголовок и контент."
   [label field-id content]
-  [:div {:class "collapse collapse-arrow bg-base-300/50 mb-2 rounded-lg"}
+  ;; Аккордеон по макету (design.md Decision 3): bg-base-300 rounded-xl
+  [:div {:class "collapse collapse-arrow bg-base-300 rounded-xl mb-2.5"}
    [:input {:type "checkbox"
+            ;; set disabled вместо remove/add [disabled]: синтаксис
+            ;; remove [attr] from X падает в hyperscript 0.9.93 на этой
+            ;; странице (баг был и до редизайна, см. отчёт задачи 3)
             :_ (str "on change
                        if me.checked
-                         remove [disabled] from #" field-id "
+                         set #" field-id ".disabled to false
                        else
-                         add [disabled] to #" field-id)}]
-   [:div {:class "collapse-title text-sm font-medium min-h-0 py-3"} label]
+                         set #" field-id ".disabled to true")}]
+
+   [:div {:class "collapse-title text-sm font-medium min-h-0 py-3.5"} label]
    [:div {:class "collapse-content"} content]])
 
 (defn- mood-range
   "Слайдер настроения (mood_score) — ядро, видим всегда, в т.ч. в мягком режиме."
   []
-  (range-field (i18n/t :entries/mood) "mood" "mood_score" "range-primary"))
+  (range-field (i18n/t :entries/mood) "mood" "mood_score"))
 
 (defn- soft-fields
   "Энергия/тревога + опциональные блоки. Оборачиваются в #soft-targets,
    чтобы мягкий режим мог скрыть их одним toggle (Decision 14.4)."
   []
   [:div {:id "soft-targets"}
-   (range-field (i18n/t :entries/energy) "energy" "energy" "range-primary")
-   (range-field (i18n/t :entries/anxiety) "anxiety" "anxiety" "range-primary")
+   (range-field (i18n/t :entries/energy) "energy" "energy")
+   (range-field (i18n/t :entries/anxiety) "anxiety" "anxiety")
+   ;; Обёртка опциональной секции: разделитель + заголовок uppercase (Decision 6)
    [:div {:class "border-t border-base-300 pt-4 mt-2"}
-    [:p {:class "text-xs text-base-content/60 mb-3 tracking-wide uppercase"}
+    [:p {:class "text-[10px] uppercase font-bold tracking-wider text-base-content/50 mb-4"}
      (i18n/t :entries/optional)]
     (optional-block (i18n/t :entries/focus) "focus"
                     [:div {:class "form-control"}
                      [:input {:type "range" :name "focus" :min "0" :max "10" :value "5"
-                               :id "focus" :data-optional true :disabled true
-                               :class "range range-primary" :style "height: 2rem"
+                              :id "focus" :data-optional true :disabled true
+                              :class "gm-range"
                               :_ "on input set #focus-value.textContent to my.value"}]
                      (value-row "focus-value")])
     (optional-block (i18n/t :entries/sleep) "sleep_hours"
@@ -100,7 +122,8 @@
   "Баннер предложения мягкого режима (low/mixed). Non-blocking: полная форма
    остаётся доступной, toggle — hyperscript, без сырого JS."
   []
-  [:div {:class "alert alert-info shadow-sm mb-4" :id "soft-mode-banner"}
+  [:div {:class "bg-base-200 border border-info/30 rounded-[18px] shadow-sm mb-4 p-4"
+         :id "soft-mode-banner"}
    [:div {:class "flex items-start gap-3 w-full"}
     [:svg {:xmlns "http://www.w3.org/2000/svg"
            :width 20 :height 20 :viewBox "0 0 24 24"
@@ -146,14 +169,18 @@
     [:div {:id "form-error" :class "mb-3"}]
     (mood-range)
     (soft-fields)
-    [:button {:type "submit" :class "btn btn-primary w-full h-12 mt-4"}
+    ;; Save-кнопка по макету design/otmetka.html: gradient + glow-тень
+    [:button {:type "submit"
+              :class (str "btn w-full h-14 rounded-2xl gm-gradient text-white "
+                          "font-semibold text-[15px] "
+                          "shadow-[0_4px_24px_rgba(98,94,252,0.35)] border-0")}
      (i18n/t :entries/save)]]])
 
 (defn page
   "Отрендерить страницу /check-in: «← назад» на /feed, заголовок и форма создания
    записи. soft? — показывать мягкий режим (последняя запись low/mixed)."
   [request soft?]
-  (let [content [:div {:class "max-w-2xl mx-auto p-4 pb-24"}
+  (let [content [:div {:class "max-w-md mx-auto p-4 pb-24"}
                  [:div {:class "flex items-center gap-3 mb-6"}
                   [:a {:href "/feed"
                        :class "btn btn-ghost btn-circle btn-sm"
@@ -163,7 +190,7 @@
                           :fill "none" :stroke "currentColor"
                           :stroke-width 2.5 :stroke-linecap "round" :stroke-linejoin "round"}
                     [:path {:d "M15 18l-6-6 6-6"}]]]
-                  [:h1 {:class "text-2xl font-bold"} (i18n/t :check-in/title)]]
+                  [:h1 {:class "text-[22px] font-bold"} (i18n/t :check-in/title)]]
                  (form (:anti-forgery-token request) soft?)]]
     (layout/layout {:title (i18n/t :check-in/title)
                     :active :check-in

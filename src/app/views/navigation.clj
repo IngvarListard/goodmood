@@ -16,18 +16,28 @@
         layout-classes (case variant
                          :mobile "flex-col items-center justify-center gap-0.5 py-2 min-h-[44px]"
                          :desktop "items-center gap-2")
-        active-classes (when active?
-                         (case variant
-                           :mobile "text-primary bg-primary/10"
-                           :desktop "menu-active text-primary"))
+        ;; цвет ссылки: активный — primary; неактивный (mobile) — muted + hover
+        color-classes (case variant
+                        :desktop (when active? "menu-active text-primary")
+                        :mobile (if active?
+                                  "text-primary"
+                                  "text-base-content/60 hover:text-base-content"))
         link-classes (str "flex w-full rounded-lg transition-colors relative "
                           layout-classes
-                          (when active-classes (str " " active-classes)))]
+                          (when color-classes (str " " color-classes)))
+        ;; контейнер иконки (mobile): у активного — плашка bg-primary/10, у неактивных — только размер для выравнивания
+        icon-box-classes (when (= variant :mobile)
+                           (if active?
+                             "flex h-9 w-9 items-center justify-center rounded-xl bg-primary/10"
+                             "flex h-9 w-9 items-center justify-center"))
+        icon-el (icons/svg icon {:variant icon-variant})]
     [:li {:class (when (= variant :mobile) "flex-1")}
      [:a {:href route
           :class link-classes
           :aria-current (when active? "page")}
-      (icons/svg icon {:variant icon-variant})
+      (if icon-box-classes
+        [:span {:class icon-box-classes} icon-el]
+        icon-el)
       [:span {:class "text-xs"} label]
       (when (and active? (= variant :mobile))
         [:span {:class "absolute bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-primary"}])]]))

@@ -70,6 +70,19 @@
       (binding [i18n/*locale* locale]
         (handler (assoc request :locale locale))))))
 
+(defn- theme-from-cookie
+  [request]
+  (let [value (get-in request [:cookies "gm-theme" :value])]
+    (when (contains? #{"light" "dark"} value)
+      (keyword value))))
+
+(defn wrap-theme
+  "Определить тему запроса из cookie gm-theme (:light | :dark, иначе :system),
+   добавить как :theme в request. По аналогии с wrap-locale."
+  [handler]
+  (fn [request]
+    (handler (assoc request :theme (or (theme-from-cookie request) :system)))))
+
 (defn wrap-identity
   "Достать аутентифицированного пользователя из сессии и добавить как request :identity."
   [handler]

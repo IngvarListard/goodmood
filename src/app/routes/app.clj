@@ -139,6 +139,8 @@
                 :auth/public true}]
     ["/locale" {:post {:handler auth/locale-post-handler}
                 :auth/public true}]
+    ["/theme" {:post {:handler auth/theme-post-handler}
+               :auth/public true}]
     ["/feed" {:get {:handler (partial feed/page ds)}}]
     ["/check-in" {:get {:handler (partial check-in/page ds)}}]
     ["/settings" {:get {:handler (partial settings-page-handler ds)}}]
@@ -251,6 +253,7 @@
         (mw/require-auth router)
         mw/wrap-identity
         mw/wrap-locale
+        mw/wrap-theme
         (anti-forgery/wrap-anti-forgery
          {:read-token mw/read-csrf-token
           :error-handler anti-forgery-error-handler})

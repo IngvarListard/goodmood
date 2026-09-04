@@ -61,3 +61,15 @@
         (response/set-cookie "gm-locale" locale {:path "/"
                                                  :http-only false
                                                  :same-site :lax}))))
+
+(defn theme-post-handler
+  "Set the gm-theme cookie (system | light | dark) and redirect back to :next (or /)."
+  [request]
+  (let [theme (form-param request "theme")
+        ;; Валидация значения: всё, кроме light/dark, сохраняем как system
+        theme (if (contains? #{"light" "dark"} theme) theme "system")
+        next (safe-next (or (form-param request "next") "/"))]
+    (-> (response/redirect next)
+        (response/set-cookie "gm-theme" theme {:path "/"
+                                               :http-only false
+                                               :same-site :lax}))))

@@ -22,6 +22,37 @@
                              (when current? " btn-active"))}
         code]])]])
 
+(defn- theme-switcher
+  "Секция выбора темы: радио system/dark/light в join. Мгновенное превью —
+   нативный механизм daisyUI theme-controller (:has); выбор сохраняется POST-ом
+   на /theme. Форма с hx-boost=false: htmx-boost не свапает атрибуты <html>,
+   тема меняется только полной перезагрузкой."
+  [csrf-token theme]
+  [:div
+   [:h3 {:class "font-semibold mb-2"} (i18n/t :user/theme)]
+   [:form {:method "post" :action "/theme"
+           :hx-boost "false"}
+    [:input {:type "hidden" :name "__anti-forgery-token" :value csrf-token}]
+    [:input {:type "hidden" :name "next" :value "/settings"}]
+    [:div {:class "join flex w-full"}
+     (for [[mode label] [[:system (i18n/t :user/theme-system)]
+                         [:dark (i18n/t :user/theme-dark)]
+                         [:light (i18n/t :user/theme-light)]]
+           :let [current? (= theme mode)]]
+       ^{:key mode}
+       [:label {:class (str "btn btn-outline join-item flex-1"
+                            (when current? " btn-active"))}
+        [:input {:type "radio"
+                 :name "theme"
+                 :value (name mode)
+                 :class "sr-only"
+                 :checked current?
+                 ;; Автосабмит формы при выборе радио (полный reload).
+                 ;; Скобки вокруг query обязательны: possessive после
+                 ;; <form/> без них не парсится (проверено в браузере).
+                 :_ "on change call (the closest <form/>)'s submit()"}]
+        label])]]])
+
 (defn- user-card
   [{:keys [display-name email] :as identity} request]
   (let [csrf-token (:anti-forgery-token request)]
@@ -36,6 +67,8 @@
        [:p {:class "text-sm opacity-70"} email]]]
      [:div {:class "divider"}]
      (language-switcher csrf-token)
+     [:div {:class "divider"}]
+     (theme-switcher csrf-token (:theme request))
      [:div {:class "divider"}]
      [:form {:method "post" :action "/logout"}
       [:input {:type "hidden" :name "__anti-forgery-token" :value csrf-token}]

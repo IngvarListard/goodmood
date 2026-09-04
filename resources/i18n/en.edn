@@ -96,7 +96,11 @@
              :event "Event"}
   :user {:language "Language"
          :language-russian "Русский"
-         :language-english "English"}
+         :language-english "English"
+         :theme "Theme"
+         :theme-system "System"
+         :theme-dark "Dark"
+         :theme-light "Light"}
   :locale {:set "Switch language to {name}"}
   :insights {:title "Insights"
              :new-title "New insight"

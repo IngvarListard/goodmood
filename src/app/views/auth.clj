@@ -22,11 +22,11 @@
   "Отрендерить страницу входа. opts: опциональный :error — i18n-ключ ошибки,
    опциональный :next — куда перенаправить после успешного входа."
   [request {:keys [error next]}]
-  (let [csrf-token (:anti-forgery-token request)]
-    [:html {:lang (name i18n/*locale*)}
-     (layout/head (i18n/t :auth/title) csrf-token)
-     [:body {:data-theme "dark"
-             :class "bg-base-100 min-h-screen flex flex-col items-center justify-center p-4"}
+  (let [csrf-token (:anti-forgery-token request)
+        theme (or (:theme request) :system)]
+    [:html (layout/html-attrs request)
+     (layout/head (i18n/t :auth/title) csrf-token theme)
+     [:body {:class "bg-base-100 min-h-screen flex flex-col items-center justify-center p-4"}
       [:div {:class "card w-full max-w-sm bg-base-200 shadow-xl"}
        [:div {:class "card-body"}
         [:h1 {:class "card-title justify-center text-2xl"} (i18n/t :app/name)]

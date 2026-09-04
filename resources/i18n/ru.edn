@@ -96,7 +96,11 @@
              :event "Событие"}
   :user {:language "Язык"
          :language-russian "Русский"
-         :language-english "English"}
+         :language-english "English"
+         :theme "Тема"
+         :theme-system "Системная"
+         :theme-dark "Тёмная"
+         :theme-light "Светлая"}
   :locale {:set "Сменить язык на {name}"}
   :insights {:title "Инсайты"
              :new-title "Новый инсайт"

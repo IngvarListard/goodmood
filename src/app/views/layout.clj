@@ -130,6 +130,35 @@
       border-radius: 12px;
       font-weight: 500;
     }
+    /* Паттерн инпута форм (insights): единый стиль поля. Вынесен в CSS,
+       а не копируемым классом: browser-сборка Tailwind не генерирует
+       border-base-content/15 и focus:border-primary (проверено в
+       Chromium), а применений уже больше трёх (rule of three) */
+    .gm-input {
+      width: 100%;
+      background: var(--color-base-300);
+      border: 1px solid color-mix(in oklab, var(--color-base-content) 20%, transparent);
+      border-radius: 12px;
+      padding: 12px 16px;
+      font-size: 14px;
+      color: var(--color-base-content);
+      transition: border-color 0.15s ease;
+    }
+    .gm-input::placeholder {
+      color: color-mix(in oklab, var(--color-base-content) 40%, transparent);
+    }
+    .gm-input:focus {
+      outline: none;
+      border-color: var(--color-primary);
+    }
+    /* Highlight утверждения о себе: акцентная рамка + мягкое свечение */
+    .gm-input-highlight {
+      border-color: var(--color-primary);
+      box-shadow: 0 0 20px rgba(99, 102, 241, 0.15), 0 0 40px rgba(99, 102, 241, 0.05);
+    }
+    .gm-input-highlight:focus {
+      border-color: var(--color-primary);
+    }
    "]])
 
 (defn layout

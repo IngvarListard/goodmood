@@ -1,5 +1,6 @@
 (ns app.views.state-periods
   (:require [app.i18n :as i18n]
+            [app.icons :as icons]
             [cheshire.core :as json]))
 
 (defn- format-date
@@ -76,24 +77,33 @@
     (start-period-modal csrf-token)]])
 
 (defn active-indicator
-  "Индикатор активного периода + кнопка «закрыть». Заменяет #period-indicator
-   при закрытии периода."
+  "Индикатор активного периода: карточка с градиентной пилюлей (иконка bolt +
+   state-метка), кнопка «Закрыть период» и дата старта под пилюлей. Заменяет
+   #period-indicator при закрытии периода."
   [csrf-token period]
   [:div {:id "period-indicator" :data-testid "active-period-indicator"}
-   [:div {:class "alert alert-primary shadow-sm"}
-    [:div {:class "flex items-center gap-3 w-full"}
-     [:div {:class "flex-1 min-w-0"}
-      [:p {:class "text-sm font-medium"} (i18n/t :periods/active)]
-      [:p {:class "text-sm opacity-80"}
-       (str (:label period) " · " (format-date (:started-at period)))]]
+   [:div {:class "card p-4"}
+    ;; шапка секции, как в макете lenta
+    [:div {:class "flex items-center gap-2 text-[14px] text-base-content/60 mb-3"}
+     (icons/svg "calendar")
+     [:span (i18n/t :periods/active)]]
+    [:div {:class "flex items-center justify-between gap-3"}
+     ;; градиентная пилюля с state-меткой периода (текст светлый:
+     ;; читается на градиенте в обеих темах, как в макете)
+     [:div {:class "gm-gradient flex items-center gap-2 px-4 py-3 rounded-xl text-[15px] font-semibold whitespace-nowrap text-white"}
+      (icons/svg "bolt")
+      (:label period)]
      [:button {:type "button"
-               :class "btn btn-ghost btn-sm h-11 min-h-11 px-3"
+               :class "btn btn-outline btn-sm rounded-xl h-11 min-h-11 px-4"
                :hx-post (str "/periods/" (:id period) "/end")
                :hx-ext "json-enc"
                :hx-target "#period-indicator"
                :hx-swap "outerHTML"
                :hx-vals (str "{\"__anti-forgery-token\": \"" csrf-token "\"}")}
-      (i18n/t :periods/close)]]]])
+      (i18n/t :periods/close)]]
+    ;; даты периода под пилюлей
+    [:div {:class "text-[13px] text-base-content/60 mt-3"}
+     (format-date (:started-at period))]]])
 
 (defn period-list
   "Список периодов пользователя (ретроспектива, read-only). Пусто — nil."

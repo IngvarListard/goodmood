@@ -1,5 +1,6 @@
 (ns app.views.ai
   (:require [app.i18n :as i18n]
+            [app.icons :as icons]
             [cheshire.core :as json]
             [clojure.string :as str]))
 
@@ -32,11 +33,12 @@
       (state-label-text raw))))
 
 (defn- confidence-badge
-  "Бейдж уровня уверенности находки."
+  "Бейдж уровня уверенности находки. Medium — outline amber (макет lenta:
+   тёплая рамка на тёмном фоне), high/low — стандартные daisyUI-классы."
   [confidence]
   (let [cls (case confidence
               "high" "badge-success"
-              "medium" "badge-warning"
+              "medium" "badge-outline text-warning border-warning"
               "low" "badge-ghost"
               "badge-ghost")]
     [:span {:class (str "badge badge-sm " cls)}
@@ -76,14 +78,13 @@
      [:div {:class "space-y-2"}
       (for [f findings]
         ^{:key (:id f)}
-        [:div {:class "card bg-base-200 shadow-sm"}
-         [:div {:class "card-body p-3"}
-          [:div {:class "flex items-center gap-2 mb-1"}
-           [:span {:class "text-sm font-medium"} (get-in f [:content :title])]
-           (confidence-badge (:confidence f))]
-          (when-let [desc (get-in f [:content :description])]
-            [:p {:class "text-sm opacity-80"} desc])
-          (feedback-buttons csrf-token (:id f) "correlation")]])]]))
+        [:div {:class "rounded-[18px] border border-primary/50 bg-base-200 shadow-sm p-3"}
+         [:div {:class "flex items-center gap-2 mb-1"}
+          [:span {:class "text-sm font-medium"} (get-in f [:content :title])]
+          (confidence-badge (:confidence f))]
+         (when-let [desc (get-in f [:content :description])]
+           [:p {:class "text-sm opacity-80"} desc])
+         (feedback-buttons csrf-token (:id f) "correlation")])]]))
 
 (defn- label-action-button
   "Кнопка в меню AI-ярлыка: отправляет выбранный label на /ai/label/apply
@@ -146,35 +147,41 @@
          (label-action-button csrf-token nil (i18n/t :ai/label-reject))]]))))
 
 (defn ai-advice
-  "AI-совет из своих инсайтов. findings — массив type=advice. Если пусто —
-   фрагмент не рендерится. Показывает ссылки на исходные инсайты."
+  "AI-совет из своих инсайтов в виде insight-карточки (макет lenta 74–88):
+   rounded-[18px] с primary-бордером, лампочка в кружке bg-primary/10,
+   бейдж уверенности справа от заголовка. findings — массив type=advice.
+   Если пусто — фрагмент не рендерится. Показывает ссылки на исходные
+   инсайты."
   [csrf-token findings]
   (when-let [f (first findings)]
     (let [{:keys [message explanation]} (:content f)]
       [:section {:class "mb-4" :id "ai-advice" :data-testid "ai-advice"}
-       [:div {:class "card bg-base-200 border-primary/20 shadow-sm"}
-        [:div {:class "card-body p-3"}
-         [:div {:class "flex items-center gap-2 mb-1"}
-          [:span {:class "text-xs uppercase tracking-wide text-base-content/60"}
-           (i18n/t :ai/advice-title)]
-          (confidence-badge (:confidence f))]
-         [:p {:class "text-sm opacity-90"} message]
-         (when explanation
-           [:div {:class "flex items-center gap-2 mt-1"}
-            [:button {:type "button"
-                      :class "btn btn-ghost btn-xs h-9 min-h-9 px-2"
-                      :_ "on click toggle .hidden on #ai-advice-why-detail"}
-             (i18n/t :ai/advice-why-button)]
-            [:p {:id "ai-advice-why-detail"
-                 :class "ai-advice-why hidden text-sm text-base-content/70 italic"}
-             (i18n/t :ai/advice-why {:explanation explanation})]])
-         (when (seq (:source-refs f))
-           [:div {:class "mt-2 flex flex-wrap gap-2"}
-            (for [sid (:source-refs f)]
-              ^{:key sid}
-              [:a {:href (str "/insights/" sid)
-                   :class "link link-primary text-xs"}
-               (i18n/t :ai/from-insights)])])]
+       [:div {:class "rounded-[18px] border border-primary/50 bg-base-200 shadow-sm p-4"}
+        [:div {:class "flex items-start gap-3"}
+         [:div {:class "w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0"}
+          (icons/svg "light-bulb" {:class "text-primary"})]
+         [:div {:class "flex-1 min-w-0"}
+          [:div {:class "flex items-start justify-between gap-2 min-w-0"}
+           [:span {:class "text-[13px] text-base-content/60"}
+            (i18n/t :ai/advice-title)]
+           (confidence-badge (:confidence f))]]]
+        [:p {:class "text-sm opacity-90 mt-3 leading-relaxed"} message]
+        (when explanation
+          [:div {:class "flex items-center gap-2 mt-1"}
+           [:button {:type "button"
+                     :class "btn btn-ghost btn-xs h-9 min-h-9 px-2"
+                     :_ "on click toggle .hidden on #ai-advice-why-detail"}
+            (i18n/t :ai/advice-why-button)]
+           [:p {:id "ai-advice-why-detail"
+                :class "ai-advice-why hidden text-sm text-base-content/70 italic"}
+            (i18n/t :ai/advice-why {:explanation explanation})]])
+        (when (seq (:source-refs f))
+          [:div {:class "mt-2 flex flex-wrap gap-2"}
+           (for [sid (:source-refs f)]
+             ^{:key sid}
+             [:a {:href (str "/insights/" sid)
+                  :class "link link-primary text-xs"}
+              (i18n/t :ai/from-insights)])])
         (feedback-buttons csrf-token (:id f) "advice")]])))
 
 (defn ai-settings-saved

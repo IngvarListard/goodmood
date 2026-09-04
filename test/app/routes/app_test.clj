@@ -212,7 +212,7 @@
 (deftest feed-page-empty-state
   (testing "GET /feed with no entries shows onboarding + link to /check-in"
     (let [body (body-text (get-html-page "/feed"))]
-      (is (str/includes? body "Как ты? Создай первую запись"))
+      (is (str/includes? body "Как ты сегодня?"))
       (is (str/includes? body "href=\"/check-in\"")))))
 
 (deftest feed-page-hero-card-with-radar

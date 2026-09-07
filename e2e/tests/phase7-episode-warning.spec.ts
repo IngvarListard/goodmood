@@ -24,7 +24,7 @@ function resetPhase7State() {
 // предупреждений, иначе тест «low-confidence» увидит чужой warning).
 test.beforeEach(resetPhase7State);
 
-test.describe('Episode warning (Phase 7) — GUARDRAILS (priority)', () => {
+test.describe('Episode warning (Phase 7) @ai — GUARDRAILS (priority)', () => {
 
   test('opt-in is OFF by default — no warnings shown', async ({ page }) => {
     await login(page);
@@ -161,7 +161,7 @@ test('opt-in enables warnings; high-confidence pattern shows warning', async ({ 
   });
 });
 
-test.describe('Episode warning (Phase 7) — explainability + copy', () => {
+test.describe('Episode warning (Phase 7) @ai — explainability + copy', () => {
 
   test('warning explains the pattern (not just «episode coming»)', async ({ page }) => {
     await login(page);

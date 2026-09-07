@@ -2,6 +2,11 @@
   "name": "goodmood-e2e",
   "private": true,
   "type": "module",
+  "scripts": {
+    "test": "playwright test",
+    "test:fast": "playwright test --grep-invert @ai",
+    "test:ai": "playwright test --grep @ai"
+  },
   "dependencies": {
     "@playwright/test": "^1.62.1"
   }

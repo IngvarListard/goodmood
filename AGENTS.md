@@ -58,12 +58,23 @@ Clojure, deps.edn, ring + ring-jetty-adapter, reitit, integrant, hiccup2, htmx, 
 # Запуск
 
 ```bash
-# Запуск приложения
-clj -M -m app.core
+# Dev-старт: приложение (:3000) + nREPL (:7890) в одном процессе
+clj -M:dev
 
 # Проверка health-check
 curl http://localhost:3000/
 ```
+
+## REPL-луп без рестартов
+
+Правки view/route-неймспейсов подхватываются перезагрузкой по nREPL (:7890),
+без перезапуска процесса:
+
+```clojure
+(require 'app.views.feed :reload)  ; и т.д. по изменённым неймспейсам
+```
+
+Рестарт нужен только для: правок system.clj, deps.edn, миграций.
 
 # Env-переменные
 
@@ -121,11 +132,15 @@ curl http://localhost:3000/
    ```bash
    cd e2e && npx playwright test tests/smoke.spec.ts
    ```
-5. Минимальный смоук-набор лежит в `e2e/` (Playwright Test). Полный запуск обычной CLI-командой:
+5. Минимальный смоук-набор лежит в `e2e/` (Playwright Test). Команды прогона:
 
 ```bash
-cd e2e && npx playwright test
+cd e2e
+npm run test:fast   # без AI-спеков (~2.5 мин) — основной цикл разработки
+npm run test:ai     # только AI-спеки (phase5/6/7, помечены @ai)
+npm run test        # всё (~6 мин) — только перед коммитом/архивацией
 ```
 
-  - `webServer` сам стартует приложение, если оно не запущено; уже запущенный сервер переиспользуется (`reuseExistingServer: true`).
+  - AI-спеки зависят от вывода LLM и флакают — не вгоняй их в каждый цикл, полный прогон делай один раз в конце задачи.
+  - `webServer` сам стартует приложение, если оно не запущено; уже запущенный сервер переиспользуется (`reuseExistingServer: true`). Для AI-тестов приложение должно быть запущено с `OPENROUTER_API_KEY`.
 - Скриншоты и пиксельная сверка пока **не нужны** (дизайн не устоялся) — не используй их.

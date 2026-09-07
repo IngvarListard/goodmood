@@ -22,7 +22,7 @@ function resetPhase6State() {
 
 test.beforeAll(resetPhase6State);
 
-test.describe('AI novel advice + chat (Phase 6, part 1)', () => {
+test.describe('AI novel advice + chat (Phase 6, part 1) @ai', () => {
 
   test('novel advice is OFF by default — not shown on /feed', async ({ page }) => {
     await login(page);

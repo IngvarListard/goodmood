@@ -53,7 +53,7 @@ async function createAnxiousInsight(page: Page) {
   await page.waitForURL('**/insights');
 }
 
-test.describe('AI assistant (Phase 5): correlations, labels, advice from own insights', () => {
+test.describe('AI assistant (Phase 5) @ai: correlations, labels, advice from own insights', () => {
 
   test('correlation finding appears after ≥14 days of data', async ({ page }) => {
     test.setTimeout(90000);

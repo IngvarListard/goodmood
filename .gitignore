@@ -11,4 +11,5 @@ discovery-notes.md
 node_modules
 .playwright-mcp
 OPENROUTER_API_KEY
-test-results/.last-run.json.nrepl-port
+test-results/
+.nrepl-port

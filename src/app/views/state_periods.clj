@@ -14,8 +14,8 @@
   "Модалка начала периода: пресеты ярлыков (быстрый старт) + свободный ввод
    label/notes. Прессеты сразу POST'ят /periods/start с нужным label."
   [csrf-token]
-  (let [presets [{:key "low"     :label (i18n/t :periods/preset-low)}
-                 {:key "high"    :label (i18n/t :periods/preset-high)}
+  (let [presets [{:key "low" :label (i18n/t :periods/preset-low)}
+                 {:key "high" :label (i18n/t :periods/preset-high)}
                  {:key "anxious" :label (i18n/t :periods/preset-anxious)}]]
     [:dialog {:id "period-start-modal" :class "modal modal-bottom sm:modal-middle"}
      [:div {:class "modal-box"}
@@ -64,14 +64,15 @@
 
 (defn start-banner
   "Баннер «Начать период» (когда активного периода нет): мягкий hint + кнопка
-   открытия модал. Заменяет #period-indicator при старте периода."
+   открытия модалки. Карточка ленты без сплошной заливки. Заменяет
+   #period-indicator при старте периода."
   [csrf-token]
   [:div {:id "period-indicator" :data-testid "period-start"}
-   [:div {:class "alert alert-warning shadow-sm"}
+   [:div {:class "card p-4 bg-base-200 border border-base-300"}
     [:div {:class "flex items-start gap-3 w-full"}
-     [:p {:class "text-sm opacity-90"} (i18n/t :periods/hint)]
+     [:p {:class "text-sm opacity-90 flex-1"} (i18n/t :periods/hint)]
      [:button {:type "button"
-               :class "btn btn-ghost btn-sm h-11 min-h-11 px-3"
+               :class "btn btn-outline btn-sm h-11 min-h-11 px-3"
                :_ "on click call #period-start-modal.showModal()"}
       (i18n/t :periods/start)]]
     (start-period-modal csrf-token)]])
@@ -82,7 +83,7 @@
    #period-indicator при закрытии периода."
   [csrf-token period]
   [:div {:id "period-indicator" :data-testid "active-period-indicator"}
-   [:div {:class "card p-4"}
+   [:div {:class "card p-4 bg-base-200 border border-base-300"}
     ;; шапка секции, как в макете lenta
     [:div {:class "flex items-center gap-2 text-[14px] text-base-content/60 mb-3"}
      (icons/svg "calendar")

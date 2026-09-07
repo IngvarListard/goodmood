@@ -1,5 +1,6 @@
 (ns app.views.layout
   (:require [app.i18n :as i18n]
+            [app.views.assistant :as assistant]
             [app.views.navigation :as navigation]
             [app.views.user-menu :as user-menu]
             [hiccup2.core :refer [raw]]))
@@ -117,17 +118,33 @@
       border-radius: 12px;
       padding: 6px 12px;
     }
-    /* Чип метрики: подложка и бордер из макета lenta, padding = p-2.5
-       из макета (10px), радиус 12px */
+    /* Чип метрики: поверхность из токенов (в тёмной ~#1c2032, светлой —
+       тёплый беж), padding = p-2.5 из макета (10px), радиус 12px */
     .gm-chip {
-      background: #191d2c;
-      border: 1px solid #282d42;
+      background: var(--color-base-300);
+      border: 1px solid color-mix(in oklab, var(--color-base-content) 10%, transparent);
       border-radius: 12px;
       padding: 10px;
     }
     /* Градиентный хелпер для точечных акцентов: period pill, save-кнопки */
     .gm-gradient {
       background: linear-gradient(135deg, #6366f1, #7c5ce0);
+    }
+    /* Левая акцентная полоса карточек ленты (совет, сводка): полоска 3.5px,
+       absolute внутри relative-карточки; цвета из токенов — работает в обеих темах */
+    .gm-accent-stripe {
+      position: absolute;
+      left: 0;
+      top: 0;
+      bottom: 0;
+      width: 3.5px;
+      background: linear-gradient(to bottom, var(--color-primary), var(--color-secondary));
+    }
+    /* Мягкое свечение акцентных элементов (FAB, pill): цвет из токенов,
+       на светлой теме становится деликатнее автоматически */
+    .gm-glow {
+      box-shadow: 0 0 24px color-mix(in oklab, var(--color-secondary) 45%, transparent),
+                  0 0 10px color-mix(in oklab, var(--color-primary) 30%, transparent);
     }
     /* Glow-слайдер: нативный range, трек 8px, белый тумб с двойным свечением */
     .gm-range { -webkit-appearance: none; appearance: none; height: 8px; border-radius: 9999px; background: var(--color-base-300); width: 100%; }
@@ -199,4 +216,10 @@
        ;; и внешних отступов страницы; страницы рендерятся без своих обёрток
        [:div {:class (str "mx-auto w-full max-w-lg px-4 pt-4 "
                           "pb-[calc(env(safe-area-inset-bottom)+5rem)]")}
-        content]]]]))
+        content]]
+      ;; Глобальный ассистент: FAB + bottom-sheet модалка (только для
+      ;; залогиненных — на auth-страницах ассистента быть не должно)
+      (when identity
+        [:div {:id "assistant-root"}
+         (assistant/fab)
+         (assistant/modal)])]]))

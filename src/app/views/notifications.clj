@@ -107,21 +107,27 @@
 ;; ──────────────────────────────────────────────────────────────
 
 (defn summary-banner
-  "Баннер «Сводка на завтра готова» — вверху /feed после 18:00.
-   Раскрывается по тапу (hyperscript toggle), закрывается через
-   POST /notifications/summary-dismiss. insight — релевантный инсайт
-   или nil (облегчённый вариант без карточки)."
-  [csrf-token state-label insight]
-  [:div {:class "alert alert-info shadow-md mb-4" :id "summary-banner"}
-   [:div {:class "flex items-center gap-3 w-full flex-wrap"
-          :_ "on click toggle .open on me"}
-    [:h2 {:class "text-sm font-medium"} (i18n/t :feed-summary/title)]
+  "Тонкий баннер «Сводка на завтра готова» — вверху /feed после 18:00.
+   Одна строка на тёмной поверхности с левой акцентной полосой (без сплошной
+   заливки alert-info); «посмотреть» раскрывает сводный текст. Совет из
+   инсайта сюда НЕ встраивается — его единственный источник на ленте теперь
+   карточка совета (insights/feed-widget), так убирается дубль. Крестик
+   закрывает через POST /notifications/summary-dismiss (dismiss на день)."
+  [csrf-token state-label _insight]
+  [:div {:class "relative card bg-base-200 border border-base-300 shadow-sm mb-4 px-4 py-2.5"
+         :id "summary-banner"}
+   [:div {:class "gm-accent-stripe"}]
+   [:div {:class "flex items-center gap-2 w-full"}
+    [:span {:class "text-base-content/60 shrink-0"}
+     (icons/svg "document" {:class "w-5 h-5"})]
+    [:p {:class "text-[13px] font-medium flex-1 min-w-0 truncate"}
+     (i18n/t :feed-summary/title)]
     [:button {:type "button"
-              :class "btn btn-ghost btn-sm h-11 min-h-11 px-3"
-              :_ "on click toggle .open on me"}
+              :class "btn btn-ghost btn-sm h-9 min-h-9 px-2 text-primary"
+              :_ "on click toggle .hidden on #summary-banner-body"}
      (i18n/t :feed-summary/see)]
     [:button {:type "button"
-              :class "btn btn-ghost btn-sm h-11 min-h-11 px-2 shrink-0"
+              :class "btn btn-ghost btn-sm h-9 min-h-9 px-2 shrink-0"
               :aria-label (i18n/t :feed-summary/dismiss)
               :hx-post "/notifications/summary-dismiss"
               :hx-target "this"
@@ -129,21 +135,11 @@
               :hx-vals (str "{\"__anti-forgery-token\": \"" csrf-token "\"}")
               :_ "on htmx:afterRequest remove me"}
      (icons/svg "x-mark")]]
-   [:div {:class "open mt-1 space-y-2"}
-    [:p {:class "text-sm opacity-85"}
+   [:div {:id "summary-banner-body" :class "hidden mt-2"}
+    [:p {:class "text-sm text-base-content/80"}
      (i18n/t :feed-summary/state
              {:state (i18n/t (keyword "state" state-label))})]
-    (when insight
-      [:div {:class "card bg-base-200/60 border border-base-300 p-3"}
-       [:p {:class "text-xs uppercase tracking-wide text-base-content/60 mb-1"}
-        (i18n/t :feed-summary/past)]
-       [:p {:class "text-sm opacity-85"} (:context insight)]
-       (when-let [first-advice (first (:advice-to-self insight))]
-         [:p {:class "text-sm text-base-content/70"} first-advice])
-       [:a {:href (str "/insights/" (:id insight))
-            :class "link link-hover text-sm text-base-content/70 mt-1 inline-block"}
-        (i18n/t :toast/hint-more)]])
-    [:p {:class "text-sm text-base-content/60 italic"}
+    [:p {:class "text-sm text-base-content/60 italic mt-1"}
      (i18n/t :feed-summary/closing)]]])
 
 ;; ──────────────────────────────────────────────────────────────

@@ -2,24 +2,24 @@
 
 ## 1. Подготовка
 
-- [ ] 1.1 Создать ветку `redesign-feed-assistant`; grep по `resources/icons/heroicons` точных имён иконок (light-bulb, x-mark, paper-airplane, chat-bubble, sparkles, calendar) и зафиксировать соответствия FontAwesome → heroicons
-- [ ] 1.2 Добавить i18n-ключи в `resources/i18n/{ru,en}.edn`: assistant/title, assistant/subtitle, assistant/close, assistant/disclaimer (проверить существующие `:ai/chat-*`, переиспользовать где можно)
+- [x] 1.1 Создать ветку `redesign-feed-assistant`; grep по `resources/icons/heroicons` точных имён иконок (light-bulb, x-mark, paper-airplane, chat-bubble, sparkles, calendar) и зафиксировать соответствия FontAwesome → heroicons
+- [x] 1.2 Добавить i18n-ключи в `resources/i18n/{ru,en}.edn`: assistant/title, assistant/subtitle, assistant/close, assistant/disclaimer (проверить существующие `:ai/chat-*`, переиспользовать где можно)
 
 ## 2. Хелперы и модалка ассистента
 
-- [ ] 2.1 В `layout.clj` добавить CSS-хелперы `gm-accent-stripe` (левая градиентная полоса 3–4px) и soft-glow для FAB/pill — через CSS-переменные, рядом с существующими `gm-*`
-- [ ] 2.2 Создать `src/app/views/assistant.clj`: FAB (круглая, `gm-gradient`, иконка чат+искра, `data-testid="assistant-fab"`, `hx-get /ai/chat → #assistant-body` + `on htmx:afterRequest call #assistant-modal.showModal()`) и bottom-sheet модалку на нативном `<dialog class="modal modal-bottom">` (`data-testid="assistant-modal"`, id `assistant-modal`): drag-handle, шапка (заголовок/подзаголовок/крестик), fallback-плейсхолдер в `#assistant-body`
-- [ ] 2.3 Контент чата в модалке: переиспользовать `GET /ai/chat` — история через `chat-response` (data-testid `chat-response` сохранён), закреплённый composer (flex-none внизу, круглая кнопка отправки `paper-airplane`), постоянная строка дисклеймера над composer; убрать confirm-гейт `chat-disclaimer` из рендера (эндпоинт POST /ai/chat/disclaimer остаётся в коде)
-- [ ] 2.4 Подключить FAB + модалку в `layout.clj` (после `<main>`, csrf из request); проверить graceful-рендер без токена
-- [ ] 2.5 Перезагрузить неймспейсы в REPL, проверить рендер модалки и hx-цепочку «клик FAB → фрагмент → showModal» в браузере (Playwright MCP)
+- [x] 2.1 В `layout.clj` добавить CSS-хелперы `gm-accent-stripe` (левая градиентная полоса 3–4px) и soft-glow для FAB/pill — через CSS-переменные, рядом с существующими `gm-*`
+- [x] 2.2 Создать `src/app/views/assistant.clj`: FAB (круглая, `gm-gradient`, иконка чат+искра, `data-testid="assistant-fab"`, `hx-get /ai/chat → #assistant-body` + `on htmx:afterRequest call #assistant-modal.showModal()`) и bottom-sheet модалку на нативном `<dialog class="modal modal-bottom">` (`data-testid="assistant-modal"`, id `assistant-modal`): drag-handle, шапка (заголовок/подзаголовок/крестик), fallback-плейсхолдер в `#assistant-body`
+- [x] 2.3 Контент чата в модалке: переиспользовать `GET /ai/chat` — история через `chat-response` (data-testid `chat-response` сохранён), закреплённый composer (flex-none внизу, круглая кнопка отправки `paper-airplane`), постоянная строка дисклеймера над composer; убрать confirm-гейт `chat-disclaimer` из рендера (эндпоинт POST /ai/chat/disclaimer остаётся в коде)
+- [x] 2.4 Подключить FAB + модалку в `layout.clj` (после `<main>`, csrf из request); проверить graceful-рендер без токена
+- [x] 2.5 Перезагрузить неймспейсы в REPL, проверить рендер модалки и hx-цепочку «клик FAB → фрагмент → showModal» в браузере (Playwright MCP)
 
 ## 3. Верх ленты
 
-- [ ] 3.1 `state_periods.clj`: обернуть `active-indicator` в карточку ленты (pill `gm-gradient` + дата под ним + outline «Закрыть период» справа); start-banner — той же карточной системой
-- [ ] 3.2 `notifications.clj` `summary-banner`: убрать `alert-info` и встроенный insight-блок → тонкий однострочный баннер (тёмная поверхность, `gm-accent-stripe`, иконка, «посмотреть» через collapse, крестик dismiss с существующим POST)
-- [ ] 3.3 `insights.clj` `feed-widget` + `ai.clj` `ai-advice`: карточка совета с `gm-accent-stripe`, лампочкой, крестиком dismiss (hyperscript `remove me`), collapse «посмотреть полностью» для длинного текста
-- [ ] 3.4 `feed.clj`: удалить `chat-launcher`, `#ai-chat-open` и `fab` («+»); проверить, что верх ленты собирается в порядок период → сводка → совет → hero/timeline
-- [ ] 3.5 Проверка в REPL + браузере: нет сплошных заливок, дублей совета, даты/времени суммируются корректно; вечерний сценарий (≥18:00) — мокнуть или проверить существующим путём
+- [x] 3.1 `state_periods.clj`: обернуть `active-indicator` в карточку ленты (pill `gm-gradient` + дата под ним + outline «Закрыть период» справа); start-banner — той же карточной системой
+- [x] 3.2 `notifications.clj` `summary-banner`: убрать `alert-info` и встроенный insight-блок → тонкий однострочный баннер (тёмная поверхность, `gm-accent-stripe`, иконка, «посмотреть» через collapse, крестик dismiss с существующим POST)
+- [x] 3.3 `insights.clj` `feed-widget` + `ai.clj` `ai-advice`: карточка совета с `gm-accent-stripe`, лампочкой, крестиком dismiss (hyperscript `remove me`), collapse «посмотреть полностью» для длинного текста
+- [x] 3.4 `feed.clj`: удалить `chat-launcher`, `#ai-chat-open` и `fab` («+»); проверить, что верх ленты собирается в порядок период → сводка → совет → hero/timeline
+- [x] 3.5 Проверка в REPL + браузере: нет сплошных заливок, дублей совета, даты/времени суммируются корректно; вечерний сценарий (≥18:00) — мокнуть или проверить существующим путём
 
 ## 4. Обе темы и косметика
 

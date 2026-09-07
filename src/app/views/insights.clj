@@ -577,26 +577,44 @@
 ;; ──────────────────────────────────────────────────────────────
 
 (defn feed-widget
-  "Виджет для /feed: заголовок + 1 компактная карточка или онбординг.
+  "Виджет для /feed: заголовок + карточка совета для состояния или онбординг.
+   Карточка — по макету design/lentagem.html: левая акцентная полоса,
+   лампочка, крестик dismiss (hyperscript), текст с inline-раскрытием
+   («посмотреть полностью»). Единственный источник совета на ленте.
    state-label: текущий state_label (string, напр. \"anxiety\").
    insight: 1 релевантный инсайт или nil.
    ai-advice: map {:csrf :findings} или nil — рендерит AI-совет под виджетом."
   [state-label insight & [{:keys [csrf findings]}]]
   (when state-label
     [:section {:class "mb-4" :id "feed-insights"}
-     [:h2 {:class "text-sm font-medium text-base-content/60 mb-2 uppercase tracking-wide"}
-      (i18n/t :insights/widget-title)]
      (if insight
        [:div {:id "feed-insights-list" :class "space-y-2"}
-        [:a {:href (str "/insights/" (:id insight))
-             :class "card bg-base-200 shadow-sm hover:shadow-md transition-shadow"}
-         [:div {:class "card-body p-3"}
-          [:div {:class "flex items-center gap-2 mb-1"}
-           [:span {:class "badge badge-secondary badge-xs"} (category-label (:category insight))]
-           [:span {:class "text-xs text-base-content/60 ml-auto"} (format-date (:created-at insight))]]
-          [:p {:class "text-sm line-clamp-1"} (:context insight)]
+        [:div {:class "relative bg-base-200 border border-base-300 shadow-sm rounded-2xl p-4"
+               :data-testid "feed-advice-card"}
+         [:div {:class "gm-accent-stripe"}]
+         [:div {:class "flex items-center gap-2.5"}
+          [:span {:class "w-7 h-7 rounded-full bg-base-300 flex items-center justify-center text-primary shrink-0"}
+           (icons/svg "light-bulb" {:class "w-4 h-4"})]
+          [:p {:class "text-xs text-base-content/60 flex-1 min-w-0 truncate"}
+           (i18n/t :insights/widget-title
+                   {:state (state-label-text state-label)})]
+          [:button {:type "button"
+                    :class "btn btn-ghost btn-sm h-9 min-h-9 px-2 shrink-0"
+                    :aria-label (i18n/t :toast/dismiss)
+                    :_ "on click remove #feed-insights"}
+           (icons/svg "x-mark")]]
+         [:div {:id "feed-advice-text" :class "mt-2 line-clamp-3 space-y-1"}
+          [:p {:class "text-sm"} (:context insight)]
           (when-let [first-advice (first (:advice-to-self insight))]
-            [:p {:class "text-sm text-base-content/70 line-clamp-1"} first-advice])]]
+            [:p {:class "text-sm text-base-content/70"} first-advice])]
+         [:button {:type "button"
+                   :class "btn btn-ghost btn-xs text-primary px-1 mt-1"
+                   :_ (str "on click remove .line-clamp-3 from #feed-advice-text"
+                           " then add .hidden to me")}
+          (i18n/t :toast/hint-more)]
+         [:div {:class "flex items-center gap-2 mt-1"}
+          [:span {:class "badge badge-secondary badge-xs"} (category-label (:category insight))]
+          [:span {:class "text-xs text-base-content/60"} (format-date (:created-at insight))]]]
         [:div {:class "mt-2"}
          [:a {:href (str "/insights/new?state_label=" state-label)
               :class "btn btn-ghost btn-sm h-11 min-h-11 px-3"}

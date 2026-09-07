@@ -147,24 +147,32 @@
          (label-action-button csrf-token nil (i18n/t :ai/label-reject))]]))))
 
 (defn ai-advice
-  "AI-совет из своих инсайтов в виде insight-карточки (макет lenta 74–88):
-   rounded-[18px] с primary-бордером, лампочка в кружке bg-primary/10,
-   бейдж уверенности справа от заголовка. findings — массив type=advice.
-   Если пусто — фрагмент не рендерится. Показывает ссылки на исходные
-   инсайты."
+  "AI-совет из своих инсайтов в виде карточки совета (по макету
+   design/lentagem.html): обычная поверхность карточек ленты, левая
+   акцентная полоса, лампочка в кружке, крестик dismiss, бейдж уверенности
+   в заголовке. findings — массив type=advice. Если пусто — фрагмент не
+   рендерится. Показывает ссылки на исходные инсайты."
   [csrf-token findings]
   (when-let [f (first findings)]
     (let [{:keys [message explanation]} (:content f)]
       [:section {:class "mb-4" :id "ai-advice" :data-testid "ai-advice"}
-       [:div {:class "rounded-[18px] border border-primary/50 bg-base-200 shadow-sm p-4"}
+       [:div {:class "relative rounded-2xl border border-base-300 bg-base-200 shadow-sm p-4"}
+        [:div {:class "gm-accent-stripe"}]
         [:div {:class "flex items-start gap-3"}
          [:div {:class "w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0"}
           (icons/svg "light-bulb" {:class "text-primary"})]
          [:div {:class "flex-1 min-w-0"}
+
           [:div {:class "flex items-start justify-between gap-2 min-w-0"}
            [:span {:class "text-[13px] text-base-content/60"}
             (i18n/t :ai/advice-title)]
-           (confidence-badge (:confidence f))]]]
+           [:span {:class "flex items-center gap-1"}
+            (confidence-badge (:confidence f))
+            [:button {:type "button"
+                      :class "btn btn-ghost btn-sm h-9 min-h-9 px-2"
+                      :aria-label (i18n/t :toast/dismiss)
+                      :_ "on click remove #ai-advice"}
+             (icons/svg "x-mark")]]]]]
         [:p {:class "text-sm opacity-90 mt-3 leading-relaxed"} message]
         (when explanation
           [:div {:class "flex items-center gap-2 mt-1"}
@@ -273,12 +281,17 @@
 ;; ──────────────────────────────────────────────────────────────
 
 (defn- chat-bubble
-  "Пузырь сообщения чата: user справа, assistant слева."
+  "Пузырь сообщения чата: assistant слева с аватаром-лампочкой,
+   user справа с градиентным bubble (по макету design/assistant.html)."
   [{:keys [id role content]}]
   (let [user? (= role "user")]
     [:div {:class (if user? "chat chat-end" "chat chat-start")}
-     [:div {:class (str "chat-bubble text-sm"
-                        (when user? " chat-bubble-primary"))}
+     (when-not user?
+       [:div {:class "chat-image-avatar bg-base-300 border border-base-content/10 text-secondary"}
+        (icons/svg "light-bulb")])
+     [:div {:class (if user?
+                     "chat-bubble chat-bubble-primary gm-gradient border-0 text-sm"
+                     "chat-bubble bg-base-300 text-sm")}
       content]]))
 
 (defn- crisis-alert
@@ -305,55 +318,49 @@
       [:div {:class "chat-bubble chat-bubble-error text-sm"}
        (i18n/t :ai/chat-error-fallback)]])])
 
-(defn- chat-disclaimer
-  "Disclaimer «не заменяет терапию» при первом открытии чата."
-  [csrf-token]
-  [:div {:class "alert alert-info shadow-sm" :data-testid "ai-chat-disclaimer"}
-   [:div {:class "flex flex-col gap-2 w-full"}
-    [:p {:class "text-sm"} (i18n/t :ai/chat-disclaimer)]
-    [:div {:class "flex gap-2"}
-     [:button {:type "button"
-               :class "btn btn-primary btn-sm h-11 min-h-11"
-               :hx-post "/ai/chat/disclaimer"
-               :hx-ext "json-enc"
-               :hx-target "#ai-chat-panel"
-               :hx-swap "outerHTML"
-               :hx-vals (str "{\"__anti-forgery-token\": \"" csrf-token "\"}")}
-      (i18n/t :ai/chat-disclaimer-accept)]]]])
-
 (defn chat-panel
-  "Панель AI-чата (открывается по кнопке на /feed). show-disclaimer? — при
-   первом открытии (dismiss через POST /ai/chat/disclaimer). messages — вектор
-   уже сохранённых сообщений для показа истории."
-  [csrf-token show-disclaimer? messages]
-  [:div {:id "ai-chat-panel" :data-testid "ai-chat"}
-   (when show-disclaimer? (chat-disclaimer csrf-token))
-   [:div {:class "card bg-base-200 shadow-sm"}
-    [:div {:class "card-body p-3"}
-     [:div {:class "flex items-center justify-between mb-2"}
-      [:h2 {:class "text-sm font-medium uppercase tracking-wide"}
-       (i18n/t :ai/chat-title)]
-      [:button {:type "button"
-                :class "btn btn-ghost btn-sm h-9 min-h-9 px-2"
-                :aria-label (i18n/t :ai/chat-close)
-                :_ "on click remove #ai-chat-panel"}
-       [:svg {:xmlns "http://www.w3.org/2000/svg"
-              :width 18 :height 18 :viewBox "0 0 24 24"
-              :fill "none" :stroke "currentColor"
-              :stroke-width 2 :stroke-linecap "round" :stroke-linejoin "round"}
-        [:path {:d "M6 6l12 12M18 6L6 18"}]]]]
-     (chat-response {:messages messages})
-     [:form {:class "mt-2 flex gap-2"
-             :hx-post "/ai/chat"
-             :hx-ext "json-enc"
-             :hx-target "#chat-response"
-             :hx-swap "outerHTML"}
-      [:input {:type "hidden" :name "__anti-forgery-token" :value csrf-token}]
-      [:textarea {:name "message" :rows "2" :required true
-                  :class "textarea textarea-bordered flex-1 min-w-0"
-                  :placeholder (i18n/t :ai/chat-placeholder)}]
-      [:button {:type "submit" :class "btn btn-primary h-auto min-h-11 px-4"}
-       (i18n/t :ai/chat-send)]]]]])
+  "Контент модалки ассистента (ответ GET /ai/chat) — заменяет #assistant-body
+   через outerHTML. Шапка с drag-handle, скроллируемая история (#chat-response),
+   постоянная строка дисклеймера и закреплённый composer (flex-низ модалки).
+   Дисклеймер — всегда видимая мелкая строка, без гейта с подтверждением;
+   второй аргумент (бывший show-disclaimer?) оставлен для совместимости
+   с существующими роутами и не используется."
+  [csrf-token _show-disclaimer? messages]
+  [:div {:id "assistant-body"
+         :class "flex flex-col h-full bg-base-200"}
+   ;; Drag-handle: визуальный, клик закрывает модалку
+   [:button {:type "button"
+             :class "mx-auto mt-2 mb-1 h-1.5 w-12 rounded-full bg-base-content/25 shrink-0"
+             :aria-label (i18n/t :ai/chat-close)
+             :_ "on click call #assistant-modal.close()"}]
+   [:div {:class "flex items-start justify-between px-5 pb-3 border-b border-base-300 shrink-0"}
+    [:div
+     [:h2 {:class "text-xl font-bold"} (i18n/t :ai/assistant-title)]
+     [:p {:class "text-xs text-base-content/60 mt-0.5"}
+      (i18n/t :ai/assistant-subtitle)]]
+    [:button {:type "button"
+              :class "btn btn-ghost btn-circle btn-sm"
+              :aria-label (i18n/t :ai/chat-close)
+              :_ "on click call #assistant-modal.close()"}
+     (icons/svg "x-mark")]]
+   [:div {:class "flex-1 overflow-y-auto px-4 py-3 min-h-0"}
+    (chat-response {:messages messages})]
+   [:p {:class "text-[10px] text-center text-base-content/50 px-6 pt-1 pb-2 shrink-0"}
+    (i18n/t :ai/chat-disclaimer)]
+   [:form {:class (str "flex items-center gap-2 px-4 pt-2 flex-none "
+                       "pb-[max(1rem,env(safe-area-inset-bottom))]")
+           :hx-post "/ai/chat"
+           :hx-ext "json-enc"
+           :hx-target "#chat-response"
+           :hx-swap "outerHTML"}
+    [:input {:type "hidden" :name "__anti-forgery-token" :value csrf-token}]
+    [:input {:type "text" :name "message" :required true
+             :class "input input-bordered rounded-full flex-1 min-w-0"
+             :placeholder (i18n/t :ai/chat-placeholder)}]
+    [:button {:type "submit"
+              :class "btn btn-circle border-0 gm-gradient gm-glow text-white"
+              :aria-label (i18n/t :ai/chat-send)}
+     (icons/svg "paper-airplane")]]])
 
 ;; ──────────────────────────────────────────────────────────────
 ;; Episode warnings (Фаза 7) — opt-in, мягкий copy, guardrails

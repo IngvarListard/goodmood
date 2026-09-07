@@ -344,29 +344,6 @@
      (for [date past-dates]
        (timeline-day date (get grouped date)))]))
 
-(defn- fab
-  "Единственная плавающая кнопка «+» (правый нижний угол, над мобильной навигацией)."
-  []
-  [:a {:href "/check-in"
-       :class "btn btn-primary btn-circle fixed bottom-20 right-4 shadow-lg z-50"
-       :aria-label (i18n/t :feed/new-entry)}
-   [:svg {:xmlns "http://www.w3.org/2000/svg"
-          :width 24 :height 24 :viewBox "0 0 24 24"
-          :fill "none" :stroke "currentColor"
-          :stroke-width 2.5 :stroke-linecap "round" :stroke-linejoin "round"}
-    [:path {:d "M12 5v14M5 12h14"}]]])
-
-(defn- chat-launcher
-  "Кнопка «чат» на /feed — открывает панель ai-chat (htmx-get на /ai/chat)."
-  []
-  [:button {:type "button"
-            :class "btn btn-outline btn-sm h-11 min-h-11"
-            :hx-get "/ai/chat"
-            :hx-target "#ai-chat-open"
-            :hx-swap "innerHTML"
-            :aria-label (i18n/t :ai/chat-open)}
-   (i18n/t :ai/chat-open)])
-
 (defn- period-banner
   "Баннер периода: активный — индикатор + «закрыть», иначе — «начать период».
    period: map {:active :list :csrf}."
@@ -404,9 +381,7 @@
                    (ai/episode-warning-fragment csrf episode))
                  [:div {:class "mb-6"}
                   [:h1 {:class "text-2xl font-bold"} (i18n/t :feed/title)]]
-                 [:div {:class "mb-4"}
-                  (chat-launcher)
-                  [:div {:id "ai-chat-open"}]]
+
                  (when period
                    (period-banner period))
                  (when ai
@@ -425,8 +400,7 @@
                    (today-section today-entries state-label insight))
                  (when period
                    (sp/period-list (:list period)))
-                 (past-day-section past-dates grouped)
-                 (when (seq entries) (fab))]]
+                 (past-day-section past-dates grouped)]]
     (layout/layout {:title (i18n/t :feed/title)
                     :active :feed
                     :request request}

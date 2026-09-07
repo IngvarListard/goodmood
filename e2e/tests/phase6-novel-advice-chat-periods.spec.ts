@@ -1,6 +1,6 @@
 import { test, expect, Page } from '@playwright/test';
 import { execSync } from 'node:child_process';
-import { ensureE2EUser, login, submitEntry, projectRoot } from '../helpers';
+import { ensureE2EUser, login, submitEntry, openAssistant, projectRoot } from '../helpers';
 
 test.beforeAll(ensureE2EUser);
 
@@ -83,38 +83,28 @@ test.describe('AI novel advice + chat (Phase 6, part 1)', () => {
   test('chat is available on-demand (not push)', async ({ page }) => {
     await login(page);
     await page.goto('/feed');
-    const chatBtn = page.getByRole('button', { name: /чат|chat/i });
-    // Кнопка чата видна (on-demand), но уведомлений не приходит автоматически.
-    // Если чат пока только в плохом состоянии — создадим его.
-    if (await chatBtn.isVisible()) {
-      await chatBtn.click();
-      await expect(page.locator('[data-testid="ai-chat"]')).toBeVisible();
-    } else {
-      // Создать тревожную запись, потом проверить.
-      await submitEntry(page, { mood_score: 3, energy: 2, anxiety: 8, template: 'day' });
-      await page.goto('/feed');
-      await page.getByRole('button', { name: /чат|chat/i }).click();
-      await expect(page.locator('[data-testid="ai-chat"]')).toBeVisible();
-    }
+    // Чат открывается по клику на FAB ассистента (on-demand), модалка глобальна.
+    const chat = await openAssistant(page);
+    await expect(chat).toBeVisible();
+    await page.getByTestId('assistant-modal').getByRole('button', { name: /Закрыть чат|Close chat/ }).last().click();
+    await expect(page.getByTestId('assistant-modal')).not.toBeVisible();
   });
 
-  test('chat shows disclaimer on first open', async ({ page }) => {
+  test('chat shows disclaimer line above composer', async ({ page }) => {
     await login(page);
     await page.goto('/feed');
-    const chatBtn = page.getByRole('button', { name: /чат|chat/i });
-    if (await chatBtn.isVisible()) {
-      await chatBtn.click();
-      await expect(page.getByText(/не заменяет|does not replace|профессиональн/i)).toBeVisible();
-    }
+    const chat = await openAssistant(page);
+    // Дисклеймер — постоянная строка (без гейта с «Продолжить»).
+    await expect(chat.getByText(/не заменяет|does not replace/i)).toBeVisible();
+    await expect(chat.getByRole('button', { name: /Продолжить|Continue/ })).toHaveCount(0);
   });
 
   test('chat responds with context of current state', async ({ page }) => {
     await login(page);
     await submitEntry(page, { mood_score: 3, energy: 2, anxiety: 8, template: 'day' });
     await page.goto('/feed');
-    await page.getByRole('button', { name: /чат|chat/i }).click();
-    const chat = page.locator('[data-testid="ai-chat"]');
-    const input = chat.locator('textarea, input[type="text"]');
+    const chat = await openAssistant(page);
+    const input = chat.locator('input[type="text"]');
     await input.fill('мне тревожно, что делать?');
     await chat.getByRole('button', { name: /отправить|send/i }).click();
     // Ответ AI появляется (htmx-swap). Timeout больше для AI-вызова.
@@ -124,9 +114,8 @@ test.describe('AI novel advice + chat (Phase 6, part 1)', () => {
   test('crisis keywords in chat trigger resource, not just response', async ({ page }) => {
     await login(page);
     await page.goto('/feed');
-    await page.getByRole('button', { name: /чат|chat/i }).click();
-    const chat = page.locator('[data-testid="ai-chat"]');
-    const input = chat.locator('textarea, input[type="text"]');
+    const chat = await openAssistant(page);
+    const input = chat.locator('input[type="text"]');
     // Кризисные слова (ru/eng).
     await input.fill('не хочу жить, всё бессмысленно');
     await chat.getByRole('button', { name: /отправить|send/i }).click();

@@ -56,7 +56,7 @@
 (defn- user-card
   [{:keys [display-name email] :as identity} request]
   (let [csrf-token (:anti-forgery-token request)]
-    [:div {:class "card bg-base-200 p-4"}
+    [:div {:class "card bg-base-200 border border-base-300 p-4"}
      [:div {:class "flex items-center gap-3"}
       [:div {:class "avatar placeholder"}
        [:div {:class "bg-primary text-primary-content rounded-full w-12"}

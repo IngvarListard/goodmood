@@ -173,7 +173,7 @@
         (global-onboarding)
         [:div {:class "card bg-base-200 shadow-sm mb-4"}
          [:div {:class "card-body p-4"}
-          [:div {:class "tabs tabs-boxed" :role "tablist"}
+          [:div {:class "tabs tabs-box" :role "tablist"}
            (category-tab active-category nil "all" (i18n/t :insights/category-all))
            (for [cat categories]
              (category-tab active-category cat cat (category-label cat)))]]

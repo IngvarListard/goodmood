@@ -1,0 +1,12 @@
+{
+  "version": 1,
+  "skills": {
+    "skill-upper": {
+      "source": "alibaba/skill-up",
+      "ref": "main",
+      "sourceType": "github",
+      "skillPath": "skills/skill-upper/SKILL.md",
+      "computedHash": "a2c3a1bff6a1fcd4410fbd68c29370d954632a78c11fcebb83987a8b1cfec682"
+    }
+  }
+}

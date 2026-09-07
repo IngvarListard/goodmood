@@ -225,7 +225,7 @@
            :hx-post "/settings/ai"
            :hx-target "#ai-settings-status"
            :hx-swap "innerHTML"
-           :class "card bg-base-200 p-4"}
+           :class "card bg-base-200 border border-base-300 p-4"}
     [:input {:type "hidden" :name "__anti-forgery-token" :value csrf-token}]
     [:div {:class "divide-y divide-base-300"}
      [:div {:class "flex items-center justify-between gap-3 py-3 first:pt-0"}

@@ -90,6 +90,18 @@ export async function submitEntry(
   await page.waitForURL(/\/feed/);
 }
 
+// Открыть модалку ассистента через FAB (глобальная кнопка в layout).
+// Модалка — нативный <dialog>, контент чата подгружается htmx-ом.
+// Ждём composer: #chat-response при пустой истории имеет нулевую высоту.
+export async function openAssistant(page: Page) {
+  await page.getByTestId('assistant-fab').click();
+  const modal = page.getByTestId('assistant-modal');
+  await expect(modal).toBeVisible();
+  const composer = modal.locator('input[name="message"]');
+  await expect(composer).toBeVisible();
+  return modal;
+}
+
 // Создать медикамент через модалку на /medications.
 // CSRF-токен подставляется автоматически (json-enc), после успеха модалка
 // закрывается, а карточка появляется в #med-list (outerHTML).

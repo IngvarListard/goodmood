@@ -1,6 +1,7 @@
 (ns app.views.medications
   (:require [app.db.medications :as db]
             [app.i18n :as i18n]
+            [app.icons :as icons]
             [app.views.layout :as layout]
             [app.views.navigation :as navigation]
             [clojure.string :as str]))
@@ -36,7 +37,7 @@
             :hx-ext "json-enc"
             :hx-target (str "#" (slot-id med-id scheduled-time))
             :hx-swap "outerHTML"
-            :class "card bg-base-200 p-3"}
+            :class "card bg-base-200 border border-base-300 p-3"}
      [:input {:type "hidden" :name "__anti-forgery-token" :value csrf-token}]
      [:input {:type "hidden" :name "medication_id" :value med-id}]
      [:input {:type "hidden" :name "scheduled_time" :value scheduled-time}]
@@ -62,11 +63,13 @@
         [:div {:class "flex items-center gap-2"}
          [:button {:type "submit"
                    :name "status" :value "taken"
-                   :class "btn btn-success btn-sm h-11 min-h-11 px-4"}
+                   :class "btn btn-success btn-sm h-11 min-h-11 px-4 rounded-full"}
+          (icons/svg "check" {:class "w-4 h-4"})
           (i18n/t :medications/taken)]
          [:button {:type "submit"
                    :name "status" :value "skipped"
-                   :class "btn btn-warning btn-sm h-11 min-h-11 px-4"}
+                   :class "btn btn-warning btn-sm h-11 min-h-11 px-4 rounded-full"}
+          (icons/svg "x-mark" {:class "w-4 h-4"})
           (i18n/t :medications/skipped)]])]]))
 
 (defn intake-widget
@@ -80,7 +83,7 @@
   "Отрендерить карточку активного медикамента: name, dose+unit, расписание,
    sensitive-бейдж, кнопки «Редактировать» и «Деактивировать»."
   [csrf-token {:keys [id name dose dose-unit schedule sensitive]}]
-  [:div {:class "card bg-base-200 p-4" :id (str "med-" id)}
+  [:div {:class "card bg-base-200 border border-base-300 p-4" :id (str "med-" id)}
    [:div {:class "flex items-start justify-between gap-2"}
     [:div
      [:h3 {:class "text-lg font-semibold"} name]

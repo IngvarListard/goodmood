@@ -161,7 +161,7 @@
      [:form {:hx-post "/settings/notifications"
              :hx-target "#notif-status"
              :hx-swap "innerHTML"
-             :class "card bg-base-200 p-4"}
+             :class "card bg-base-200 border border-base-300 p-4"}
       [:input {:type "hidden" :name "__anti-forgery-token" :value csrf-token}]
       [:div {:class "divide-y divide-base-300"}
        (for [slot slot-order

@@ -1,12 +1,12 @@
 import { test, expect, Page } from '@playwright/test';
 import { execSync } from 'node:child_process';
-import { ensureE2EUser, login, projectRoot } from '../helpers';
+import { ensureE2EUser, login, projectRoot, workerUser } from '../helpers';
 
 test.beforeAll(ensureE2EUser);
 
-// Удалить инсайты e2e-юзера напрямую в БД (идемпотентно).
+// Удалить инсайты юзера воркера напрямую в БД (идемпотентно).
 function resetInsights() {
-  execSync('clojure -M dev/reset_e2e_insights.clj', {
+  execSync(`E2E_USER_EMAIL=${workerUser().email} clojure -M dev/reset_e2e_insights.clj`, {
     cwd: projectRoot,
     timeout: 90000,
     stdio: 'ignore',

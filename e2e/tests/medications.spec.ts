@@ -1,12 +1,12 @@
 import { test, expect, Page } from '@playwright/test';
 import { execSync } from 'node:child_process';
-import { ensureE2EUser, login, addMedication } from '../helpers';
+import { ensureE2EUser, login, addMedication, workerUser } from '../helpers';
 
 test.beforeAll(ensureE2EUser);
 
-// Удалить медикаменты e2e-юзера напрямую в БД (идемпотентно).
+// Удалить медикаменты юзера воркера напрямую в БД (идемпотентно).
 function resetMedications() {
-  execSync('clojure -M dev/reset_e2e_meds.clj', {
+  execSync(`E2E_USER_EMAIL=${workerUser().email} clojure -M dev/reset_e2e_meds.clj`, {
     cwd: '..',
     timeout: 90000,
     stdio: 'ignore',
@@ -114,8 +114,8 @@ test.describe('medications', () => {
     await expect(page.getByText('Неактивные (1)')).toBeVisible();
     // раскрыть collapse неактивных (клик по чекбоксу collapse)
     await page.locator('.collapse > input[type="checkbox"]').first().click();
-    await expect(page.getByRole('button', { name: 'Активировать' })).toBeVisible();
-    await page.getByRole('button', { name: 'Активировать' }).click();
+    await expect(page.getByRole('button', { name: 'Активировать', exact: true })).toBeVisible();
+    await page.getByRole('button', { name: 'Активировать', exact: true }).click();
     await expect(page.getByText('Неактивные (1)')).toHaveCount(0);
     await expect(page.getByText(name).first()).toBeVisible();
   });

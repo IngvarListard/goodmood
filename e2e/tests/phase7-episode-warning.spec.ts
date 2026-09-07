@@ -1,6 +1,6 @@
 import { test, expect, Page } from '@playwright/test';
 import { execSync } from 'node:child_process';
-import { ensureE2EUser, login, submitEntry, projectRoot, E2E_USER_EMAIL } from '../helpers';
+import { ensureE2EUser, login, submitEntry, projectRoot, workerUser } from '../helpers';
 
 test.beforeAll(ensureE2EUser);
 
@@ -51,7 +51,7 @@ test('opt-in enables warnings; high-confidence pattern shows warning', async ({ 
       `clojure -M -e "
          (require '[next.jdbc :as jdbc] '[app.db.entries :as e] '[app.db.users :as u])
          (def ds (jdbc/get-datasource {:dbtype \\"sqlite\\" :dbname \\"resources/goodmood.db\\"}))
-         (def uid (:id (u/get-user-by-email ds \\"${E2E_USER_EMAIL}\\")))
+         (def uid (:id (u/get-user-by-email ds \\"${workerUser().email}\\")))
          (jdbc/execute! ds [\\"DELETE FROM entries WHERE user_id=?\\" uid])
          (jdbc/execute! ds [\\"DELETE FROM episode_warnings WHERE user_id=?\\" uid])
          (doseq [[i m en an sl] [[2 7 7 2 7.0] [1 8 8 2 5.0] [0 9 9 1 4.0]]]

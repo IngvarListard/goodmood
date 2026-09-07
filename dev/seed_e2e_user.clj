@@ -5,6 +5,7 @@
   Учётные данные берутся из env E2E_USER_EMAIL / E2E_USER_PASSWORD
   (по умолчанию e2e@goodmood.test / e2e-test-password-123)."
   (:require [next.jdbc :as jdbc]
+            [clojure.string :as str]
             [app.db.users :as users]
             [buddy.hashers :as hashers]))
 
@@ -41,6 +42,12 @@
     (ensure-user! ds email password "E2E Tester")
     ;; Изолированный юзер для empty-state /feed (гарантированно без записей)
     (ensure-user! ds empty-user-email empty-user-password "E2E Empty")
+    ;; Изолированные юзеры для параллельных playwright-воркеров:
+    ;; E2E_WORKER_EMAILS="e2e-w0@goodmood.test,e2e-w1@goodmood.test"
+    (doseq [w-email (-> (or (System/getenv "E2E_WORKER_EMAILS") "")
+                        (str/split #",")
+                        (->> (remove str/blank?)))]
+      (ensure-user! ds w-email empty-user-password "E2E Tester"))
     (println "E2E user ready")))
 
 (-main)

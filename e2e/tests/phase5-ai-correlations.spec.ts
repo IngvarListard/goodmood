@@ -1,6 +1,6 @@
 import { test, expect, Page } from '@playwright/test';
 import { execSync } from 'node:child_process';
-import { ensureE2EUser, login, submitEntry, projectRoot, E2E_USER_EMAIL } from '../helpers';
+import { ensureE2EUser, login, submitEntry, projectRoot, workerUser } from '../helpers';
 
 test.beforeAll(ensureE2EUser);
 
@@ -27,7 +27,7 @@ async function seedFourteenDays(page: Page) {
     `clojure -M -e "
        (require '[next.jdbc :as jdbc] '[app.db.entries :as e] '[app.db.users :as u])
        (def ds (jdbc/get-datasource {:dbtype \\"sqlite\\" :dbname \\"resources/goodmood.db\\"}))
-       (def uid (:id (u/get-user-by-email ds \\"${E2E_USER_EMAIL}\\")))
+       (def uid (:id (u/get-user-by-email ds \\"${workerUser().email}\\")))
        (dotimes [i 20]
          (let [low (even? i)]
            (e/create-entry! ds {:user-id uid

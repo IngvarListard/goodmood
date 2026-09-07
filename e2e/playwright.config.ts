@@ -20,6 +20,10 @@ export default defineConfig({
   testDir: './tests',
   outputDir: path.join(projectRoot, '.opencode', 'artifacts', 'e2e'),
   fullyParallel: false,
+  // workers: 2 пробовали (изоляция юзеров уже есть, helpers.workerUser):
+  // SQLite сериализует записи, воркеры начинают ждать друг друга по
+  // busy_timeout — полный прогон ЗАМЕДЛЯЕТСЯ с 2.5 до 6.5 мин. Вернуть
+  // имеет смысл только вместе с распараллеливанием записи (или PG).
   workers: 1,
   timeout: 30000,
   expect: { timeout: 10000 },

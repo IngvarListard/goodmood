@@ -9,8 +9,12 @@
 (defmethod ig/init-key :db/connection
   [_ {:keys [path]}]
   (let [ds (jdbc/get-datasource {:dbtype "sqlite" :dbname path})]
-    (with-open [_ (jdbc/get-connection ds)]
-      ds)))
+    (with-open [conn (jdbc/get-connection ds)]
+      ;; WAL + busy_timeout: параллельная запись из разных запросов не рождает
+      ;; мгновенный SQLITE_BUSY (live-трафик и параллельные e2e-воркеры)
+      (jdbc/execute! conn ["PRAGMA journal_mode=WAL"])
+      (jdbc/execute! conn ["PRAGMA busy_timeout=5000"]))
+    ds))
 
 (defmethod ig/halt-key! :db/connection
   [_ _]

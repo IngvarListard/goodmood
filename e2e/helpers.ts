@@ -17,10 +17,19 @@ export const E2E_USER_PASSWORD = process.env.E2E_USER_PASSWORD ?? 'e2e-test-pass
 export const E2E_EMPTY_USER_EMAIL = 'e2e-empty@goodmood.test';
 export const E2E_EMPTY_USER_PASSWORD = 'e2e-test-password-123';
 
+// Параллельные воркеры: каждый получает свой юзер e2e-w<N>@, чтобы спеки
+// не воевали за общие данные (entries/insights/периоды).
+// TEST_WORKER_INDEX выставляет Playwright; вне воркера (ручные прогоны) — 0.
+export function workerUser(): { email: string; password: string } {
+  const idx = process.env.TEST_WORKER_INDEX ?? '0';
+  return { email: `e2e-w${idx}@goodmood.test`, password: E2E_USER_PASSWORD };
+}
+
 // Создать e2e-юзера, если его нет (идемпотентно). Вызывается один раз до тестов.
 export function ensureE2EUser() {
   try {
-    execSync('clojure -M -i dev/seed_e2e_user.clj', {
+    const workers = [0, 1].map((i) => `e2e-w${i}@goodmood.test`).join(',');
+    execSync(`E2E_WORKER_EMAILS=${workers} clojure -M -i dev/seed_e2e_user.clj`, {
       cwd: projectRoot,
       timeout: 60000,
       stdio: 'ignore',
@@ -33,7 +42,8 @@ export function ensureE2EUser() {
 }
 
 // Войти в приложение через форму на /login. После успеха — редирект на "/feed".
-export async function login(page: Page, email = E2E_USER_EMAIL, password = E2E_USER_PASSWORD) {
+// По умолчанию — юзер текущего воркера (изоляция параллельных прогонов).
+export async function login(page: Page, email = workerUser().email, password = E2E_USER_PASSWORD) {
   await page.goto('/login');
   await page.fill('input[name="email"]', email);
   await page.fill('input[name="password"]', password);

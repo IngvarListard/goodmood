@@ -13,6 +13,12 @@ Clojure, deps.edn, ring + ring-jetty-adapter, reitit, integrant, hiccup2, htmx, 
 - src/app/{db,routes,views,domains}/..., явные reitit-роуты, простые hiccup2-функции без сложных макросов.
 - при добавлении новых зависимостей в проект убедиться, что это последняя версия пакета если не сказано другого
 
+# Clojure REPL-driven разработка
+
+- Правки `.clj/.cljc/.cljs` — в первую очередь через структурные тула clojure-mcp (`clojure_edit`, `clojure_edit_replace_sexp`, `paren_repair`); нативные edit/write/apply_patch для кложурных файлов — только как запаска.
+- Сначала прототип в REPL (`clojure_eval`), потом сохранение в файл, потом перезагрузка неймспейса (`:reload`) и перепроверка.
+- Мелкие шаги, частые коммиты в отдельной ветке.
+
 # Импорты
 
 - Hiccup: всегда используй `hiccup2.core` с `:refer [html raw]`. **Не используй `hiccup.core`** — он deprecated и не эскейпит строки.

@@ -7,6 +7,10 @@
 (def htmx-src "https://unpkg.com/htmx.org@2.0.10/dist/htmx.min.js")
 (def json-enc-src "https://unpkg.com/htmx.org@2.0.10/dist/ext/json-enc.js")
 (def hyperscript-src "https://unpkg.com/hyperscript.org@0.9.93/dist/_hyperscript.min.js")
+
+;; Chart.js (UMD, pinned): рисует радар «роза ветров» на /feed;
+;; сам рендерер — локальный статик /js/radar.js (resources/public/js)
+(def chart-js-src "https://cdn.jsdelivr.net/npm/chart.js@4.5.1/dist/chart.umd.js")
 (def tailwind-src "https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4")
 (def daisyui-href "https://cdn.jsdelivr.net/npm/daisyui@5.7.15/daisyui.css")
 
@@ -27,7 +31,7 @@
   [title csrf-token theme]
   [:head
    [:meta {:charset "UTF-8"}]
-   [:meta {:name "viewport" :content "width=device-width, initial-scale=1"}]
+   [:meta {:name "viewport" :content "width=device-width, initial-scale=1, viewport-fit=cover"}]
    (when (= theme :system)
      ;; raw обязателен: hiccup эскейпит кавычки в тексте <script>, а raw-text
      ;; элементы браузер не декодирует —escaped JS не исполнился бы
@@ -46,6 +50,9 @@
    [:script {:src htmx-src}]
    [:script {:src json-enc-src}]
    [:script {:src hyperscript-src}]
+   ;; defer сохраняет порядок: radar.js видит window.Chart
+   [:script {:defer true :src chart-js-src}]
+   [:script {:defer true :src "/js/radar.js"}]
    ;; Палитры тем: скоупленный plain CSS вместо @theme (Tailwind-CDN не
    ;; обрабатывает @theme без type=\"text/tailwindcss\", а переменные на :root
    ;; перекрываются темой на html). Тёмная — усреднение трёх макетов design/;
@@ -78,6 +85,10 @@
       --color-base-200: #f1ede5;
       --color-base-300: #e6e0d5;
       --color-base-content: #4a4238;
+      /* Явные hex (не oklch от daisyUI): radar.js дописывает hex-альфу
+         к --color-primary/--color-secondary для градиента радара */
+      --color-primary: #5b5bea;
+      --color-secondary: #7c5ce0;
     }
     /* GM-токены: общие для обеих тем, поэтому вне data-theme-блоков */
     :root {
@@ -140,7 +151,8 @@
       border: 1px solid color-mix(in oklab, var(--color-base-content) 20%, transparent);
       border-radius: 12px;
       padding: 12px 16px;
-      font-size: 14px;
+      /* 16px+ — чтобы iOS Safari не зумил поле при фокусе */
+      font-size: 16px;
       color: var(--color-base-content);
       transition: border-color 0.15s ease;
     }
@@ -174,7 +186,7 @@
     [:html (html-attrs request)
      (head title csrf-token theme)
      [:body {:hx-boost "true"
-             :class "bg-base-100 min-h-screen"}
+             :class "bg-base-100 min-h-dvh"}
       [:div {:class "hidden md:flex fixed left-0 top-0 h-screen w-64 flex-col"}
        (navigation/navigation :desktop nav-items {:active active})
        (when identity
@@ -182,5 +194,9 @@
       [:div {:class (str "md:hidden fixed bottom-0 inset-x-0 z-50 bg-base-100 "
                          "border-t border-base-200 pb-[env(safe-area-inset-bottom)]")}
        (navigation/navigation :mobile nav-items {:active active})]
-      [:main {:class "md:pl-64 pb-16"}
-       content]]]))
+      [:main {:class "md:pl-64"}
+       ;; PageShell: единая content-колонка — единственный источник ширины
+       ;; и внешних отступов страницы; страницы рендерятся без своих обёрток
+       [:div {:class (str "mx-auto w-full max-w-lg px-4 pt-4 "
+                          "pb-[calc(env(safe-area-inset-bottom)+5rem)]")}
+        content]]]]))

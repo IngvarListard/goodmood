@@ -129,7 +129,8 @@
 
 (defn get-today-slots
   "Слоты приёма на сегодня: активные медикаменты × их расписание,
-   каждый слот с текущим логом (nil — не отмечен)."
+   каждый слот с текущим логом (nil — не отмечен).
+   Ключи: у медикаментов PK — :id, у записей лога FK — :medication-id."
   [ds user-id]
   (let [meds (db/get-medications-by-user ds user-id)
         active (filter #(= 1 (:active %)) meds)
@@ -141,4 +142,4 @@
           t (db/parse-schedule (:schedule m))]
       {:medication m
        :scheduled-time t
-       :log (get logs-by-key [(:medication-id m) t])})))
+       :log (get logs-by-key [(:id m) t])})))

@@ -392,7 +392,7 @@
         today (str (java.time.LocalDate/now))
         today-entries (get grouped today)
         past-dates (remove #{today} (keys grouped))
-        content [:div {:class "max-w-md mx-auto p-4 pb-24"}
+        content [:div {}
                  (when toast-insight
                    (notifications/hint-toast toast-insight))
                  (when (:show summary)

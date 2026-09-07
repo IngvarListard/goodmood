@@ -4,6 +4,9 @@
             [reitit.coercion.malli :as malli]
             [muuntaja.middleware :as muuntaja]
             [ring.middleware.params :as params]
+            [ring.middleware.resource :as resource]
+            [ring.middleware.content-type :as content-type]
+            [ring.middleware.not-modified :as not-modified]
             [ring.middleware.session :as session]
             [ring.middleware.session.cookie :as session.cookie]
             [ring.middleware.anti-forgery :as anti-forgery]
@@ -260,4 +263,9 @@
         (session/wrap-session (session-config session-secret))
         muuntaja/wrap-format
         params/wrap-params
-        mw/wrap-request-log)))
+        mw/wrap-request-log
+        ;; Локальные статики: снаружи require-auth — без сессии, как CDN.
+        ;; resources/public/js/radar.js -> /js/radar.js
+        (resource/wrap-resource "public")
+        content-type/wrap-content-type
+        not-modified/wrap-not-modified)))

@@ -160,7 +160,7 @@
       :active :insights
       :request request}
      navigation/nav-items
-     [:div {:class "max-w-2xl mx-auto p-4 pb-24"}
+     [:div {}
       [:div {:class "card bg-base-200 shadow-sm mb-4"}
        [:div {:class "card-body p-4"}
         [:div {:class "flex items-center justify-between mb-1"}
@@ -246,7 +246,7 @@
       :active :insights
       :request request}
      navigation/nav-items
-     [:div {:class "max-w-md mx-auto p-4 pb-24"}
+     [:div {}
       [:div {:class "card bg-base-200 shadow-sm mb-4"}
        [:div {:class "card-body p-4"}
         [:div {:class "flex items-center gap-3 mb-1"}
@@ -477,7 +477,7 @@
       :active :insights
       :request request}
      navigation/nav-items
-     [:div {:class "max-w-2xl mx-auto p-4 pb-24" :id "insight-page"}
+     [:div {:id "insight-page"}
       ;; Шапка: назад + бейджи
       [:div {:class "card bg-base-200 shadow-sm mb-4"}
        [:div {:class "card-body p-4"}

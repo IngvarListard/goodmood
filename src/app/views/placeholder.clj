@@ -16,7 +16,7 @@
    request: ring-запрос (:uri используется для определения активного пункта меню)"
   [{:keys [title-key]} request]
   (let [title (i18n/t title-key)
-        content [:div {:class "max-w-2xl mx-auto p-4"}
+        content [:div {}
                  [:h1 {:class "text-2xl font-bold mb-1"} title]
                  [:p {:class "text-sm opacity-70"} (i18n/t :pages/under-development)]]]
     (layout/layout {:title title

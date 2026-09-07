@@ -17,7 +17,7 @@ test.describe('feed', () => {
   test('feed renders empty state with onboarding when no entries', async ({ page }) => {
     await login(page, E2E_EMPTY_USER_EMAIL, E2E_EMPTY_USER_PASSWORD);
     await expect(page.getByRole('heading', { name: /Лента|Feed/ })).toBeVisible();
-    await expect(page.getByText(/Как ты\? Создай первую запись|How are you\? Create your first entry/)).toBeVisible();
+    await expect(page.getByText(/Как ты сегодня\?|How are you today\?/)).toBeVisible();
     await expect(page.getByRole('link', { name: /Создать запись|Create entry/ })).toBeVisible();
   });
 
@@ -25,7 +25,7 @@ test.describe('feed', () => {
     await login(page);
     await submitEntry(page, { mood: 8, energy: 8, anxiety: 2 });
     // hero-карточка последней записи сегодня: радар + ярлык "подъём"/elevated
-    await expect(page.locator('article svg[role="img"][aria-label*="Роза ветров"]').first()).toBeVisible();
+    await expect(page.locator('article canvas[role="img"][aria-label*="Роза ветров"]').first()).toBeVisible();
     await expect(page.getByText(/подъём|elevated/, { exact: false }).first()).toBeVisible();
   });
 

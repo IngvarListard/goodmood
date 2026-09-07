@@ -44,21 +44,21 @@
      [:div {:class "flex items-center justify-between gap-3"}
       [:div {:class "flex items-center gap-3"}
        [:div
-         [:p {:class "font-medium text-base"} (:name medication)]
-         [:p {:class "text-sm text-base-content/70"}
-          (str (dose-str (:dose medication)) " " (:dose-unit medication)
-               " · " scheduled-time)]]
-        (when logged?
-          [:span {:class (str "badge badge-sm "
-                              (if (= "taken" status) "badge-success" "badge-warning badge-outline"))}
-           (i18n/t (if (= "taken" status)
-                     :medications/taken
-                     :medications/skipped))])]
+        [:p {:class "font-medium text-base"} (:name medication)]
+        [:p {:class "text-sm text-base-content/70"}
+         (str (dose-str (:dose medication)) " " (:dose-unit medication)
+              " · " scheduled-time)]]
+       (when logged?
+         [:span {:class (str "badge badge-sm "
+                             (if (= "taken" status) "badge-success" "badge-warning badge-outline"))}
+          (i18n/t (if (= "taken" status)
+                    :medications/taken
+                    :medications/skipped))])]
       (if logged?
-         [:button {:type "submit"
-                   :name "status" :value "pending"
-                   :class "btn btn-ghost btn-sm h-11 min-h-11 px-3 text-sm text-base-content/70"}
-          (i18n/t :medications/cancel-log)]
+        [:button {:type "submit"
+                  :name "status" :value "pending"
+                  :class "btn btn-ghost btn-sm h-11 min-h-11 px-3 text-sm text-base-content/70"}
+         (i18n/t :medications/cancel-log)]
         [:div {:class "flex items-center gap-2"}
          [:button {:type "submit"
                    :name "status" :value "taken"
@@ -97,14 +97,14 @@
                :_ "on htmx:afterRequest call #med-modal.showModal()"}
       (i18n/t :medications/edit)]]]
    [:div {:class "mt-3 pt-3 border-t border-base-300"}
-[:button {:type "button"
-               :class "btn btn-ghost btn-sm h-11 min-h-11 text-sm text-base-content/60"
-               :hx-post (str "/medications/" id "/deactivate")
-               :hx-headers (str "{\"X-CSRF-Token\": \"" csrf-token "\"}")
-               :hx-target "#med-content"
-               :hx-swap "outerHTML"
-               :hx-confirm (i18n/t :medications/deactivate-confirm {:name name})}
-      (i18n/t :medications/deactivate)]]])
+    [:button {:type "button"
+              :class "btn btn-ghost btn-sm h-11 min-h-11 text-sm text-base-content/60"
+              :hx-post (str "/medications/" id "/deactivate")
+              :hx-headers (str "{\"X-CSRF-Token\": \"" csrf-token "\"}")
+              :hx-target "#med-content"
+              :hx-swap "outerHTML"
+              :hx-confirm (i18n/t :medications/deactivate-confirm {:name name})}
+     (i18n/t :medications/deactivate)]]])
 
 (defn inactive-card
   "Отрендерить карточку неактивного медикамента с кнопкой «Активировать»."
@@ -247,7 +247,7 @@
   "Отрендерить полную страницу реестра медикаментов."
   [request meds slots]
   (let [csrf-token (:anti-forgery-token request)
-        content [:div {:class "max-w-2xl mx-auto p-4"}
+        content [:div {}
                  [:div {:class "flex items-center justify-between mb-1"}
                   [:h1 {:class "text-2xl font-bold"} (i18n/t :medications/title)]
                   [:button {:type "button"

@@ -396,13 +396,13 @@ The system SHALL keep the entries page readable and functional on a mobile viewp
 - **AND** the label + slider combination creates a touch target ≥ 44px tall
 
 ### Requirement: Feed page renders entries with rose-of-winds
-The system SHALL render a `/feed` page as the landing page after login, displaying the user's entries grouped by date. The latest entry of the current day SHALL be rendered as a hero card with a 200×200px SVG radar. Other entries SHALL be rendered as compact cards with a state-label badge, timestamp, and axis values as text. In low/mixed states the insights widget SHALL be rendered above the hero card (emphasis on advice over state fixation). The page SHALL render an evening summary banner at the top (before the «Лента» heading) when local time is ≥ 18:00, today has entries, and the summary has not been shown today (collapsible, dismissible for the day).
+The system SHALL render a `/feed` page as the landing page after login, displaying the user's entries grouped by date. The latest entry of the current day SHALL be rendered as a hero card with a 200×200px radar chart rendered client-side (canvas + Chart.js, see "Read-only radar chart renders rose-of-winds"). Other entries SHALL be rendered as compact cards with a state-label badge, timestamp, and axis values as text. In low/mixed states the insights widget SHALL be rendered above the hero card (emphasis on advice over state fixation). The page SHALL render an evening summary banner at the top (before the «Лента» heading) when local time is ≥ 18:00, today has entries, and the summary has not been shown today (collapsible, dismissible for the day).
 
 #### Scenario: Feed shows hero card with radar
 - **GIVEN** the user is logged in and has entries today
 - **WHEN** they open `/feed`
 - **THEN** the latest entry today is rendered as a hero card
-- **AND** the hero card contains a 200×200px SVG radar
+- **AND** the hero card contains a 200×200px canvas radar
 - **AND** the hero card shows the state-label badge and timestamp
 - **AND** the radar polygon reflects the entry's axis values
 
@@ -467,37 +467,46 @@ The system SHALL render a single floating action button (FAB) on `/feed` linking
 - **AND** it links to `/check-in`
 - **AND** no duplicate FAB or header button exists
 
-### Requirement: Read-only SVG radar renders rose-of-winds
-The system SHALL render a read-only inline SVG radar chart («роза ветров») on the feed page for the latest entry of the current day, displaying 3 mandatory axes (energy, anxiety, focus) and optionally a 4th axis (mood_score) as a polygon. The SVG SHALL be hand-rolled in hiccup2 without any JavaScript charting library.
+### Requirement: Read-only radar chart renders rose-of-winds
+The system SHALL render a read-only radar chart («роза ветров») on the feed page for the latest entry of the current day as a 200×200px `<canvas role="img">` drawn client-side by Chart.js (pinned 4.x via CDN). The server SHALL render the canvas element with: a server-generated `aria-label` containing the axis values («Роза ветров: энергия X, тревога Y, фокус Z»), and a `data-gm-radar` attribute with JSON payload `{labels, values}` where labels are i18n-generated axis names and values are the axis values (0–10, nil allowed for absent). The chart SHALL display 3 mandatory axes (energy, anxiety, focus) and optionally a 4th axis (mood_score), ordered so that energy points up and axes proceed clockwise (θ_i = −π/2 + 2π·i/n). Visual style: radial gradient fill from secondary to primary color, white point markers with primary-color border and soft glow, circular grid rings in low-opacity base-content color, hidden radial ticks (scale 0–10), i18n point labels.
 
 #### Scenario: Radar renders 3-axis polygon
 - **GIVEN** the latest entry today has energy=4, anxiety=7, focus=3, mood_score=nil
 - **WHEN** the feed page renders the hero card
-- **THEN** an inline SVG of 200×200px is rendered with a 3-vertex polygon
-- **AND** the polygon points are computed via polar coordinates: `cx + r·cos(θ)`, `cy + r·sin(θ)` where `θ_i = -π/2 + 2π·i/3`
-- **AND** axis labels («энергия», «тревога», «фокус») are visible near the outer vertices
-- **AND** value numbers (4, 7, 3) are visible near the polygon vertices
-- **AND** the polygon uses `hsl(var(--p))` fill with opacity 0.3 and stroke width 2
-- **AND** no external JS charting library is loaded `[ref: A3-q2, A2-q1]`
+- **THEN** a canvas of 200×200px is rendered with `role="img"` and server-generated aria-label «Роза ветров: энергия 4, тревога 7, фокус 3»
+- **AND** the `data-gm-radar` attribute contains JSON with 3 i18n labels and values [4,7,3]
+- **AND** Chart.js draws a 3-vertex polygon after page load
 
 #### Scenario: Radar renders 4-axis polygon with mood_score
 - **GIVEN** the latest entry today has energy=4, anxiety=7, focus=3, mood_score=5
 - **WHEN** the feed page renders the hero card
-- **THEN** the SVG polygon has 4 vertices (energy, anxiety, focus, mood_score)
-- **AND** `θ_i = -π/2 + 2π·i/4` (4 axes, 90° apart)
+- **THEN** the `data-gm-radar` payload has 4 labels/values
+- **AND** the polygon has 4 vertices (energy, anxiety, focus, mood_score)
+
+#### Scenario: Radar redraws after htmx navigation
+- **GIVEN** the user navigates via hx-boost links (feed → check-in → feed)
+- **WHEN** the feed body is swapped by htmx
+- **THEN** the new canvas is drawn (initializer listens to DOMContentLoaded and htmx:afterSettle)
+- **AND** canvases are drawn exactly once (`data-gm-drawn` marker prevents redraw loops)
 
 #### Scenario: Radar is read-only
-- **GIVEN** the radar SVG is rendered on the feed page
+- **GIVEN** the radar canvas is rendered on the feed page
 - **WHEN** the user interacts with it
-- **THEN** no interactive elements (sliders, inputs) are present within the SVG
+- **THEN** no interactive elements (sliders, inputs) are present within the chart
 - **AND** editing is only possible via the `/check-in` form sliders
 
 #### Scenario: Radar adapts to theme colors
 - **GIVEN** the app uses DaisyUI dark theme (`data-theme="dark"`)
-- **WHEN** the radar renders
-- **THEN** axis lines and labels use `currentColor` (inherits base-content)
-- **AND** the value polygon uses `hsl(var(--p))` (primary theme color)
+- **WHEN** the radar is drawn
+- **THEN** fill gradient, point borders and glow use colors read from CSS custom properties (`--color-primary`, `--color-secondary`)
+- **AND** grid and labels use base-content-derived colors
 - **AND** the radar is visible on dark background without hardcoded black/white colors
+
+#### Scenario: Degradation without JavaScript
+- **GIVEN** JavaScript is disabled or the Chart.js CDN is blocked
+- **WHEN** the feed page renders
+- **THEN** the canvas remains empty without runtime errors breaking the page
+- **AND** the axis values remain accessible via the hero card's `axes-line` text and metric chips
 
 ### Requirement: Rule-based state label derivation
 The system SHALL derive a human-readable state label from the energy and anxiety axis values using a deterministic rule-based function (no AI). The function SHALL return one of 6 keywords: `:state/mixed`, `:state/anxiety`, `:state/elevated`, `:state/low`, `:state/balanced`, `:state/neutral`. Rules SHALL be evaluated first-match-wins in specificity-descending order.

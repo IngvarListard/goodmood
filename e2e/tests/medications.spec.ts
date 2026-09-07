@@ -130,6 +130,6 @@ test.describe('medications', () => {
     await page.click('input[name="sensitive"]');
     await page.click('#med-modal button[type="submit"]');
     await expect(page.locator('#med-modal')).not.toHaveAttribute('open', /.*/);
-    await expect(page.locator('.badge-neutral', { hasText: 'sensitive' })).toBeVisible();
+    await expect(page.locator('.badge-ghost', { hasText: 'sensitive' })).toBeVisible();
   });
 });

@@ -180,7 +180,7 @@
   "Отрендерить страницу /check-in: «← назад» на /feed, заголовок и форма создания
    записи. soft? — показывать мягкий режим (последняя запись low/mixed)."
   [request soft?]
-  (let [content [:div {:class "max-w-md mx-auto p-4 pb-24"}
+  (let [content [:div {}
                  [:div {:class "flex items-center gap-3 mb-6"}
                   [:a {:href "/feed"
                        :class "btn btn-ghost btn-circle btn-sm"

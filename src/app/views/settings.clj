@@ -83,7 +83,7 @@
   [request notif-slots & [ai-settings]]
   (let [identity (:identity request)
         csrf (:anti-forgery-token request)
-        content [:div {:class "max-w-2xl mx-auto p-4"}
+        content [:div {}
                  [:h1 {:class "text-2xl font-bold mb-4"} (i18n/t :nav/settings)]
                  (user-card identity request)
                  (when ai-settings (ai/ai-settings-section csrf ai-settings))

@@ -168,10 +168,11 @@ test.describe('insights', () => {
       advice: ['дыхание 4-7-8'],
     });
     await page.goto('/feed');
-    await expect(page.getByText('Что ты сам говорил в таком состоянии')).toBeVisible();
-    // скоуп на виджет: тот же инсайт дублируется в вечерней сводке-баннере
+    // Карточка совета: заголовок с состоянием, совет, inline-раскрытие
+    await expect(page.locator('#feed-insights').getByText(/Совет для состояния|Advice for the/)).toBeVisible();
     await expect(page.locator('#feed-insights').getByText('Тревога — главное дышать')).toBeVisible();
-    await expect(page.locator('#feed-insights a', { hasText: 'дыхание 4-7-8' })).toBeVisible();
+    await expect(page.locator('#feed-insights').getByText('дыхание 4-7-8')).toBeVisible();
+    await expect(page.getByTestId('feed-advice-card')).toBeVisible();
   });
 
   test('feed shows onboarding when no insight for current state', async ({ page }) => {
@@ -184,8 +185,7 @@ test.describe('insights', () => {
       advice: ['не торопиться'],
     });
     await page.goto('/feed');
-    await expect(page.getByText('Что ты сам говорил в таком состоянии')).toBeVisible();
-    await expect(page.getByText(/Инсайтов для состояния "тревога" ещё нет/)).toBeVisible();
+    await expect(page.getByText(/Инсайтов для состояния|No insights for/)).toBeVisible();
     await expect(page.getByRole('link', { name: /Создать/ }).first()).toBeVisible();
   });
 

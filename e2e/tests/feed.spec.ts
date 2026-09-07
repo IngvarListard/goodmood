@@ -26,7 +26,9 @@ test.describe('feed', () => {
     await submitEntry(page, { mood: 8, energy: 8, anxiety: 2 });
     // hero-карточка последней записи сегодня: радар + ярлык "подъём"/elevated
     await expect(page.locator('article canvas[role="img"][aria-label*="Роза ветров"]').first()).toBeVisible();
-    await expect(page.getByText(/подъём|elevated/, { exact: false }).first()).toBeVisible();
+    // Ярлык состояния ищем внутри hero-карточки: тот же текст есть в
+    // свёрнутом теле summary-баннера (скрытом по умолчанию).
+    await expect(page.locator('article').getByText(/подъём|elevated/, { exact: false }).first()).toBeVisible();
   });
 
   test('feed groups entries by day and shows timestamps', async ({ page }) => {

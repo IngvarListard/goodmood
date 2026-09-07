@@ -42,10 +42,12 @@
      [:input {:type "hidden" :name "medication_id" :value med-id}]
      [:input {:type "hidden" :name "scheduled_time" :value scheduled-time}]
      [:input {:type "hidden" :name "log_date" :value (today)}]
-     [:div {:class "flex items-center justify-between gap-3"}
-      [:div {:class "flex items-center gap-3"}
-       [:div
-        [:p {:class "font-medium text-base"} (:name medication)]
+     ;; flex-wrap: длинное имя препарата + пара pill-кнопок не должны
+     ;; рождать горизонтальный скролл на узких экранах (page-shell 390px)
+     [:div {:class "flex flex-wrap items-center justify-between gap-3 gap-y-2"}
+      [:div {:class "flex items-center gap-3 min-w-0"}
+       [:div {:class "min-w-0"}
+        [:p {:class "font-medium text-base break-words"} (:name medication)]
         [:p {:class "text-sm text-base-content/70"}
          (str (dose-str (:dose medication)) " " (:dose-unit medication)
               " · " scheduled-time)]]

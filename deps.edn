@@ -19,7 +19,15 @@
            clj-http/clj-http {:mvn/version "3.13.1"}}
  
  :aliases {:run {:main-opts ["-m" "app.core"]}
-            :nrepl {:extra-deps {nrepl/nrepl {:mvn/version "1.7.0"}}
-                    :main-opts ["-m" "nrepl.cmdline"]}
+           ;; Dev-старт: nREPL (:7890) + приложение (:3000) в одном процессе.
+           ;; Правки view/route-неймспейсов подхватываются (require ... :reload)
+           ;; по nREPL без рестарта процесса. Инлайн -e вместо отдельного
+           ;; dev-неймспейса: новые .clj-файлы на этой машине (JDK 25 + btrfs)
+           ;; перестают видеться classloader'ом спустя ~минуту после создания.
+           :dev {:extra-deps {nrepl/nrepl {:mvn/version "1.7.0"}}
+                 :main-opts ["-e" "(do (require 'nrepl.server) (nrepl.server/start-server :port 7890 :bind \"127.0.0.1\") (println \"nREPL on 7890\"))"
+                             "-m" "app.core"]}
+           :nrepl {:extra-deps {nrepl/nrepl {:mvn/version "1.7.0"}}
+                   :main-opts ["-m" "nrepl.cmdline"]}
             :test {:extra-paths ["test"]
                    :main-opts ["-e" "(require '[clojure.test :as t] '[app.db.ai-test] '[app.db.entries-test] '[app.db.insights-test] '[app.db.medications-test] '[app.db.notification-settings-test] '[app.domains.ai-test] '[app.domains.insights-test] '[app.domains.notification-settings-test] '[app.domains.state-periods-test] '[app.routes.ai-test] '[app.routes.app-test] '[app.routes.auth-test] '[app.routes.insights-test] '[app.routes.medications-test] '[app.routes.notifications-test] '[app.routes.state-periods-test] '[app.domains.users-test] '[app.views.layout-test] '[app.views.navigation-test] '[app.views.placeholder-test] '[app.icons-test])(t/run-tests 'app.db.ai-test 'app.db.entries-test 'app.db.insights-test 'app.db.medications-test 'app.db.notification-settings-test 'app.domains.ai-test 'app.domains.insights-test 'app.domains.notification-settings-test 'app.domains.state-periods-test 'app.routes.ai-test 'app.routes.app-test 'app.routes.auth-test 'app.routes.insights-test 'app.routes.medications-test 'app.routes.notifications-test 'app.routes.state-periods-test 'app.domains.users-test 'app.views.layout-test 'app.views.navigation-test 'app.views.placeholder-test 'app.icons-test)"]}}}

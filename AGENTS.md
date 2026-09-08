@@ -74,7 +74,39 @@ curl http://localhost:3000/
 (require 'app.views.feed :reload)  ; и т.д. по изменённым неймспейсам
 ```
 
-Рестарт нужен только для: правок system.clj, deps.edn, миграций.
+Рестарт нужен только для: правок system.clj, app.core.clj, deps.edn, миграций.
+
+## REPL-гипотезы в живом процессе
+
+Работающая система доступна по nREPL через `app.core/system` (integrant map).
+Используй это, чтобы проверять гипотезы без e2e-прогонов и поднимать данные
+для визуальных проверок:
+
+```clojure
+(require 'app.core)
+;; живой ds для доменных вызовов:
+(def ds (get app.core/system :db/connection))
+(def uid (:id (app.db.users/get-user-by-email ds "e2e@goodmood.test")))
+
+;; гипотезы на реальных данных: что сматчится, что вернёт домен?
+(app.domains.insights/matching-insight ds uid "anxiety")
+
+;; сеанс данных для визуальной проверки: создать записи/периоды доменными
+;; функциями → открыть страницу в браузере → скриншот (быстрее e2e)
+
+;; локали и тексты с параметрами:
+(binding [app.i18n/*locale* :ru] (app.i18n/t :insights/widget-title {:state "тревога"}))
+
+;; подмена недетерминизма (например AI-вызова) для граничных сценариев:
+;; (with-redefs [app.domains.ai/call-chat (fn [& _] "фейковый ответ")] ...)
+```
+
+Паттерн «превью фрагмента»: view-функция с фейковыми данными →
+`(hiccup2.core/html ...)` → standalone html (head из `app.views.layout/head`)
+→ скриншот через playwright — без навигации по приложению.
+
+Важно: всё, что пишешь через живой `ds`, оседает в dev-БД
+(`resources/goodmood.db`) — для чистых прогонов прогоняй reset-скрипты из `dev/`.
 
 # Env-переменные
 

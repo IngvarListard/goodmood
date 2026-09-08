@@ -396,7 +396,8 @@ The system SHALL keep the entries page readable and functional on a mobile viewp
 - **AND** the label + slider combination creates a touch target ≥ 44px tall
 
 ### Requirement: Feed page renders entries with rose-of-winds
-The system SHALL render a `/feed` page as the landing page after login, displaying the user's entries grouped by date. The latest entry of the current day SHALL be rendered as a hero card with a 200×200px radar chart rendered client-side (canvas + Chart.js, see "Read-only radar chart renders rose-of-winds"). Other entries SHALL be rendered as compact cards with a state-label badge, timestamp, and axis values as text. In low/mixed states the insights widget SHALL be rendered above the hero card (emphasis on advice over state fixation). The page SHALL render an evening summary banner at the top (before the «Лента» heading) when local time is ≥ 18:00, today has entries, and the summary has not been shown today (collapsible, dismissible for the day).
+
+The system SHALL render a `/feed` page as the landing page after login, displaying the user's entries grouped by date. The latest entry of the current day SHALL be rendered as a hero card with a 200×200px radar chart rendered client-side (canvas + Chart.js, see "Read-only radar chart renders rose-of-winds"). Other entries SHALL be rendered as compact cards with a state-label badge, timestamp, and axis values as text. In low/mixed states the insights widget SHALL be rendered above the hero card (emphasis on advice over state fixation). The page SHALL render an evening summary banner at the top (before the «Лента» heading) when local time is ≥ 18:00, today has entries, and the summary has not been shown today: тонкий однострочный баннер с тёмным фоном, левой акцентной полосой и крестиком закрытия — без сплошной цветной заливки (`alert-info` не используется) и без встроенной карточки инсайта (совет для состояния живёт только в отдельной карточке совета, см. feed-timeline). Страница не содержит инлайн-чата.
 
 #### Scenario: Feed shows hero card with radar
 - **GIVEN** the user is logged in and has entries today
@@ -434,14 +435,21 @@ The system SHALL render a `/feed` page as the landing page after login, displayi
 #### Scenario: Evening summary banner at top of feed
 - **GIVEN** local time is ≥ 18:00, today has entries, and the summary was not shown today
 - **WHEN** they open `/feed`
-- **THEN** an `alert alert-info` banner «Сводка на завтра готова» is rendered before the «Лента» heading
-- **AND** the banner expands on tap and dismisses for the day `[ref: A4-q1, OQ6]`
+- **THEN** a thin one-line banner «Сводка на завтра готова» is rendered before the «Лента» heading
+- **AND** the banner uses dark surface with a left accent stripe, no solid `alert-info` fill
+- **AND** the banner has a «посмотреть» link and a dismiss cross, dismisses for the day `[ref: A4-q1, OQ6]`
+- **AND** the banner does not embed the advice/insight content (no duplication with the advice card)
 
 #### Scenario: No summary banner before 18:00
 - **GIVEN** local time is before 18:00
 - **WHEN** they open `/feed`
 - **THEN** no evening summary banner is rendered
 - **AND** no empty placeholder is shown
+
+#### Scenario: No inline chat on feed
+- **GIVEN** пользователь на `/feed`
+- **WHEN** страница отрендерена
+- **THEN** в теле ленты нет кнопки «Чат» и инлайн-панели `#ai-chat-open`
 
 ### Requirement: Feed is the landing page after login
 The system SHALL redirect authenticated users from `/` and `/dashboard` to `/feed`.
@@ -455,17 +463,6 @@ The system SHALL redirect authenticated users from `/` and `/dashboard` to `/fee
 - **GIVEN** an authenticated user navigates to `/dashboard`
 - **WHEN** the server processes the request
 - **THEN** the user is redirected to `/feed`
-
-### Requirement: Floating action button on feed
-The system SHALL render a single floating action button (FAB) on `/feed` linking to `/check-in`, positioned at the bottom-right corner above the mobile navigation bar.
-
-#### Scenario: FAB visible on feed
-- **GIVEN** the user is on `/feed`
-- **WHEN** the page renders
-- **THEN** a single `btn btn-primary btn-circle` FAB is visible
-- **AND** it is positioned `fixed bottom-20 right-4`
-- **AND** it links to `/check-in`
-- **AND** no duplicate FAB or header button exists
 
 ### Requirement: Read-only radar chart renders rose-of-winds
 The system SHALL render a read-only radar chart («роза ветров») on the feed page for the latest entry of the current day as a 200×200px `<canvas role="img">` drawn client-side by Chart.js (pinned 4.x via CDN). The server SHALL render the canvas element with: a server-generated `aria-label` containing the axis values («Роза ветров: энергия X, тревога Y, фокус Z»), and a `data-gm-radar` attribute with JSON payload `{labels, values}` where labels are i18n-generated axis names and values are the axis values (0–10, nil allowed for absent). The chart SHALL display 3 mandatory axes (energy, anxiety, focus) and optionally a 4th axis (mood_score), ordered so that energy points up and axes proceed clockwise (θ_i = −π/2 + 2π·i/n). Visual style: radial gradient fill from secondary to primary color, white point markers with primary-color border and soft glow, circular grid rings in low-opacity base-content color, hidden radial ticks (scale 0–10), i18n point labels.

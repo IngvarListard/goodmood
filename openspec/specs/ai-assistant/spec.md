@@ -81,13 +81,22 @@ The system MAY generate advice that goes beyond the user's own insights (e.g. DB
 - **THEN** секция `ai-novel-advice` не показывается на /feed
 
 ### Requirement: AI chat in low states (Phase 6)
-The system SHALL provide an AI chat available on-demand, especially useful in low / mixed states when the user needs immediate coping support. The chat SHALL be opened by an explicit user action (button), not push.
+
+The system SHALL provide an AI chat available on-demand, especially useful in low / mixed states when the user needs immediate coping support. The chat SHALL be opened by an explicit user action (FAB ассистента) и SHALL жить в глобальной bottom-sheet модалке (см. `assistant-modal`), не в инлайн-панели тела ленты. Контент чата переиспользует существующий контракт: `GET /ai/chat` отдаёт фрагмент панели, `POST /ai/chat` обновляет секцию `ai-chat` (data-testid `chat-response`).
 
 #### Scenario: User opens chat in anxiety
-- **WHEN** пользователь в тревожном состоянии открывает чат
+
+- **WHEN** пользователь в тревожном состоянии кликает FAB ассистента
 - **AND** описывает, что чувствует
-- **THEN** AI отвечает, опираясь на контекст (текущая роза ветров + последние записи + свои инсайты) в секции `ai-chat` (data-testid `chat-response`)
+- **THEN** AI отвечает, опираясь на контекст (текущая роза ветров + последние записи + свои инсайты) в модалке ассистента (data-testid `chat-response`)
 - **AND** сообщения сохраняются (кэш чата)
+
+#### Scenario: Chat is not inline in feed
+
+- **GIVEN** пользователь на `/feed`
+- **WHEN** страница отрендерена
+- **THEN** инлайн-панель чата в теле ленты отсутствует
+- **AND** чат доступен только через модалку ассистента
 
 ### Requirement: AI chat crisis guardrail (Phase 6)
 The system SHALL detect signs of crisis (key words) in chat messages and respond with a resource for professional help (hotline / emergency), not merely a normal supportive reply.
@@ -98,12 +107,20 @@ The system SHALL detect signs of crisis (key words) in chat messages and respond
 - **AND** это не заменяет обычный разговор как единственную реакцию
 
 ### Requirement: AI chat disclaimer (Phase 6)
-The system SHALL show a disclaimer on the first open of the chat that AI does not replace professional help.
 
-#### Scenario: First chat open shows disclaimer
-- **WHEN** пользователь впервые открывает чат
-- **THEN** видит disclaimer «не заменяет профессиональную помощь»
-- **AND** может продолжить использование после подтверждения
+The system SHALL показывать дисклеймер «AI-ассистент не заменяет профессиональную помощь и терапию» как постоянную мелкую строку над composer в модалке ассистента — без блока-гейта с кнопкой «Продолжить» при первом открытии. Сессионный флаг `ai-chat-disclaimer-dismissed` и эндпоинт `POST /ai/chat/disclaimer` перестают использоваться UI (эндпоинт не удаляется из кода).
+
+#### Scenario: Disclaimer always visible
+
+- **WHEN** пользователь открывает модалку ассистента (первый или повторный раз)
+- **THEN** мелкая строка дисклеймера видна над полем ввода
+- **AND** чат доступен к использованию сразу, без подтверждения
+
+#### Scenario: Disclaimer does not block composer
+
+- **GIVEN** пользователь открыл модалку впервые
+- **WHEN** он сразу отправляет сообщение
+- **THEN** сообщение отправляется без промежуточного шага подтверждения
 
 ### Requirement: Episode onset warning (Phase 7, opt-in, guarded)
 The system SHALL warn the user about a possible onset of a depressive or (hypo)manic episode based on trend analysis, but only when ALL of the following hold: explicit opt-in, confidence above threshold (> 0.75), explainable reasoning, easy disable, and false-alarm feedback loop. Opt-in SHALL be OFF by default. The warning SHALL use supportive, non-alarming copy.

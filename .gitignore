@@ -13,3 +13,5 @@ node_modules
 OPENROUTER_API_KEY
 test-results/
 .nrepl-port
+resources/goodmood.db-shm
+resources/goodmood.db-wal

@@ -347,14 +347,34 @@
     (chat-response {:messages messages})]
    [:p {:class "text-[10px] text-center text-base-content/50 px-6 pt-1 pb-2 shrink-0"}
     (i18n/t :ai/chat-disclaimer)]
+   ;; Оптимистичный UI (design D2): hyperscript на submit мгновенно рисует
+   ;; бабл пользователя (textContent — без HTML-инъекции), индикатор
+   ;; «печатает» и чистит инпут; серверный свап #chat-response заменяет
+   ;; фрагмент правдой из БД. Ошибка запроса — снимает индикатор (бабл
+   ;; остаётся, как в спеке).
    [:form {:class (str "flex items-center gap-2 px-4 pt-2 flex-none "
                        "pb-[max(1rem,env(safe-area-inset-bottom))]")
            :hx-post "/ai/chat"
            :hx-ext "json-enc"
            :hx-target "#chat-response"
-           :hx-swap "outerHTML"}
+           :hx-swap "outerHTML"
+           :_ "on submit
+                 if #chat-input.value is not \"\" then
+                   make a <div/> called userWrap
+                   set userWrap's className to \"chat chat-end\"
+                   make a <div/> called userBub
+                   set userBub's className to \"chat-bubble chat-bubble-primary gm-gradient border-0 text-sm\"
+                   set userBub's textContent to #chat-input.value
+                   put userBub at the end of userWrap
+                   put userWrap at the end of #chat-response
+                   put \"<div class='chat chat-start' data-testid='chat-typing'><div class='chat-bubble bg-base-300 flex items-center gap-1.5 py-3'><span class='w-1.5 h-1.5 rounded-full bg-primary animate-bounce'></span><span class='w-1.5 h-1.5 rounded-full bg-primary animate-bounce [animation-delay:0.2s]'></span><span class='w-1.5 h-1.5 rounded-full bg-primary animate-bounce [animation-delay:0.4s]'></span></div></div>\" at the end of #chat-response
+                   set #chat-input.value to \"\"
+                   set #chat-response's scrollTop to #chat-response's scrollHeight
+                 end
+               on htmx:responseError
+                 remove #chat-typing"}
     [:input {:type "hidden" :name "__anti-forgery-token" :value csrf-token}]
-    [:input {:type "text" :name "message" :required true
+    [:input {:type "text" :name "message" :id "chat-input" :required true
              :class "input input-bordered rounded-full flex-1 min-w-0"
              :placeholder (i18n/t :ai/chat-placeholder)}]
     [:button {:type "submit"

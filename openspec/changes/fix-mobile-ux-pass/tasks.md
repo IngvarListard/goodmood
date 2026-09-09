@@ -20,9 +20,9 @@
 
 ## 4. Чат: оптимистичный UI + typing (проблема #4)
 
-- [ ] 4.1 `views/ai.clj` chat-panel: hyperscript на submit — вставить юзер-бабл (textContent!) и typing-бабл («Печатает» + три animate-bounce точки по design/assistant.html) в `#chat-response`, очистить инпут, scroll вниз
-- [ ] 4.2 hyperscript `htmx:responseError` — удалить typing-индикатор
-- [ ] 4.3 Стили баблов — переиспользовать классы `chat-bubble gm-gradient` / `bg-base-300`, typing — отдельный data-testid `chat-typing`
+- [x] 4.1 `views/ai.clj` chat-panel: hyperscript на submit — вставить юзер-бабл (textContent!) и typing-бабл («Печатает» + три animate-bounce точки по design/assistant.html) в `#chat-response`, очистить инпут, scroll вниз
+- [x] 4.2 hyperscript `htmx:responseError` — удалить typing-индикатор
+- [x] 4.3 Стили баблов — переиспользовать классы `chat-bubble gm-gradient` / `bg-base-300`, typing — отдельный data-testid `chat-typing`
 
 ## 5. E2E чата (проблема #5, продолжение)
 

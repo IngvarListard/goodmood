@@ -40,7 +40,8 @@ test.describe('page shell (mobile 390px)', () => {
       expect(m.width).toBe(390);
       expect(m.left).toBe(0);
       expect(m.hScroll).toBe(false);
-      expect(m.paddingBottom).toBe('80px'); // 5rem + safe-area(0 в chromium)
+      // var(--gm-nav-h)=88px + 0.75rem + safe-area(0 в chromium)
+      expect(m.paddingBottom).toBe('100px');
       expect(m.mainBottomPad).toBe('0px'); // pb-16 съехал в shell
     });
   }

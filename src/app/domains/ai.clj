@@ -2,6 +2,7 @@
   (:require [app.db.ai :as db]
             [app.db.entries :as entries]
             [app.db.insights :as insights]
+            [app.env :as env]
             [cheshire.core :as json]
             [clj-http.client :as http]
             [clojure.string :as str]
@@ -43,9 +44,9 @@
 (declare list-advice)
 
 (defn api-key
-  "Ключ OpenRouter из окружения OPENROUTER_API_KEY или nil."
+  "Ключ OpenRouter из окружения OPENROUTER_API_KEY (в т.ч. из .env) или nil."
   []
-  (System/getenv "OPENROUTER_API_KEY"))
+  (env/env "OPENROUTER_API_KEY"))
 
 ;; ──────────────────────────────────────────────────────────────
 ;; Malli-схемы структур ответа AI
@@ -91,7 +92,7 @@
         (let [resp (http/post
                     openrouter-url
                     {:headers {"Authorization" (str "Bearer " key)
-                               "Content-Type"  "application/json"}
+                               "Content-Type" "application/json"}
                      :body (json/generate-string {:model model
                                                   :messages messages
                                                   :temperature 0.2})}
@@ -365,11 +366,11 @@
     1))
 
 (def ^:private default-ai-settings
-  {:master-enabled        1
-   :correlations-enabled  1
-   :labels-enabled        1
-   :advice-enabled        1
-   :allow-novel-advice    0
+  {:master-enabled 1
+   :correlations-enabled 1
+   :labels-enabled 1
+   :advice-enabled 1
+   :allow-novel-advice 0
    :episode-warning-enabled 0})
 
 (defn get-settings
@@ -398,11 +399,11 @@
         episode-warning (coerce-enabled (or (get params :episode_warning_enabled)
                                             (get params "episode_warning_enabled")))]
     (db/set-ai-settings! ds user-id
-                         {:master-enabled        master
-                          :correlations-enabled  correlations
-                          :labels-enabled        labels
-                          :advice-enabled        advice
-                          :allow-novel-advice    novel
+                         {:master-enabled master
+                          :correlations-enabled correlations
+                          :labels-enabled labels
+                          :advice-enabled advice
+                          :allow-novel-advice novel
                           :episode-warning-enabled episode-warning})))
 
 (defn ai-enabled?
@@ -589,11 +590,11 @@
   [ds user-id enabled]
   (let [s (get-settings ds user-id)]
     (db/set-ai-settings! ds user-id
-                         {:master-enabled       (:master-enabled s)
+                         {:master-enabled (:master-enabled s)
                           :correlations-enabled (:correlations-enabled s)
-                          :labels-enabled       (:labels-enabled s)
-                          :advice-enabled       (:advice-enabled s)
-                          :allow-novel-advice   (:allow-novel-advice s)
+                          :labels-enabled (:labels-enabled s)
+                          :advice-enabled (:advice-enabled s)
+                          :allow-novel-advice (:allow-novel-advice s)
                           :episode-warning-enabled (if enabled 1 0)})))
 
 (defn disable-episode-warnings!
@@ -624,9 +625,9 @@
    Делает выраженные тренды видимыми для модели."
   [rows]
   (let [recent (take 3 rows)
-        prior  (take 3 (drop 3 rows))
-        fmt    (fn [label key]
-                 (str label "=" (avg-of key recent) " (раньше: " (avg-of key prior) ")"))]
+        prior (take 3 (drop 3 rows))
+        fmt (fn [label key]
+              (str label "=" (avg-of key recent) " (раньше: " (avg-of key prior) ")"))]
     (->> [(fmt "энергия" :energy)
           (fmt "тревога" :anxiety)
           (fmt "настроение" :mood-score)
@@ -671,11 +672,11 @@
           (let [{:keys [type confidence pattern]} parsed]
             (when (not= "none" type)
               (db/insert-warning! ds
-                                  {:user-id             user-id
-                                   :type                type
+                                  {:user-id user-id
+                                   :type type
                                    :pattern-description pattern
-                                   :confidence          confidence
-                                   :dismissed           (if (> confidence confidence-threshold) 0 1)}))))))
+                                   :confidence confidence
+                                   :dismissed (if (> confidence confidence-threshold) 0 1)}))))))
     (first (db/get-warnings ds user-id))))
 
 (defn episode-warning-needed?

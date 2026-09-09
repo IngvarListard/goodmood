@@ -58,12 +58,19 @@ Clojure, deps.edn, ring + ring-jetty-adapter, reitit, integrant, hiccup2, htmx, 
 # Запуск
 
 ```bash
-# Dev-старт: приложение (:3000) + nREPL (:7890) в одном процессе
+# Dev-старт: приложение (:3000) + nREPL (:7890), переменные из .env (если есть)
+./bin/dev
+
+# Без .env-файла (переменные только из окружения)
 clj -M:dev
 
 # Проверка health-check
 curl http://localhost:3000/
 ```
+
+Локальная конфигурация живёт в `.env` (gitignored, образец — `.env.example`).
+Реальный env всегда сильнее `.env` (`app.env`). В контейнере `.env` не
+используется — переменные приходят через compose `env_file`.
 
 ## REPL-луп без рестартов
 
@@ -110,10 +117,43 @@ curl http://localhost:3000/
 
 # Env-переменные
 
+Загружаются через `app.env`: реальный env > `.env`-файл в корне (только для
+локальной разработки; в контейнере — compose `env_file`).
+
 | Переменная | Обязательна | Описание |
 |---|---|---|
 | `GOODMOOD_SESSION_SECRET` | да | Секрет для подписи cookie-сессий (`system.clj`) |
+| `GOODMOOD_ADMIN_EMAIL` | нет | Email админа при seed на пустой БД (default `admin@goodmood.local`) |
+| `GOODMOOD_ADMIN_PASSWORD` | да при пустой БД | Пароль админа при seed на пустой БД |
+| `GOODMOOD_PORT` | нет | Порт HTTP-сервера (default `3000`) |
+| `GOODMOOD_DB_PATH` | нет | Путь к SQLite-файлу (default `resources/goodmood.db`, в контейнере `/data/goodmood.db`) |
 | `OPENROUTER_API_KEY` | нет | Ключ OpenRouter для AI-функций. Без него все AI-функции возвращают nil (graceful degradation) |
+
+# Деплой
+
+Сборка и деплой на Synology DS224+ (`deploy/`):
+
+```bash
+# Одноразовая настройка NAS (каталоги, .env, compose)
+NAS_HOST=ssh://<ssh-user>@<nas-lan-ip>:37132 ./deploy/nas-setup.sh
+
+# Каждый деплой (спросит пароль sudo один раз)
+NAS_HOST=ssh://<ssh-user>@<nas-lan-ip>:37132 ./bin/deploy.sh
+```
+
+- Пайплайн deploy.sh: uberjar → docker build → ssh stop → бэкап БД
+  (держим 10 в `/volume1/docker/goodmood/backups`) → `docker save | ssh sudo docker load`
+  → compose up → health-check по `localhost:32710`.
+- Снаружи: reverse proxy DSM, `https://<public-host>` →
+  `http://localhost:32710` (порт выбран случайно, слушает только localhost).
+- Секреты прода — `/volume1/docker/goodmood/.env` (chmod 600), локальная копия
+  — `deploy/nas.env` (gitignored).
+- Откат кода: `NAS_HOST=ssh://<ssh-user>@<nas-lan-ip>:37132 ./bin/rollback.sh <тег>`
+  (без аргумента — покажет теги; с `--data` — ещё и restore БД из бэкапа тега).
+- Откат данных: остановить контейнер → restore `goodmood.db*` из последнего
+  пред-деплойного подкаталога `backups/<тег>/` → up.
+- Контейнер: non-root (uid 10001), `-Xmx384m` (NAS с 2 ГБ RAM), HEALTHCHECK
+  по GET /.
 
 # Обзор фич/доменов
 
@@ -137,8 +177,16 @@ curl http://localhost:3000/
 # Миграции
 
 - `resources/migrations/` — SQL-миграции формата `NNN-name.up.sql` / `NNN-name.down.sql`
-- migratus, автозапуск при старте системы (`system.clj` → `:db/migrate`)
-- Текущие 13 миграций: users, entries, medications, insights, notification-settings, ai-findings, ai-settings, state-periods, ai-chat-messages, episode-warnings
+- migratus, автозапуск при старте системы (`system.clj` → `:db/migrate`);
+  упавшая миграция не даёт контейнеру подняться — deploy.sh ловит это health-check'ом
+- Baseline: `001-init` (squash прежних 13 миграций, 2026-09); git-история сохраняет исходники
+
+## Правила (после первого деплоя — обязательны)
+
+1. **Append-only**: уже задеплоенная миграция — read-only. Правка/удаление старых файлов запрещены.
+2. Каждый новый `.up.sql` — в паре с рабочим `.down.sql`, пишутся вместе.
+3. Деструктив (drop/rename/type change) — только новой миграцией, с переносом данных при необходимости.
+4. Перед коммитом проверять подъём с нуля: `rm resources/goodmood.db* && ./bin/dev` — миграции применяются на пустой БД, seed создаёт админа и рыбу.
 
 # AI-домен
 

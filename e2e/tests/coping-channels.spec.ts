@@ -1,17 +1,24 @@
 import { test, expect, Page } from '@playwright/test';
 import { execSync } from 'node:child_process';
-import { ensureE2EUser, login, submitEntry, projectRoot } from '../helpers';
+import { ensureE2EUser, login, submitEntry, projectRoot, workerUser } from '../helpers';
 
 test.beforeAll(ensureE2EUser);
 
 // Очистить настройки уведомлений и записи e2e-юзера напрямую в БД.
+// Юзер-скоупленно (не глобально): не трогаем данные остальных юзеров
+// (например, seed-рыбу админа из app.db.seed).
 function resetNotificationsState() {
   execSync(
-    `clojure -M -e "
-       (require '[next.jdbc :as jdbc])
+    `E2E_USER_EMAIL=${workerUser().email} clojure -M -e "
+       (require '[next.jdbc :as jdbc]
+                '[next.jdbc.result-set :as rs])
        (def ds (jdbc/get-datasource {:dbtype \\"sqlite\\" :dbname \\"resources/goodmood.db\\"}))
-       (jdbc/execute! ds [\\"DELETE FROM user_notification_settings\\"])
-       (jdbc/execute! ds [\\"DELETE FROM entries\\"])
+       (def opts {:builder-fn rs/as-unqualified-kebab-maps})
+       (def email (or (System/getenv \\"E2E_USER_EMAIL\\") \\"e2e@goodmood.test\\"))
+       (let [u (first (jdbc/execute! ds [\\"SELECT id FROM users WHERE email = ?\\" email] opts))]
+         (when u
+           (jdbc/execute! ds [\\"DELETE FROM user_notification_settings WHERE user_id = ?\\" (:id u)])
+           (jdbc/execute! ds [\\"DELETE FROM entries WHERE user_id = ?\\" (:id u)])))
        (println \\"reset done\\")"`,
     { cwd: projectRoot, timeout: 90000, stdio: 'ignore' },
   );

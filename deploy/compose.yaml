@@ -1,0 +1,19 @@
+# goodmood: стек для Synology (Container Manager / docker compose).
+# Живёт в /volume1/docker/goodmood/ вместе с .env, data/ и backups/.
+# Тег образа проставляет bin/deploy.sh (tags: <tag> + latest); для отката:
+#   GOODMOOD_TAG=<старый-тег> sudo docker compose up -d
+services:
+  goodmood:
+    image: goodmood:${GOODMOOD_TAG:-latest}
+    container_name: goodmood
+    env_file:
+      - /volume1/docker/goodmood/.env
+    ports:
+      # Порт 32710 выбран случайно при настройке. Бинд на все интерфейсы:
+      # доступ из LAN по http://<nas-lan-ip>:32710 + reverse proxy DSM
+      # (https://<public-host> -> localhost:32710).
+      # Роутер этот порт наружу не пробрасывает.
+      - "32710:3000"
+    volumes:
+      - /volume1/docker/goodmood/data:/data
+    restart: unless-stopped

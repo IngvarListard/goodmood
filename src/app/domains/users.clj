@@ -1,5 +1,6 @@
 (ns app.domains.users
   (:require [app.db.users :as db]
+            [app.env :as env]
             [buddy.hashers :as hashers]
             [clojure.string :as str]))
 
@@ -42,7 +43,7 @@
    из переменных окружения GOODMOOD_ADMIN_EMAIL / GOODMOOD_ADMIN_PASSWORD
    (или из переданной env map)."
   ([ds]
-   (seed-admin! ds (System/getenv)))
+   (seed-admin! ds (env/all)))
   ([ds env]
    (when (zero? (db/count-users ds))
      (let [email (or (get env "GOODMOOD_ADMIN_EMAIL") "admin@goodmood.local")

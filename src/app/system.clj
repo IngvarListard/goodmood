@@ -3,6 +3,8 @@
             [next.jdbc :as jdbc]
             [ring.adapter.jetty :as jetty]
             [app.db.migrate :as db.migrate]
+            [app.db.seed :as db.seed]
+            [app.env :as env]
             [app.domains.users :as users]
             [app.routes.app :as routes]))
 
@@ -31,7 +33,7 @@
 
 (defmethod ig/init-key :db/seed
   [_ {:keys [connection]}]
-  (users/seed-admin! connection)
+  (db.seed/seed! connection)
   nil)
 
 (defmethod ig/halt-key! :db/seed
@@ -40,7 +42,7 @@
 
 (defmethod ig/init-key :app.core/secret
   [_ _]
-  (or (System/getenv "GOODMOOD_SESSION_SECRET")
+  (or (env/env "GOODMOOD_SESSION_SECRET")
       (throw (ex-info "GOODMOOD_SESSION_SECRET env variable is required" {}))))
 
 (defmethod ig/halt-key! :app.core/secret
@@ -57,12 +59,12 @@
   (.stop server))
 
 (def system-config
-  {:db/connection {:path "resources/goodmood.db"}
+  {:db/connection {:path (env/env "GOODMOOD_DB_PATH" "resources/goodmood.db")}
    :db/migrate {:connection (ig/ref :db/connection)}
    :db/seed {:connection (ig/ref :db/connection)
              :migrated (ig/ref :db/migrate)}
    :app.core/secret {}
-   :app.core/server {:port 3000
+   :app.core/server {:port (or (some-> (env/env "GOODMOOD_PORT") parse-long) 3000)
                      :connection (ig/ref :db/connection)
                      :session-secret (ig/ref :app.core/secret)}})
 

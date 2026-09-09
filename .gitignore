@@ -11,7 +11,10 @@ discovery-notes.md
 node_modules
 .playwright-mcp
 OPENROUTER_API_KEY
+.env
+target/
 test-results/
 .nrepl-port
 resources/goodmood.db-shm
 resources/goodmood.db-wal
+deploy/nas.env

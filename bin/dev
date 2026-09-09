@@ -1,0 +1,14 @@
+#!/usr/bin/env bash
+# Локальный dev-старт: nREPL (:7890) + приложение (:3000), переменные из .env.
+# Аналог clj -M:dev, но с загрузкой .env; в контейнере не используется
+# (там переменные приходят через compose env_file).
+set -euo pipefail
+cd "$(dirname "$0")/.."
+
+if [ -f .env ]; then
+  set -a
+  . ./.env
+  set +a
+fi
+
+exec clj -M:dev

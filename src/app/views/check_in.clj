@@ -90,17 +90,11 @@
   [:div {:id "soft-targets"}
    (range-field (i18n/t :entries/energy) "energy" "energy")
    (range-field (i18n/t :entries/anxiety) "anxiety" "anxiety")
+   (range-field (i18n/t :entries/focus) "focus" "focus")
    ;; Обёртка опциональной секции: разделитель + заголовок uppercase (Decision 6)
    [:div {:class "border-t border-base-300 pt-4 mt-2"}
     [:p {:class "text-[10px] uppercase font-bold tracking-wider text-base-content/50 mb-4"}
      (i18n/t :entries/optional)]
-    (optional-block (i18n/t :entries/focus) "focus"
-                    [:div {:class "form-control"}
-                     [:input {:type "range" :name "focus" :min "0" :max "10" :value "5"
-                              :id "focus" :data-optional true :disabled true
-                              :class "gm-range"
-                              :_ "on input set #focus-value.textContent to my.value"}]
-                     (value-row "focus-value")])
     (optional-block (i18n/t :entries/sleep) "sleep_hours"
                     [:input {:type "number" :name "sleep_hours" :id "sleep_hours"
                              :data-optional true :disabled true

@@ -3,10 +3,7 @@
 ## Purpose
 
 Инфраструктура приложения: HTTP-сервер (ring + jetty + integrant), SQLite-соединение (integrant component), миграции (migratus), слоистость исходника (db/routes/views/domains).
-
 ## Requirements
-
-
 ### Requirement: Server starts and responds to health-check
 The system SHALL provide an HTTP server that responds to GET / with HTTP 200 OK.
 
@@ -40,12 +37,16 @@ The system SHALL manage the HTTP server lifecycle through integrant components.
 - **THEN** HTTP server component is stopped and cleaned up
 
 ### Requirement: SQLite datasource available as integrant component
-The system SHALL provide a `:db/connection` integrant component that creates a SQLite datasource via next.jdbc.
+The system SHALL provide a `:db/connection` integrant component that creates a SQLite datasource via next.jdbc, with the database file path taken from the `GOODMOOD_DB_PATH` environment variable (default: `resources/goodmood.db`).
 
 #### Scenario: Connection initializes on system start
 - **WHEN** integrant system is initialized
 - **THEN** the `:db/connection` component is created
-- **AND** the SQLite database file is created on disk without errors
+- **AND** the SQLite database file is created on disk without errors at the configured path
+
+#### Scenario: Connection path follows environment
+- **WHEN** `GOODMOOD_DB_PATH` is set to a custom location
+- **THEN** the SQLite database file is created/used at that location
 
 #### Scenario: Connection halts on system stop
 - **WHEN** integrant system is halted
@@ -123,3 +124,16 @@ The file/directory restructure SHALL NOT change application behavior, HTML marku
 #### Scenario: API responses are unchanged
 - **WHEN** `POST /entries` and `GET /entries` are called with JSON accept headers after the restructure
 - **THEN** status codes and response bodies match the behavior defined in the `entries-api` and `entries-data` specs
+
+### Requirement: Squashed migration baseline
+The resource `migrations` directory SHALL contain a single baseline migration `001-init` (up and down) representing the full current schema. Migrations SHALL be append-only after the first deployment: an already-deployed migration file MUST NOT be modified or removed; schema changes are made only by adding new migrations.
+
+#### Scenario: Fresh database from single migration
+- **WHEN** the application starts against a non-existent database file
+- **THEN** migratus applies the single `001-init` migration
+- **AND** the resulting schema is equivalent to the schema produced by the previous 13 migrations
+
+#### Scenario: Down migration reverses the baseline
+- **WHEN** migratus down/rollback is invoked for `001-init`
+- **THEN** all baseline tables are dropped
+

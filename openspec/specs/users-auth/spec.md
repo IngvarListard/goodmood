@@ -106,8 +106,7 @@ The session cookie SHALL expire after 1 hour of inactivity.
 - **AND** the next request returns 302 /login
 
 ### Requirement: Admin seed at startup
-The system SHALL create an admin user on first start if no users exist, using
-environment variables for email and password.
+The system SHALL create an admin user on startup whenever no users exist (first start or after the database was deleted/recreated), using fixed credentials from environment variables for email and password.
 
 #### Scenario: Admin created on first start
 - **WHEN** the system starts and the `users` table is empty
@@ -116,11 +115,13 @@ environment variables for email and password.
 - **AND** role is `admin`
 - **AND** existing entries (if any) are assigned to this admin user
 
+#### Scenario: Admin recreated after database reset
+- **WHEN** the database file is deleted and the system starts again with the same environment variables
+- **THEN** an admin user with the same email and password is created
+
 #### Scenario: No duplicate seed on restart
 - **WHEN** the system starts and the `users` table already has users
 - **THEN** no new admin user is created
-
-
 
 ### Requirement: Route protection
 The system SHALL require authentication for all routes except those explicitly marked as public (`GET /` health-check, `GET /login`, `POST /login`, `GET /logout`? actually `POST /logout`). Unauthenticated requests to protected routes SHALL be redirected to `/login` with a `next` query parameter preserving the original URI.
@@ -190,3 +191,4 @@ The system SHALL attach authenticated user identity to the request map under `:i
 #### Scenario: No identity for unauthenticated request
 - **WHEN** a request is made without a session
 - **THEN** `(:identity request)` is nil
+

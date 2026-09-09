@@ -203,6 +203,9 @@
     [:html (html-attrs request)
      (head title csrf-token theme)
      [:body {:hx-boost "true"
+             ;; Переменная высоты мобильной панели: её используют паддинг
+             ;; контента и позиция FAB ассистента (см. navigation/assistant)
+             :style {"--gm-nav-h" "88px"}
              :class "bg-base-100 min-h-dvh"}
       [:div {:class "hidden md:flex fixed left-0 top-0 h-screen w-64 flex-col"}
        (navigation/navigation :desktop nav-items {:active active})
@@ -215,7 +218,7 @@
        ;; PageShell: единая content-колонка — единственный источник ширины
        ;; и внешних отступов страницы; страницы рендерятся без своих обёрток
        [:div {:class (str "mx-auto w-full max-w-lg px-4 pt-4 "
-                          "pb-[calc(env(safe-area-inset-bottom)+5rem)]")}
+                          "pb-[calc(env(safe-area-inset-bottom)+var(--gm-nav-h)+0.75rem)]")}
         content]]
       ;; Глобальный ассистент: FAB + bottom-sheet модалка (только для
       ;; залогиненных — на auth-страницах ассистента быть не должно)

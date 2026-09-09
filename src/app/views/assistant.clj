@@ -15,13 +15,15 @@
 
 (defn fab
   "Единственная плавающая кнопка ассистента: клик — hx-get контента чата
-   и открытие модалки. fixed над мобильной нижней навигацией."
+   и открытие модалки. fixed над мобильной нижней навигацией: 56×56, отступ
+   считается от высоты панели (--gm-nav-h на body), z-60 — выше панели (z-50)."
   []
   [:button {:type "button"
             :data-testid "assistant-fab"
             :aria-label (i18n/t :ai/assistant-open)
-            :class (str "btn btn-circle border-0 gm-gradient gm-glow text-white "
-                        "fixed bottom-20 right-4 z-40")
+            :class (str "btn border-0 gm-gradient gm-glow text-white "
+                        "fixed right-4 z-60 w-14 h-14 "
+                        "bottom-[calc(var(--gm-nav-h)+env(safe-area-inset-bottom)+12px)]")
             :hx-get "/ai/chat"
             :hx-target "#assistant-body"
             :hx-swap "outerHTML"

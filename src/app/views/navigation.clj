@@ -4,8 +4,8 @@
 
 (def nav-items
   [{:id :feed :label-key :nav/feed :icon "list-bullet" :route "/feed"}
-   {:id :check-in :label-key :nav/check-in :icon "plus-circle" :route "/check-in"}
    {:id :insights :label-key :nav/insights :icon "light-bulb" :route "/insights"}
+   {:id :check-in :label-key :nav/check-in :icon "plus-circle" :route "/check-in"}
    {:id :medications :label-key :nav/medications :icon "beaker" :route "/medications"}
    {:id :settings :label-key :nav/settings :icon "cog-6-tooth" :route "/settings"}])
 
@@ -14,7 +14,7 @@
   (let [label (i18n/t label-key)
         icon-variant (if active? :solid :outline)
         layout-classes (case variant
-                         :mobile "flex-col items-center justify-center gap-0.5 py-2 min-h-[44px]"
+                         :mobile "flex-col items-center justify-center gap-0.5 h-full min-h-[44px]"
                          :desktop "items-center gap-2")
         ;; цвет ссылки: активный — primary; неактивный (mobile) — muted + hover
         color-classes (case variant
@@ -51,7 +51,7 @@
   (case variant
     :mobile
     [:nav {:class "flex items-stretch"}
-     [:ul {:class "menu menu-horizontal gap-1 flex-1 w-full px-2"}
+     [:ul {:class "menu menu-horizontal flex-nowrap gap-1 flex-1 w-full h-[88px] px-2"}
       (doall
        (for [item items]
          ^{:key (:id item)}

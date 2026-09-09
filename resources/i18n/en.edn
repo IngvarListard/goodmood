@@ -1,7 +1,7 @@
 {:nav {:feed "Feed"
-       :check-in "Check-in"
+       :check-in "Entry"
        :insights "Insights"
-       :medications "Medications"
+       :medications "Meds"
        :settings "Settings"}
   :pages {:under-development "Section under development"}
   :app {:name "Good Mood"

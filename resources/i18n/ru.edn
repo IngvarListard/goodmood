@@ -1,7 +1,7 @@
 {:nav {:feed "Лента"
-       :check-in "Отметка"
+       :check-in "Запись"
        :insights "Инсайты"
-       :medications "Медикаменты"
+       :medications "Мед"
        :settings "Настройки"}
   :pages {:under-development "Раздел в разработке"}
   :app {:name "Good Mood"

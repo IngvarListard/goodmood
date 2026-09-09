@@ -81,31 +81,65 @@
    [:confidence [:double {:min 0 :max 1}]]
    [:pattern :string]])
 
+(defn- fake-reply
+  "Тест-дабл call-chat (GOODMOOD_FAKE_AI=1): детерминированные canned-ответы
+   без сети. Диспетч: advice/episode-модели различимы строкой; correlation и
+   chat делят одну модель — различаем по маркерам промптов, живущих в этом
+   же файле (сменишь промпт — обнови маркер). e2e/локальная разработка
+   без OPENROUTER_API_KEY."
+  [model messages]
+  (let [prompt (str/join " " (keep :content messages))]
+    (cond
+      (= model advice-model)
+      (str "{\"advice\":\"Выйди на 20 минут на улицу — в прошлые разы это "
+           "снижало твою тревогу\",\"explanation\":\"Совет из твоего инсайта "
+           "про прогулки\",\"confidence\":\"high\",\"source_refs\":[1]}")
+
+      (str/includes? prompt "ярлык")
+      (str "{\"label\":\"тревожный интроверт\",\"explanation\":\"высокая "
+           "тревога при низком фокусе\",\"confidence\":\"medium\"}")
+
+      (str/includes? prompt "корреляц")
+      (str "[{\"title\":\"Тревога выше при недосыпе\",\"description\":\"Когда "
+           "ты спишь меньше 6 часов, тревога на следующий день в среднем на 3 "
+           "пункта выше\",\"confidence\":\"high\"}]")
+
+      (str/includes? prompt "эпизода")
+      (str "{\"type\":\"none\",\"confidence\":0.4,\"pattern\":\"нет "
+           "устойчивого паттерна\"}")
+
+      :else
+      (str "Отлично! В состоянии «подъём» лучше всего разбить крупные задачи "
+           "на сфокусированные спринты по 25 минут."))))
+
 (defn call-chat
   "Отправить запрос в OpenRouter и вернуть текст ответа модели (или nil).
-   Публичная для мокинга в тестах (with-redefs). При отсутствии ключа,
-   ошибке сети или не-2xx возвращает nil (graceful)."
+   Публичная для мокинга в тестах (with-redefs). При GOODMOOD_FAKE_AI=1
+   возвращает детерминированный canned-ответ (fake-reply) без сети.
+   При отсутствии ключа, ошибке сети или не-2xx возвращает nil (graceful)."
   [model messages]
-  (let [key (api-key)]
-    (if (seq key)
-      (try
-        (let [resp (http/post
-                    openrouter-url
-                    {:headers {"Authorization" (str "Bearer " key)
-                               "Content-Type" "application/json"}
-                     :body (json/generate-string {:model model
-                                                  :messages messages
-                                                  :temperature 0.2})}
-                    {:throw-exceptions false})]
-          (if (= 200 (:status resp))
-            (get-in (json/parse-string (:body resp) true)
-                    [:choices 0 :message :content])
-            (do (println "OpenRouter non-200:" (:status resp))
-                nil)))
-        (catch Exception e
-          (println "OpenRouter call failed:" (.getMessage e))
-          nil))
-      (println "OpenRouter API key not set — skipping AI call"))))
+  (if (= "1" (env/env "GOODMOOD_FAKE_AI"))
+    (fake-reply model messages)
+    (let [key (api-key)]
+      (if (seq key)
+        (try
+          (let [resp (http/post
+                      openrouter-url
+                      {:headers {"Authorization" (str "Bearer " key)
+                                 "Content-Type" "application/json"}
+                       :body (json/generate-string {:model model
+                                                    :messages messages
+                                                    :temperature 0.2})}
+                      {:throw-exceptions false})]
+            (if (= 200 (:status resp))
+              (get-in (json/parse-string (:body resp) true)
+                      [:choices 0 :message :content])
+              (do (println "OpenRouter non-200:" (:status resp))
+                  nil)))
+          (catch Exception e
+            (println "OpenRouter call failed:" (.getMessage e))
+            nil))
+        (println "OpenRouter API key not set — skipping AI call")))))
 
 (defn- parse-findings
   "Распарсить content в вектор находок, валидированных по схеме.

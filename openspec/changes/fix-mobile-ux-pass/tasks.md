@@ -14,9 +14,9 @@
 
 ## 3. Тест-дабл AI (проблема #5)
 
-- [ ] 3.1 `domains/ai.clj`: `fake-reply` (4 ветки по correlation/advice/chat/episode-warning моделям, JSON валиден Malli-схемам) + проверка `(= "1" (env/env "GOODMOOD_FAKE_AI"))` в начале `call-chat`
-- [ ] 3.2 `e2e/playwright.config.ts`: `GOODMOOD_FAKE_AI: '1'` в webServer.env только при пустом `OPENROUTER_API_KEY`
-- [ ] 3.3 REPL-проверка: с флагом `call-chat` возвращает валидный JSON без сети, чат-путь сохраняет сообщение и отвечает
+- [x] 3.1 `domains/ai.clj`: `fake-reply` (4 ветки по correlation/advice/chat/episode-warning моделям, JSON валиден Malli-схемам) + проверка `(= "1" (env/env "GOODMOOD_FAKE_AI"))` в начале `call-chat`
+- [x] 3.2 `e2e/playwright.config.ts`: `GOODMOOD_FAKE_AI: '1'` в webServer.env только при пустом `OPENROUTER_API_KEY`
+- [x] 3.3 REPL-проверка: с флагом `call-chat` возвращает валидный JSON без сети, чат-путь сохраняет сообщение и отвечает
 
 ## 4. Чат: оптимистичный UI + typing (проблема #4)
 

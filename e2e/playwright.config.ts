@@ -51,6 +51,9 @@ export default defineConfig({
       GOODMOOD_ADMIN_PASSWORD: 'e2e-admin-password',
       GOODMOOD_ADMIN_EMAIL: 'admin@goodmood.test',
       OPENROUTER_API_KEY,
+      // Без ключа — детерминированные canned-ответы call-chat (dev-env spec).
+      // С ключом флаг не ставится: @ai-спеки гоняют реальный API.
+      GOODMOOD_FAKE_AI: OPENROUTER_API_KEY ? '' : '1',
     },
   },
 });

@@ -36,10 +36,10 @@
 
 ## 7. Единая анатомия AI-карточек (проблема #8)
 
-- [ ] 7.1 `views/ai.clj`: хелпер `confidence-dots` (3 точки: high/medium/low, nil → nil) — замена `confidence-badge` в карточках находок
-- [ ] 7.2 Единая карточка находки (шапка: иконка+тип+дот-шки+dismiss; тело: line-clamp-3 + «ещё»; действия: иконочные ghost с aria-label), применить в `ai-correlations`, `ai-advice`, `ai-novel-advice`
-- [ ] 7.3 Фикс: nil-confidence не рендерит ничего (нет «Missing key»)
-- [ ] 7.4 Обновить текстовые локаторы в `phase5`/`phase6` спеках (aria-label фидбек-кнопок), data-testid не трогаем
+- [x] 7.1 `views/ai.clj`: хелпер `confidence-dots` (3 точки: high/medium/low, nil → nil) — замена `confidence-badge` в карточках находок
+- [x] 7.2 Единая карточка находки (шапка: иконка+тип+дот-шки+dismiss; тело: line-clamp-3 + «ещё»; действия: иконочные ghost с aria-label), применить в `ai-correlations`, `ai-advice`, `ai-novel-advice`
+- [x] 7.3 Фикс: nil-confidence не рендерит ничего (нет «Missing key»)
+- [x] 7.4 Обновить текстовые локаторы в `phase5`/`phase6` спеках (aria-label фидбек-кнопок), data-testid не трогаем
 
 ## 8. Финальная верификация
 

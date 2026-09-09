@@ -177,6 +177,8 @@
                   :saved "Сохранено"
                   :error "Проверь время — формат ЧЧ:ММ"}
   :ai {:correlations-title "Возможные связи"
+       :finding-correlation "Возможная связь"
+       :dismiss "Скрыть"
        :label-proposal "AI-предложение:"
        :label-why "Почему:"
        :label-choose "Выбрать ярлык"

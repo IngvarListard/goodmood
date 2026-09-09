@@ -44,31 +44,58 @@
     [:span {:class (str "badge badge-sm " cls)}
      (i18n/t (keyword "ai" (str "confidence-" confidence)))]))
 
+(defn- confidence-dots
+  "Дот-шкала уверенности находки вместо текстового бейджа (design D4):
+   3 точки — high 3/primary, medium 2/warning, low 1/muted. nil — не
+   рендерится (фикс «{Missing key …}» у confidence-badge)."
+  [confidence]
+  (when confidence
+    (let [filled (case confidence "high" 3 "medium" 2 "low" 1 0)
+          dot (case confidence
+                "high" "bg-primary"
+                "medium" "bg-warning"
+                "bg-base-content/30")]
+      [:span {:class "flex items-center gap-1 shrink-0"
+              :title (i18n/t (keyword "ai" (str "confidence-" confidence)))}
+       (for [i (range 3)]
+         [:span {:key i
+                 :class (str "w-1.5 h-1.5 rounded-full "
+                             (if (< i filled)
+                               dot
+                               "bg-base-content/15"))}])])))
+
 (defn- feedback-buttons
-  "Кнопки фидбека находки: «не релевантно» и «уже знал» (для корреляций)
-   или «пожаловаться» (для советов). csrf-token, finding-id, kind —
-   'correlation'|'advice'."
+  "Иконочные кнопки фидбека находки (design D4): «не релевантно»
+   (x-circle) и «уже знал» (check-circle) для корреляций, «пожаловаться»
+   (flag) для советов. aria-label/title несут текст, контракт тот же.
+   csrf-token, finding-id, kind — 'correlation'|'advice'."
   [csrf-token finding-id kind]
   (let [buttons
         (if (= kind "advice")
-          [{:feedback "report" :label (i18n/t :ai/report-advice)}]
-          [{:feedback "irrelevant" :label (i18n/t :ai/not-relevant)}
-           {:feedback "already-known" :label (i18n/t :ai/already-known)}])]
-    [:div {:class "flex flex-wrap gap-2 mt-2"}
-     (for [{:keys [feedback label]} buttons]
+          [{:feedback "report" :label (i18n/t :ai/report-advice) :icon "flag"}]
+          [{:feedback "irrelevant" :label (i18n/t :ai/not-relevant) :icon "x-circle"}
+           {:feedback "already-known" :label (i18n/t :ai/already-known)
+            :icon "check-circle"}])]
+    [:div {:class "flex items-center gap-1 mt-2"}
+     (for [{:keys [feedback label icon]} buttons]
        ^{:key feedback}
        [:button {:type "button"
-                 :class "btn btn-ghost btn-xs h-9 min-h-9 px-2"
+                 :class "btn btn-ghost btn-sm h-9 min-h-9 w-9 px-0"
+                 :title label
+                 :aria-label label
                  :hx-post (str "/ai/findings/" finding-id "/feedback")
                  :hx-ext "json-enc"
                  :hx-target "closest section"
                  :hx-swap "outerHTML"
                  :hx-vals (str "{\"__anti-forgery-token\": \"" csrf-token
                                "\", \"feedback\": \"" feedback "\"}")}
-        label])]))
+        (icons/svg icon {:class "w-4 h-4"})])]))
 
 (defn ai-correlations
   "Секция «AI-корреляции» для /feed. findings — вектор находок type=correlation.
+   Карточка — единая анатомия AI-находок (design D4): шапка в одну строку
+   (иконка, тип, дот-шкала уверенности, крестик-скрытие), тело — название и
+   описание с ограничением строк, действия — иконочный фидбек.
    Если находок нет — фрагмент пуст (ничего не рендерится)."
   [csrf-token findings]
   (when (seq findings)
@@ -78,12 +105,23 @@
      [:div {:class "space-y-2"}
       (for [f findings]
         ^{:key (:id f)}
-        [:div {:class "rounded-[18px] border border-primary/50 bg-base-200 shadow-sm p-3"}
-         [:div {:class "flex items-center gap-2 mb-1"}
-          [:span {:class "text-sm font-medium"} (get-in f [:content :title])]
-          (confidence-badge (:confidence f))]
-         (when-let [desc (get-in f [:content :description])]
-           [:p {:class "text-sm opacity-80"} desc])
+        [:div {:class "relative rounded-[18px] bg-base-200 shadow-sm p-3"
+               :data-testid (str "ai-correlation-" (:id f))}
+         [:div {:class "flex items-center gap-2"}
+          (icons/svg "link" {:class "text-primary w-4 h-4"})
+          [:span {:class "text-[13px] text-base-content/60 flex-1 min-w-0"}
+           (i18n/t :ai/finding-correlation)]
+          (confidence-dots (:confidence f))
+          [:button {:type "button"
+                    :class "btn btn-ghost btn-sm h-9 min-h-9 w-9 px-0"
+                    :title (i18n/t :ai/dismiss)
+                    :aria-label (i18n/t :ai/dismiss)
+                    :_ "on click remove closest [data-testid^='ai-correlation']"}
+           (icons/svg "x-mark" {:class "w-4 h-4"})]]
+         [:div {:class "mt-1"}
+          [:p {:class "text-sm font-medium"} (get-in f [:content :title])]
+          (when-let [desc (get-in f [:content :description])]
+            [:p {:class "text-sm opacity-80 line-clamp-3"} desc])]
          (feedback-buttons csrf-token (:id f) "correlation")])]]))
 
 (defn- label-action-button
@@ -131,7 +169,7 @@
            [:span {:class "text-xs text-base-content/60"} (i18n/t :ai/label-proposal)])
          [:span {:class "text-sm"} display]
          (when (and (not applied-label) (first findings))
-           (confidence-badge (:confidence (first findings))))]
+           (confidence-dots (:confidence (first findings))))]
         [:ul {:tabindex 0
               :class "dropdown-content menu bg-base-100 rounded-box z-50 w-56 p-2 shadow"}
          (when (and (not applied-label) (:explanation content))
@@ -147,33 +185,34 @@
          (label-action-button csrf-token nil (i18n/t :ai/label-reject))]]))))
 
 (defn ai-advice
-  "AI-совет из своих инсайтов в виде карточки совета (по макету
-   design/lentagem.html): обычная поверхность карточек ленты, левая
-   акцентная полоса, лампочка в кружке, крестик dismiss, бейдж уверенности
-   в заголовке. findings — массив type=advice. Если пусто — фрагмент не
-   рендерится. Показывает ссылки на исходные инсайты."
+  "AI-совет из своих инсайтов — единая анатомия AI-находок (design D4):
+   шапка в одну строку (лампочка, тип, дот-шкала уверенности, крестик),
+   тело — совет с ограничением строк и раскрытием «почему», действия —
+   ссылки на исходные инсайты и иконочный фидбек.
+   findings — массив type=advice. Если пусто — фрагмент не рендерится."
   [csrf-token findings]
   (when-let [f (first findings)]
     (let [{:keys [message explanation]} (:content f)]
       [:section {:class "mb-4" :id "ai-advice" :data-testid "ai-advice"}
-       [:div {:class "relative rounded-2xl border border-base-300 bg-base-200 shadow-sm p-4"}
+       [:div {:class "relative rounded-[18px] bg-base-200 shadow-sm p-3"}
         [:div {:class "gm-accent-stripe"}]
-        [:div {:class "flex items-start gap-3"}
-         [:div {:class "w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0"}
-          (icons/svg "light-bulb" {:class "text-primary"})]
-         [:div {:class "flex-1 min-w-0"}
-
-          [:div {:class "flex items-start justify-between gap-2 min-w-0"}
-           [:span {:class "text-[13px] text-base-content/60"}
-            (i18n/t :ai/advice-title)]
-           [:span {:class "flex items-center gap-1"}
-            (confidence-badge (:confidence f))
-            [:button {:type "button"
-                      :class "btn btn-ghost btn-sm h-9 min-h-9 px-2"
-                      :aria-label (i18n/t :toast/dismiss)
-                      :_ "on click remove #ai-advice"}
-             (icons/svg "x-mark")]]]]]
-        [:p {:class "text-sm opacity-90 mt-3 leading-relaxed"} message]
+        [:div {:class "flex items-center gap-2"}
+         (icons/svg "light-bulb" {:class "text-primary w-4 h-4"})
+         [:span {:class "text-[13px] text-base-content/60 flex-1 min-w-0"}
+          (i18n/t :ai/advice-title)]
+         (confidence-dots (:confidence f))
+         [:button {:type "button"
+                   :class "btn btn-ghost btn-sm h-9 min-h-9 w-9 px-0"
+                   :title (i18n/t :toast/dismiss)
+                   :aria-label (i18n/t :toast/dismiss)
+                   :_ "on click remove #ai-advice"}
+          (icons/svg "x-mark" {:class "w-4 h-4"})]]
+        [:div {:id "ai-advice-text" :class "mt-1 line-clamp-3"}
+         [:p {:class "text-sm leading-relaxed"} message]]
+        [:button {:type "button"
+                  :class "btn btn-ghost btn-xs text-primary px-1"
+                  :_ "on click remove .line-clamp-3 from #ai-advice-text then add .hidden to me"}
+         (i18n/t :toast/hint-more)]
         (when explanation
           [:div {:class "flex items-center gap-2 mt-1"}
            [:button {:type "button"
@@ -256,24 +295,37 @@
 ;; ──────────────────────────────────────────────────────────────
 
 (defn ai-novel-advice
-  "Novel AI-совет (общая DBT/CBT техника). findings — вектор type=advice с
-   content.novel=true. Помечен «не из твоих записей» (data-testid
-   ai-novel-advice). Пусто — фрагмент не рендерится."
+  "Novel AI-совет (общая DBT/CBT техника) — единая анатомия AI-находок
+   (design D4): шапка (sparkles, тип, дот-шкала, крестик), note «не из твоих
+   записей», тело — совет, действия — иконочный фидбек. findings — вектор
+   type=advice с content.novel=true. Пусто — фрагмент не рендерится."
   [csrf-token findings]
   (when-let [f (first findings)]
     (let [{:keys [message explanation]} (:content f)]
       [:section {:class "mb-4" :id "ai-novel-advice" :data-testid "ai-novel-advice"}
-       [:div {:class "card bg-base-200 border-accent/20 shadow-sm"}
-        [:div {:class "card-body p-3"}
-         [:div {:class "flex items-center gap-2 mb-1"}
-          [:span {:class "text-xs uppercase tracking-wide text-base-content/60"}
-           (i18n/t :ai/novel-title)]
-          (confidence-badge (:confidence f))]
-         [:span {:class "badge badge-accent badge-outline badge-xs"}
-          (i18n/t :ai/novel-note)]
-         [:p {:class "text-sm opacity-90 mt-2"} message]
+       [:div {:class "relative rounded-[18px] bg-base-200 shadow-sm p-3"}
+        [:div {:class "flex items-center gap-2"}
+         (icons/svg "sparkles" {:class "text-accent w-4 h-4"})
+         [:span {:class "text-[13px] text-base-content/60 flex-1 min-w-0"}
+          (i18n/t :ai/novel-title)]
+         (confidence-dots (:confidence f))
+         [:button {:type "button"
+                   :class "btn btn-ghost btn-sm h-9 min-h-9 w-9 px-0"
+                   :title (i18n/t :toast/dismiss)
+                   :aria-label (i18n/t :toast/dismiss)
+                   :_ "on click remove #ai-novel-advice"}
+          (icons/svg "x-mark" {:class "w-4 h-4"})]]
+        [:span {:class "badge badge-accent badge-outline badge-xs mt-1"}
+         (i18n/t :ai/novel-note)]
+        [:div {:id "ai-novel-advice-text" :class "mt-1 line-clamp-3"}
+         [:p {:class "text-sm leading-relaxed"} message]
          (when explanation
-           [:p {:class "text-sm text-base-content/70 italic mt-1"} explanation])
+           [:p {:class "text-sm text-base-content/70 italic"} explanation])]
+        [:button {:type "button"
+                  :class "btn btn-ghost btn-xs text-primary px-1"
+                  :_ (str "on click remove .line-clamp-3 from #ai-novel-advice-text"
+                          " then add .hidden to me")}
+         (i18n/t :toast/hint-more)
          (feedback-buttons csrf-token (:id f) "advice")]]])))
 
 ;; ──────────────────────────────────────────────────────────────
@@ -367,7 +419,9 @@
                    set userBub's textContent to #chat-input.value
                    put userBub at the end of userWrap
                    put userWrap at the end of #chat-response
-                   put \"<div class='chat chat-start' data-testid='chat-typing'><div class='chat-bubble bg-base-300 flex items-center gap-1.5 py-3'><span class='w-1.5 h-1.5 rounded-full bg-primary animate-bounce'></span><span class='w-1.5 h-1.5 rounded-full bg-primary animate-bounce [animation-delay:0.2s]'></span><span class='w-1.5 h-1.5 rounded-full bg-primary animate-bounce [animation-delay:0.4s]'></span></div></div>\" at the end of #chat-response
+                   make a <div/> called typing
+                   set typing's innerHTML to \"<div class='chat chat-start' id='chat-typing' data-testid='chat-typing'><div class='chat-bubble bg-base-300 flex items-center gap-1.5 py-3'><span class='w-1.5 h-1.5 rounded-full bg-primary animate-bounce'></span><span class='w-1.5 h-1.5 rounded-full bg-primary animate-bounce [animation-delay:0.2s]'></span><span class='w-1.5 h-1.5 rounded-full bg-primary animate-bounce [animation-delay:0.4s]'></span></div></div>\"
+                   put typing at the end of #chat-response
                    set #chat-input.value to \"\"
                    set #chat-response's scrollTop to #chat-response's scrollHeight
                  end

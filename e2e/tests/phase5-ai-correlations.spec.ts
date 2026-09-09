@@ -70,7 +70,7 @@ test.describe('AI assistant (Phase 5) @ai: correlations, labels, advice from own
       return await corrSection.isVisible();
     }, { timeout: 60000, intervals: [5000] }).toBe(true);
     // Находка — реальная корреляция с уровнем уверенности (не пустая секция).
-    await expect(corrSection.getByText(/уверенность|confidence/i).first()).toBeVisible();
+    await expect(corrSection.getByTitle(/уверенность|confidence/i).first()).toBeVisible();
     // Кнопки «не релевантно» / «уже знал».
     await expect(corrSection.getByRole('button', { name: /не релевантно|not relevant/i }).first()).toBeVisible();
     await expect(corrSection.getByRole('button', { name: /уже знал|already knew/i }).first()).toBeVisible();
@@ -82,7 +82,7 @@ test.describe('AI assistant (Phase 5) @ai: correlations, labels, advice from own
     const corr = page.locator('[data-testid="ai-correlations"]');
     if (await corr.isVisible()) {
       // Уверенность: high/medium/low (ru/eng).
-      await expect(corr.getByText(/уверенность|confidence/i).first()).toBeVisible();
+      await expect(corr.getByTitle(/уверенность|confidence/i).first()).toBeVisible();
     }
   });
 
@@ -92,7 +92,7 @@ test.describe('AI assistant (Phase 5) @ai: correlations, labels, advice from own
     const corr = page.locator('[data-testid="ai-correlations"]');
     if (await corr.isVisible()) {
       // Клик по «не релевантно» на конкретной карточке скрывает ЕЁ (не всю секцию).
-      const firstCard = corr.locator('.card').first();
+      const firstCard = corr.locator('[data-testid^="ai-correlation-"]').first();
       await firstCard.getByRole('button', { name: /не релевантно|not relevant/i }).click();
       await expect(firstCard).toBeHidden({ timeout: 5000 });
     }

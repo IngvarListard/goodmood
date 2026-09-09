@@ -177,6 +177,8 @@
                   :saved "Saved"
                   :error "Check the time — use HH:MM format"}
   :ai {:correlations-title "Possible connections"
+       :finding-correlation "Possible link"
+       :dismiss "Dismiss"
        :label-proposal "AI proposal:"
        :label-why "Why:"
        :label-choose "Choose a label"

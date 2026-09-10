@@ -58,10 +58,10 @@ test('chat: message appears instantly with typing indicator, then reply', async 
   // Индикатор «печатает» виден, инпут очищен
   await expect(modal.getByTestId('chat-typing')).toBeVisible();
   await expect(input).toHaveValue('');
-  await page.unroute('**/ai/chat');
 
   // Серверный ответ (canned при GOODMOOD_FAKE_AI, реальный с ключом):
   // фрагмент свапается, bubble ассистента появляется, индикатор исчезает
   await expect(assistantBubbles).toHaveCount(before + 1, { timeout: 20000 });
   await expect(modal.getByTestId('chat-typing')).toHaveCount(0);
+  await page.unroute('**/ai/chat');
 });

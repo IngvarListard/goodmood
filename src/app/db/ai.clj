@@ -101,24 +101,30 @@
    0/1 (novel и episode-warning default 0). Возвращает сохранённую строку."
   [ds user-id {:keys [master-enabled correlations-enabled labels-enabled
                       advice-enabled allow-novel-advice episode-warning-enabled]}]
-  (letfn [(flag [v] (if (or (nil? v) (= v "false") (= v "") (= v "0") (= v 0) (false? v)) 0 1))]
+  (let [flag (fn [v] (if (or (nil? v) (= v "false") (= v "") (= v "0") (= v 0) (false? v)) 0 1))
+        master (flag master-enabled)
+        correlations (flag correlations-enabled)
+        labels (flag labels-enabled)
+        advice (flag advice-enabled)
+        novel (flag allow-novel-advice)
+        episode (flag episode-warning-enabled)]
     (jdbc/execute-one!
      ds
      (sql/format {:insert-into :user_ai_settings
                   :values [{:user_id user-id
-                            :master_enabled (flag master-enabled)
-                            :correlations_enabled (flag correlations-enabled)
-                            :labels_enabled (flag labels-enabled)
-                            :advice_enabled (flag advice-enabled)
-                            :allow_novel_advice (flag allow-novel-advice)
-                            :episode_warning_enabled (flag episode-warning-enabled)}]
+                            :master_enabled master
+                            :correlations_enabled correlations
+                            :labels_enabled labels
+                            :advice_enabled advice
+                            :allow_novel_advice novel
+                            :episode_warning_enabled episode}]
                   :on-conflict :user-id
-                  :do-update-set {:master_enabled (flag master-enabled)
-                                  :correlations_enabled (flag correlations-enabled)
-                                  :labels_enabled (flag labels-enabled)
-                                  :advice_enabled (flag advice-enabled)
-                                  :allow_novel_advice (flag allow-novel-advice)
-                                  :episode_warning_enabled (flag episode-warning-enabled)}
+                  :do-update-set {:master_enabled master
+                                  :correlations_enabled correlations
+                                  :labels_enabled labels
+                                  :advice_enabled advice
+                                  :allow_novel_advice novel
+                                  :episode_warning_enabled episode}
                   :returning [:*]})
      default-opts)))
 

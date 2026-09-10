@@ -1,16 +1,16 @@
 ## 1. Мёртвый код (самый безопасный батч)
 
-- [ ] 1.1 Удалить src/app/views/placeholder.clj, test/app/views/placeholder_test.clj
-- [ ] 1.2 Удалить db.users/get-user-by-id, app.domains.ai/all-findings, app.i18n/t-for, арность 2 у chat-history (domains/ai.clj)
-- [ ] 1.3 Удалить 4 no-op ig/halt-key! метода (system.clj) и startup-warning в core.clj (-main)
-- [ ] 1.4 Удалить e2e/tests/__screenshot.spec.ts и e2e/tests/__dbg-locale.spec.ts
-- [ ] 1.5 Прогнать clj -M:test и cd e2e && npx playwright test; коммит
+- [x] 1.1 Удалить src/app/views/placeholder.clj, test/app/views/placeholder_test.clj
+- [x] 1.2 Удалить db.users/get-user-by-id, app.domains.ai/all-findings, app.i18n/t-for, арность 2 у chat-history (domains/ai.clj)
+- [x] 1.3 Удалить 4 no-op ig/halt-key! метода (system.clj) и startup-warning в core.clj (-main)
+- [x] 1.4 Удалить e2e/tests/__screenshot.spec.ts и e2e/tests/__dbg-locale.spec.ts
+- [x] 1.5 Прогнать clj -M:test и cd e2e && npx playwright test; коммит
 
 ## 2. JSON-унификация на cheshire
 
-- [ ] 2.1 src/app/db/ai.clj: clojure.data.json → cheshire (parse-string :key-fn keyword / generate-string)
-- [ ] 2.2 6 route-тестов: jsonista → cheshire
-- [ ] 2.3 Прогнать clj -M:test; коммит
+- [x] 2.1 src/app/db/ai.clj: clojure.data.json → cheshire (parse-string :key-fn keyword / generate-string)
+- [x] 2.2 6 route-тестов: jsonista → cheshire
+- [x] 2.3 Прогнать clj -M:test; коммит
 
 ## 3. Дедуп html-response
 

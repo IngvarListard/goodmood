@@ -407,64 +407,63 @@
   (or (db/get-ai-settings ds user-id)
       (merge default-ai-settings {:user-id user-id})))
 
+(def ^:private setting-keys
+  "Пары [snake-ключ в params (form/JSON), kebab-ключ в db-map]."
+  [[:master_enabled :master-enabled]
+   [:correlations_enabled :correlations-enabled]
+   [:labels_enabled :labels-enabled]
+   [:advice_enabled :advice-enabled]
+   [:allow_novel_advice :allow-novel-advice]
+   [:episode_warning_enabled :episode-warning-enabled]])
+
 (defn update-settings
   "Обновить настройки AI пользователя. Принимает мапу с ключами
    master_enabled / correlations_enabled / labels_enabled / advice_enabled /
    allow_novel_advice / episode_warning_enabled (из form/JSON). Возвращает
    обновлённые настройки."
   [ds user-id params]
-  (let [master (coerce-enabled (or (get params :master_enabled)
-                                   (get params "master_enabled")))
-        correlations (coerce-enabled (or (get params :correlations_enabled)
-                                         (get params "correlations_enabled")))
-        labels (coerce-enabled (or (get params :labels_enabled)
-                                   (get params "labels_enabled")))
-        advice (coerce-enabled (or (get params :advice_enabled)
-                                   (get params "advice_enabled")))
-        novel (coerce-enabled (or (get params :allow_novel_advice)
-                                  (get params "allow_novel_advice")))
-        episode-warning (coerce-enabled (or (get params :episode_warning_enabled)
-                                            (get params "episode_warning_enabled")))]
-    (db/set-ai-settings! ds user-id
-                         {:master-enabled master
-                          :correlations-enabled correlations
-                          :labels-enabled labels
-                          :advice-enabled advice
-                          :allow-novel-advice novel
-                          :episode-warning-enabled episode-warning})))
+  (let [settings (reduce (fn [acc [param-key db-key]]
+                           (assoc acc db-key
+                                  (coerce-enabled (or (get params param-key)
+                                                      (get params (name param-key))))))
+                         {}
+                         setting-keys)]
+    (db/set-ai-settings! ds user-id settings)))
 
 (defn ai-enabled?
   "Включён ли master-toggle AI для пользователя."
   [ds user-id]
   (not= 0 (:master-enabled (get-settings ds user-id))))
 
+(defn- flag-enabled?
+  "Флаг настройки включён и master-toggle включён."
+  [ds user-id k]
+  (and (ai-enabled? ds user-id)
+       (not= 0 (k (get-settings ds user-id)))))
+
 (defn correlations-enabled?
   "Включены ли корреляции (и master-toggle)."
   [ds user-id]
-  (and (ai-enabled? ds user-id)
-       (not= 0 (:correlations-enabled (get-settings ds user-id)))))
+  (flag-enabled? ds user-id :correlations-enabled))
 
 (defn labels-enabled?
   "Включены ли AI-ярлыки (и master-toggle)."
   [ds user-id]
-  (and (ai-enabled? ds user-id)
-       (not= 0 (:labels-enabled (get-settings ds user-id)))))
+  (flag-enabled? ds user-id :labels-enabled))
 
 (defn advice-enabled?
   "Включены ли AI-советы (и master-toggle)."
   [ds user-id]
-  (and (ai-enabled? ds user-id)
-       (not= 0 (:advice-enabled (get-settings ds user-id)))))
-
-;; ──────────────────────────────────────────────────────────────
-;; Novel advice (Decision 6.2) — opt-in, помечены «не из твоих записей»
-;; ──────────────────────────────────────────────────────────────
+  (flag-enabled? ds user-id :advice-enabled))
 
 (defn novel-advice-enabled?
   "Включены ли novel-советы (master-toggle + allow_novel_advice)."
   [ds user-id]
-  (and (ai-enabled? ds user-id)
-       (not= 0 (:allow-novel-advice (get-settings ds user-id)))))
+  (flag-enabled? ds user-id :allow-novel-advice))
+
+;; ──────────────────────────────────────────────────────────────
+;; Novel advice (Decision 6.2) — opt-in, помечены «не из твоих записей»
+;; ──────────────────────────────────────────────────────────────
 
 (defn- novel-prompt
   "Промпт novel-совета: общая техника DBT/CBT, не на основе записей."
@@ -606,8 +605,7 @@
 (defn episode-warning-enabled?
   "Включены ли предупреждения об эпизодах (master-toggle + opt-in)."
   [ds user-id]
-  (and (ai-enabled? ds user-id)
-       (not= 0 (:episode-warning-enabled (get-settings ds user-id)))))
+  (flag-enabled? ds user-id :episode-warning-enabled))
 
 (defn set-episode-warning-enabled!
   "Включить/выключить предупреждения об эпизодах (opt-in). Сохраняет текущие

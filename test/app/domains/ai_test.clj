@@ -4,39 +4,16 @@
             [app.db.insights :as db.insights]
             [app.domains.ai :as domains]
             [clojure.string :as str]
+            [app.test-helpers :as test-helpers]
             [clojure.test :refer [deftest is testing use-fixtures]]
-            [migratus.core :as migratus]
             [next.jdbc :as jdbc]
             [next.jdbc.result-set :as rs]))
 
 (def user-id 1)
 
-(defonce ^:private tmp-path "/tmp/goodmood-ai-domain-test.db")
-
 (def ^:private ds-atom (atom nil))
 
-(defn- migrate! [ds]
-  (migratus/migrate {:store :database
-                     :migration-dir "migrations"
-                     :db {:datasource ds}}))
-
-(defn with-test-db
-  [f]
-  (let [file (java.io.File. tmp-path)]
-    (.delete file)
-    (let [ds (jdbc/get-datasource {:dbtype "sqlite" :dbname tmp-path})
-          conn (jdbc/get-connection ds)]
-      (.setAutoCommit conn true)
-      (try
-        (migrate! ds)
-        (reset! ds-atom ds)
-        (f)
-        (finally
-          (reset! ds-atom nil)
-          (.close conn)
-          (.delete file))))))
-
-(use-fixtures :each with-test-db)
+(use-fixtures :each #(test-helpers/with-test-db :ai-domain ds-atom %))
 
 (defn- add-entries
   "Создать n записей с чередующимися сном/энергией/тревогой, чтобы AI мог найти корреляцию."

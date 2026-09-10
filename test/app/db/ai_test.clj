@@ -1,39 +1,16 @@
 (ns app.db.ai-test
   (:require [app.db.ai :as db]
             [clojure.java.io :as io]
+            [app.test-helpers :as test-helpers]
             [clojure.test :refer [deftest is testing use-fixtures]]
-            [migratus.core :as migratus]
             [next.jdbc :as jdbc]
             [next.jdbc.result-set :as rs]))
-
-(defonce ^:private tmp-path "/tmp/goodmood-ai-db-test.db")
 
 (def ^:private ds-atom (atom nil))
 
 (def user-id 1)
 
-(defn- migrate! [ds]
-  (migratus/migrate {:store :database
-                     :migration-dir "migrations"
-                     :db {:datasource ds}}))
-
-(defn with-test-db
-  [f]
-  (let [file (java.io.File. tmp-path)]
-    (.delete file)
-    (let [ds (jdbc/get-datasource {:dbtype "sqlite" :dbname tmp-path})
-          conn (jdbc/get-connection ds)]
-      (.setAutoCommit conn true)
-      (try
-        (migrate! ds)
-        (reset! ds-atom ds)
-        (f)
-        (finally
-          (reset! ds-atom nil)
-          (.close conn)
-          (.delete file))))))
-
-(use-fixtures :each with-test-db)
+(use-fixtures :each #(test-helpers/with-test-db :ai-db ds-atom %))
 
 (defn- columns-of [table]
   (->> (jdbc/execute! @ds-atom [(str "PRAGMA table_info(" table ")")]

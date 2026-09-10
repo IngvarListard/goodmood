@@ -1,37 +1,13 @@
 (ns app.domains.notification-settings-test
   (:require [app.domains.notification-settings :as dom]
-            [clojure.test :refer [deftest is testing use-fixtures]]
-            [migratus.core :as migratus]
-            [next.jdbc :as jdbc]))
-
-(defonce ^:private tmp-path "/tmp/goodmood-notif-domain-test.db")
+            [app.test-helpers :as test-helpers]
+            [clojure.test :refer [deftest is testing use-fixtures]]))
 
 (def ^:private ds-atom (atom nil))
 
 (def user-id 1)
 
-(defn- migrate! [ds]
-  (migratus/migrate {:store :database
-                     :migration-dir "migrations"
-                     :db {:datasource ds}}))
-
-(defn with-test-db
-  [f]
-  (let [file (java.io.File. tmp-path)]
-    (.delete file)
-    (let [ds (jdbc/get-datasource {:dbtype "sqlite" :dbname tmp-path})
-          conn (jdbc/get-connection ds)]
-      (.setAutoCommit conn true)
-      (try
-        (migrate! ds)
-        (reset! ds-atom ds)
-        (f)
-        (finally
-          (reset! ds-atom nil)
-          (.close conn)
-          (.delete file))))))
-
-(use-fixtures :each with-test-db)
+(use-fixtures :each #(test-helpers/with-test-db :notif-domain ds-atom %))
 
 (deftest test-get-settings-defaults
   (testing "get-settings возвращает 3 дефолтных слота"

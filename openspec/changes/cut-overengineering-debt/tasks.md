@@ -14,9 +14,9 @@
 
 ## 3. Дедуп html-response
 
-- [ ] 3.1 Создать ns src/app/routes/html.clj с html-response [status body]
-- [ ] 3.2 Удалить 10 приватных копий из routes/{app,auth,entries,medications,feed,check_in,insights,notifications,ai,state_periods}.clj, перейти на общий хелпер
-- [ ] 3.3 Прогнать clj -M:test; коммит
+- [x] 3.1 Создать ns src/app/routes/html.clj с html-response [status body]
+- [x] 3.2 Удалить 10 приватных копий из routes/{app,auth,entries,medications,feed,check_in,insights,notifications,ai,state_periods}.clj, перейти на общий хелпер
+- [x] 3.3 Прогнать clj -M:test; коммит
 
 ## 4. AI-настройки: схлопнуть бойлерплейт
 

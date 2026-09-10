@@ -6,13 +6,7 @@
             [app.domains.state-periods :as periods]
             [app.views.feed :as views]
             [clojure.string :as str]
-            [hiccup2.core :refer [html]]))
-
-(defn- html-response
-  [status body]
-  {:status status
-   :headers {"Content-Type" "text/html; charset=utf-8"}
-   :body (str (html body))})
+            [app.routes.html :refer [html-response]]))
 
 (defn- ai-findings
   "Собрать AI-находки для /feed с учётом per-function opt-out.

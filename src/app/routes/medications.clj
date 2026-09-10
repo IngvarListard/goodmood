@@ -2,13 +2,7 @@
   (:require [app.domains.medications :as medications]
             [app.routes.entries :refer [htmx-request?]]
             [app.views.medications :as views]
-            [hiccup2.core :refer [html]]))
-
-(defn- html-response
-  [status body]
-  {:status status
-   :headers {"Content-Type" "text/html; charset=utf-8"}
-   :body (str (html body))})
+            [app.routes.html :refer [html-response]]))
 
 (defn- user-id
   [request]

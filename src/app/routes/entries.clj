@@ -4,18 +4,12 @@
             [app.views.entries :as views]
             [app.views.notifications :as notif-views]
             [ring.util.response :as response]
-            [hiccup2.core :refer [html]]))
+            [app.routes.html :refer [html-response]]))
 
 (defn htmx-request?
   "Вернуть true если запрос является HTMX AJAX-запросом."
   [request]
   (= "true" (get-in request [:headers "hx-request"])))
-
-(defn- html-response
-  [status body]
-  {:status status
-   :headers {"Content-Type" "text/html; charset=utf-8"}
-   :body (str (html body))})
 
 (defn create-entry
   "Создать новую запись настроения для аутентифицированного пользователя.

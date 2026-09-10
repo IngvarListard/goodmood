@@ -2,13 +2,7 @@
   (:require [app.domains.state-periods :as periods]
             [app.views.state-periods :as views]
             [clojure.string :as str]
-            [hiccup2.core :refer [html]]))
-
-(defn- html-response
-  [status body]
-  {:status status
-   :headers {"Content-Type" "text/html; charset=utf-8"}
-   :body (str (html body))})
+            [app.routes.html :refer [html-response]]))
 
 (defn- user-id
   [request]

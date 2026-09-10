@@ -4,14 +4,8 @@
             [app.i18n :as i18n]
             [app.views.insights :as views]
             [clojure.string :as str]
-            [hiccup2.core :refer [html]]
+            [app.routes.html :refer [html-response]]
             [ring.util.response :as response]))
-
-(defn- html-response
-  [status body]
-  {:status status
-   :headers {"Content-Type" "text/html; charset=utf-8"}
-   :body (str (html body))})
 
 (defn- user-id
   [request]

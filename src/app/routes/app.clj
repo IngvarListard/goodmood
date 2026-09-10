@@ -14,6 +14,7 @@
             [malli.error :as me]
             [malli.transform :as mt]
             [ring.util.response :as response]
+            [app.routes.html :refer [html-response]]
             [hiccup2.core :refer [html]]
             [app.middleware :as mw]
             [app.domains.entries :as domains]
@@ -100,12 +101,6 @@
                 {:status 400
                  :body {:errors errors}}))
             (throw e)))))))
-
-(defn- html-response
-  [status body]
-  {:status status
-   :headers {"Content-Type" "text/html; charset=utf-8"}
-   :body (str (html body))})
 
 (defn- settings-page-handler
   [ds request]

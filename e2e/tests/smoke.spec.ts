@@ -39,9 +39,9 @@ test.describe('smoke', () => {
     await expect(page.getByRole('heading', { name: /Медикаменты|Medications/ })).toBeVisible();
   });
 
-  test('legacy GET /entries redirects to /feed', async ({ page }) => {
+  test('GET /entries shows the full entries list', async ({ page }) => {
     await login(page);
     await page.goto('/entries');
-    await expect(page).toHaveURL(/\/feed/);
+    await expect(page.getByRole('heading', { name: /Записи|Entries/ })).toBeVisible();
   });
 });

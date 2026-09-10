@@ -33,11 +33,15 @@
 
 ## 6. Мелкий shrink
 
-- [ ] 6.1 icons.clj: убрать valid-variants и явную проверку (load-svg уже бросает), инлайнить icon-size
-- [ ] 6.2 middleware.clj: инлайнить local-redirect, удалить ветку match-by-name :login в require-auth
-- [ ] 6.3 deps.edn :test алиас → (require 'clojure.test)(clojure.test/run-all-tests)
-- [ ] 6.4 Прогнать clj -M:test; коммит
+- [x] 6.1 icons.clj: убрать valid-variants и явную проверку (load-svg уже бросает), инлайнить icon-size
+- [x] 6.2 middleware.clj: инлайнить local-redirect, удалить ветку match-by-name :login в require-auth
+- [x] 6.3 deps.edn :test алиас → (require 'clojure.test)(clojure.test/run-all-tests)
+- [x] 6.4 Прогнать clj -M:test; коммит
 
 ## 7. Опционально (понижающий приоритет, решение при имплементации)
 
-- [ ] 7.1 Если общий util-ns появился в процессе — перенести validate-with (malli) из 3 доменов; иначе пропустить и закрыть задачу как skipped
+- [x] 7.1 Если общий util-ns появился в процессе — перенести validate-with (malli) из 3 доменов; иначе пропустить и закрыть задачу как skipped
+
+  Skipped: в процессе появились только app.routes.html и app.test-helpers —
+  не доменные утилиты, класть validate-with туда нельзя (D5: слои не
+  смешиваем). Отдельный app.domains.util ради 12 строк не создаём.

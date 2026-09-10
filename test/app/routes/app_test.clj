@@ -161,18 +161,13 @@
       (is (= 400 (:status response)))
       (is (some? (get-in (response-body response) [:errors :anxiety]))))))
 
-(deftest get-entries-redirects-to-feed
-  (testing "GET /entries returns 308 redirect to /feed (list replaced by feed)"
+(deftest get-entries-html-shows-list-page
+  (testing "GET /entries with text/html accept renders the list page"
     (post-entries {:mood_score 7 :energy 8 :anxiety 2 :sleep_hours 8.0})
-    (let [response (get-entries)]
-      (is (= 308 (:status response)))
-      (is (= "/feed" (get-in response [:headers "Location"]))))))
-
-(deftest get-entries-html-redirects-to-feed
-  (testing "GET /entries with text/html accept redirects to /feed"
     (let [response (get-entries-html)]
-      (is (= 308 (:status response)))
-      (is (= "/feed" (get-in response [:headers "Location"]))))))
+      (is (= 200 (:status response)))
+      (is (str/includes? (body-text response) "entries-page"))
+      (is (str/includes? (body-text response) "Настроение 7/10")))))
 
 (deftest feed-page-returns-html
   (testing "GET /feed returns 200 HTML page"

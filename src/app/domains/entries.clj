@@ -1,6 +1,7 @@
 (ns app.domains.entries
   (:require [app.db.entries :as db]
-            [app.db.state-periods :as periods]))
+            [app.db.state-periods :as periods]
+            [clojure.string :as str]))
 
 (def create-entry-schema
   [:map
@@ -65,3 +66,61 @@
 (defn list-entries
   [ds user-id]
   (db/get-entries ds user-id))
+
+(def update-entry-schema
+  "Схема обновления записи: все поля опциональны — SET строится только из
+   переданных ключей. Пустая строка уже превращена в nil коерцией (очистка);
+   nil для NOT NULL колонок (date, mood_score) отбрасывается в update-entry."
+  [:map
+   [:date {:optional true} [:maybe [:re #"^\d{4}-\d{2}-\d{2}$"]]]
+   [:mood_score {:optional true} [:maybe [:int {:min 0 :max 10}]]]
+   [:energy {:optional true} [:maybe [:int {:min 0 :max 10}]]]
+   [:anxiety {:optional true} [:maybe [:int {:min 0 :max 10}]]]
+   [:focus {:optional true} [:maybe [:int {:min 0 :max 10}]]]
+   [:sleep_hours {:optional true} [:maybe :double]]
+   [:note {:optional true} [:maybe :string]]
+   [:activity {:optional true} [:maybe :string]]
+   [:state_label {:optional true} [:maybe :string]]])
+
+(def ^:private updatable-fields
+  "Редактируемые поля записи (snake, синхронно с update-entry-schema)."
+  [:date :mood_score :energy :anxiety :focus :sleep_hours :note :activity
+   :state_label])
+
+(def ^:private not-null-fields
+  "Редактируемые поля с NOT NULL в БД: nil (очистка) не допускается —
+   ключ отбрасывается из SET."
+  [:date :mood_score])
+
+(defn- blank->nil
+  "Пустая строка = очистить поле (nil), иначе значение как есть."
+  [v]
+  (if (and (string? v) (str/blank? v)) nil v))
+
+(defn update-entry
+  "Обновить запись владельца: SET только переданных ключей (частичное
+   обновление, чужая запись → nil). Пустая строка → nil (очистка); ключи
+   NOT NULL с nil отбрасываются из SET."
+  [ds user-id id params]
+  (let [fields (-> params
+                   (select-keys updatable-fields)
+                   (update-vals blank->nil))
+        fields (apply dissoc fields
+                      (for [k not-null-fields
+                            :when (nil? (get fields k))]
+                        k))]
+    (when (seq fields)
+      (db/update-entry! ds user-id id fields))))
+
+(defn get-entry
+  "Одна запись владельца по id или nil (чужая запись / несуществующий id)."
+  [ds user-id id]
+  (when id
+    (db/get-entry ds user-id id)))
+
+(defn delete-entry
+  "Удалить запись владельца (жёстко). Возвращает удалённую запись или nil
+   (чужая запись / несуществующий id); периоды и AI-находки не трогаются."
+  [ds user-id id]
+  (when id
+    (db/delete-entry! ds user-id id)))

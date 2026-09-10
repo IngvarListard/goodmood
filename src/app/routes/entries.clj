@@ -1,10 +1,7 @@
 (ns app.routes.entries
   (:require [app.domains.entries :as entries]
-            [app.domains.insights :as insights]
-            [app.views.entries :as views]
-            [app.views.notifications :as notif-views]
-            [ring.util.response :as response]
-            [app.routes.html :refer [html-response]]))
+            [app.routes.html :refer [html-response]]
+            [app.views.entries :as views]))
 
 (defn htmx-request?
   "Вернуть true если запрос является HTMX AJAX-запросом."
@@ -33,7 +30,62 @@
       {:status 201
        :body entry})))
 
-(defn get-entries
-  "Старый GET /entries → постоянный редирект на /feed (лента заменила список)."
-  [_ _]
-  (response/redirect "/feed" 308))
+(defn- user-id
+  [request]
+  (get-in request [:identity :id]))
+
+(defn- path-id
+  [request]
+  (some-> (get-in request [:path-params :id])
+          parse-long))
+
+(defn list-page
+  "GET /entries — полный список записей пользователя (вместо прежнего
+   редиректа на /feed)."
+  [ds request]
+  (html-response 200 (views/list-page request (entries/list-entries ds (user-id request)))))
+
+(defn show-page
+  "GET /entries/:id — карточка записи с edit/delete. Чужая запись → 404."
+  [ds request]
+  (let [entry (entries/get-entry ds (user-id request) (path-id request))]
+    (if entry
+      (html-response 200 (views/show-page request entry))
+      {:status 404
+       :headers {"Content-Type" "text/plain; charset=utf-8"}
+       :body "Not found"})))
+
+(defn update-entry
+  "POST /entries/:id — обновить переданные поля записи. HTMX → OOB-свап
+   обновлённой карточки (ошибки валидации прилетают в #entry-form-error);
+   API → JSON обновлённой записи. Чужая запись → 404."
+  [ds request]
+  (let [id (path-id request)
+        params (get-in request [:parameters :body])
+        updated (entries/update-entry ds (user-id request) id params)]
+    (cond
+      (nil? updated)
+      {:status 404 :body "Not found"}
+
+      (htmx-request? request)
+      (html-response 200 (views/card-oob (:anti-forgery-token request) updated))
+
+      :else
+      {:status 200 :body updated})))
+
+(defn delete-entry
+  "DELETE /entries/:id — жёсткое удаление. HTMX → редирект на /entries;
+   чужая запись → 404 (запись не удалена)."
+  [ds request]
+  (let [deleted (entries/delete-entry ds (user-id request) (path-id request))]
+    (cond
+      (nil? deleted)
+      {:status 404 :body "Not found"}
+
+      (htmx-request? request)
+      {:status 200
+       :headers {"HX-Redirect" "/entries"}
+       :body ""}
+
+      :else
+      {:status 204 :body ""})))

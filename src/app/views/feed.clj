@@ -379,8 +379,12 @@
                  (notifications/pending-insight-fragment)
                  (when episode
                    (ai/episode-warning-fragment csrf episode))
-                 [:div {:class "mb-6"}
-                  [:h1 {:class "text-2xl font-bold"} (i18n/t :feed/title)]]
+                  [:div {:class "mb-6 flex items-center justify-between"}
+                   [:h1 {:class "text-2xl font-bold"} (i18n/t :feed/title)]
+                   [:a {:href "/entries"
+                        :class "btn btn-ghost btn-sm h-11 min-h-11 px-3"
+                        :aria-label (i18n/t :entries/list)}
+                    (icons/svg "list-bullet" {:class "text-base-content/70"})]]
 
                  (when period
                    (period-banner period))

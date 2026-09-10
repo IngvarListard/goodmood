@@ -20,16 +20,16 @@
 
 ## 4. AI-настройки: схлопнуть бойлерплейт
 
-- [ ] 4.1 db/ai.clj set-ai-settings!: вычислить 6 флагов в let, ссылаться в values и do-update-set
-- [ ] 4.2 domains/ai.clj update-settings: reduce по списку ключей вместо 6 ручных coerce-enabled
-- [ ] 4.3 domains/ai.clj: тела *-enabled? предикатов через приватный flag-enabled?, публичные имена и докстринги сохранить
-- [ ] 4.4 Прогнать clj -M:test; коммит
+- [x] 4.1 db/ai.clj set-ai-settings!: вычислить 6 флагов в let, ссылаться в values и do-update-set
+- [x] 4.2 domains/ai.clj update-settings: reduce по списку ключей вместо 6 ручных coerce-enabled
+- [x] 4.3 domains/ai.clj: тела *-enabled? предикатов через приватный flag-enabled?, публичные имена и докстринги сохранить
+- [x] 4.4 Прогнать clj -M:test; коммит
 
 ## 5. Дедуп тестовой fixture
 
-- [ ] 5.1 Создать test/app/test_helpers.clj: with-test-db (ns-уникальный путь БД), ds, migrate! через app.db.migrate
-- [ ] 5.2 Заменить 17 копий fixture на test-helpers/with-test-db в test/app/{db,domains,routes}/*_test.clj
-- [ ] 5.3 Прогнать clj -M:test (включая параллельную изоляцию файлов); коммит
+- [x] 5.1 Создать test/app/test_helpers.clj: with-test-db (ns-уникальный путь БД), ds, migrate! через app.db.migrate
+- [x] 5.2 Заменить 17 копий fixture на test-helpers/with-test-db в test/app/{db,domains,routes}/*_test.clj
+- [x] 5.3 Прогнать clj -M:test (включая параллельную изоляцию файлов); коммит
 
 ## 6. Мелкий shrink
 

@@ -145,7 +145,13 @@
     ["/entries"
      {:post {:parameters {:body domains/create-entry-schema}
              :handler (partial entries/create-entry ds)}
-      :get {:handler (partial entries/get-entries ds)}}]
+      :get {:handler (partial entries/list-page ds)}}]
+    ["/entries/:id"
+     {:get {:handler (partial entries/show-page ds)}
+      :post {:parameters {:body domains/update-entry-schema}
+             :handler (partial entries/update-entry ds)}
+      :delete {:handler (partial entries/delete-entry ds)}
+      :conflicting true}]
     ["/medications"
      {:post {:parameters {:body med-domains/medication-schema}
              :handler (partial med-routes/create-medication ds)}

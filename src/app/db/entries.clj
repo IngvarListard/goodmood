@@ -39,6 +39,16 @@
                 :order-by [[:date :desc] [:created_at :desc]]})
    default-opts))
 
+(defn get-entry
+  "Одна запись пользователя по id (выборка ограничена user-id), или nil."
+  [ds user-id id]
+  (jdbc/execute-one!
+   ds
+   (sql/format {:select [:*]
+                :from [:entries]
+                :where [:and [:= :id id] [:= :user_id user-id]]})
+   default-opts))
+
 (defn set-state-label!
   "Установить ручной state_label записи (ограничено user-id).
    Возвращает обновлённую запись или nil (чужая запись / несуществующий id)."
@@ -47,6 +57,30 @@
    ds
    (sql/format {:update :entries
                 :set {:state_label label}
+                :where [:and [:= :id id] [:= :user_id user-id]]
+                :returning [:*]})
+   default-opts))
+
+(defn update-entry!
+  "Обновить переданные поля записи (SET только ключей из fields, snake-case),
+   WHERE id AND user_id. Возвращает обновлённую запись или nil (чужая/нет id)."
+  [ds user-id id fields]
+  (when (seq fields)
+    (jdbc/execute-one!
+     ds
+     (sql/format {:update :entries
+                  :set fields
+                  :where [:and [:= :id id] [:= :user_id user-id]]
+                  :returning [:*]})
+     default-opts)))
+
+(defn delete-entry!
+  "Удалить запись (hard delete) по id+user_id.
+   Возвращает удалённую строку или nil (чужая запись / несуществующий id)."
+  [ds user-id id]
+  (jdbc/execute-one!
+   ds
+   (sql/format {:delete-from :entries
                 :where [:and [:= :id id] [:= :user_id user-id]]
                 :returning [:*]})
    default-opts))

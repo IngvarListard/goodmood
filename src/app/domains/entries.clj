@@ -99,12 +99,16 @@
 
 (defn update-entry
   "Обновить запись владельца: SET только переданных ключей (частичное
-   обновление, чужая запись → nil). Пустая строка → nil (очистка); ключи
-   NOT NULL с nil отбрасываются из SET."
+   обновление, чужая запись → nil). Пустая строка → nil (очистка); activity
+   NOT NULL — очистка даёт пустую строку (как в create); ключи NOT NULL
+   с nil отбрасываются из SET."
   [ds user-id id params]
   (let [fields (-> params
                    (select-keys updatable-fields)
                    (update-vals blank->nil))
+        fields (if (contains? fields :activity)
+                 (update fields :activity #(or % ""))
+                 fields)
         fields (apply dissoc fields
                       (for [k not-null-fields
                             :when (nil? (get fields k))]

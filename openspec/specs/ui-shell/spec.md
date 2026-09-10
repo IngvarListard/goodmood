@@ -37,16 +37,25 @@ The desktop navigation SHALL be positioned as a fixed sidebar on the left, full 
 - **THEN** the desktop navigation wrapper has classes `hidden md:flex fixed left-0 top-0 h-screen w-64`
 
 ### Requirement: Mobile navigation is a fixed bottom bar
-The mobile navigation SHALL be positioned as a fixed bar at the bottom, full width, stacked above other content (z-index), with a safe-area bottom inset on devices with home indicators.
+
+The mobile navigation SHALL be positioned as a fixed bar at the bottom, full width, stacked above other content (z-index), with a safe-area bottom inset on devices with home indicators. Высота бара SHALL быть фиксированной (один ряд пунктов) и выставляться CSS-переменной `--gm-nav-h` на обёртке панели; переменная SHALL быть доступна для позиционирования плавающих элементов (FAB) и расчёта отступов контента. Панель SHALL иметь z-index 50.
 
 #### Scenario: Mobile bottom bar positioning
+
 - **WHEN** layout is rendered
 - **THEN** the mobile navigation wrapper has classes `md:hidden fixed bottom-0 inset-x-0`
 - **AND** the wrapper has a z-index class (`z-50`)
 
 #### Scenario: Safe-area inset on the bottom bar
+
 - **WHEN** layout is rendered
 - **THEN** the mobile navigation includes `pb-[env(safe-area-inset-bottom)]` on its bar or wrapper
+
+#### Scenario: Высота панели доступна как переменная
+
+- **WHEN** layout is rendered
+- **THEN** обёртка мобильной панели (или `:root`) содержит `--gm-nav-h` с высотой панели в пикселях (один ряд пунктов, без safe-area)
+- **AND** высота панели не превышает ~96px при viewport 412px
 
 ### Requirement: Main content compensates for navigation
 The `<main>` element SHALL have left padding to compensate for the desktop sidebar. The bottom compensation for the mobile bottom bar SHALL live in the content shell (see "Layout provides a single content column shell"), not on `<main>`; `<main>` SHALL NOT carry a bottom padding class.
@@ -171,23 +180,33 @@ The page SHALL mark as active the navigation item whose `:route` equals the requ
 - **THEN** the item with the matching `:route` is the only active item on the page
 
 ### Requirement: Layout provides a single content column shell
-The `layout` function SHALL wrap page content in a shell `div` inside `<main>` that centers content, constrains its width to `max-w-lg`, applies horizontal padding `px-4` and top padding `pt-4`, and applies a bottom padding that covers the mobile bottom bar height plus the device safe-area inset (`pb-[calc(env(safe-area-inset-bottom)+5rem)]`).
+
+The `layout` function SHALL wrap page content in a shell `div` inside `<main>` that centers content, constrains its width to `max-w-lg`, applies horizontal padding `px-4` and top padding `pt-4`, and applies a bottom padding that covers the mobile bottom bar height plus the device safe-area inset, вычисленный от переменной `--gm-nav-h` (`pb-[calc(env(safe-area-inset-bottom)+var(--gm-nav-h)+0.75rem)]`). Хардкод высоты панели в пикселях (например `5rem`) в паддинге контента не допускается.
 
 Page views SHALL NOT render their own top-level width or outer padding wrappers (`max-w-*`, `mx-auto`, `p-4`, `pb-24`); the shell is the single source of page width. The auth page (`app.views.auth`) is exempt.
 
 #### Scenario: Shell classes present
+
 - **WHEN** `(layout {:title "T"} nav-items content)` is called
 - **THEN** the result contains a wrapper with classes `mx-auto`, `w-full`, `max-w-lg`, `px-4`, `pt-4`
-- **AND** the wrapper has class `pb-[calc(env(safe-area-inset-bottom)+5rem)]`
+- **AND** the wrapper has class `pb-[calc(env(safe-area-inset-bottom)+var(--gm-nav-h)+0.75rem)]`
 
 #### Scenario: Pages render without own width wrappers
+
 - **WHEN** any page (`/feed`, `/check-in`, `/medications`, `/settings`, `/insights`, `/insights/new`, `/insights/:id`) is rendered
 - **THEN** its content does not contain top-level `max-w-md` or `max-w-2xl` wrappers
 - **AND** its content does not contain `pb-24` outer padding
 
 #### Scenario: Content is wider-constrained on desktop too
+
 - **WHEN** the medications page is opened on a viewport wider than 512px (desktop with sidebar)
 - **THEN** the content column is centered within the area right of the sidebar and does not exceed 512px
+
+#### Scenario: Нижний контент не перекрывается панелью при двух рядах не бывает
+
+- **GIVEN** viewport 412×915 и RU-локаль
+- **WHEN** пользователь открывает `/check-in` и прокручивает до кнопки «Сохранить запись»
+- **THEN** кнопка полностью видима выше мобильной панели навигации после полной прокрутки
 
 ### Requirement: Viewport meta enables safe-area insets
 The `head` SHALL include a viewport meta tag with `viewport-fit=cover` so that `env(safe-area-inset-*)` values are non-zero on devices with notches/home indicators, making the bottom bar safe-area padding and shell bottom padding effective.
@@ -235,3 +254,45 @@ The layout `<head>` SHALL include Chart.js 4.x (pinned version, UMD build via CD
 - **GIVEN** a page without `canvas[data-gm-radar]` (e.g. /settings)
 - **WHEN** radar.js executes
 - **THEN** no canvas is drawn and no error is thrown
+
+### Requirement: Output escaping
+All user-supplied and AI-generated content SHALL be rendered as text nodes through `hiccup2.core/html`, which escapes it. `hiccup2.core/raw` SHALL be used only for static content loaded from the classpath (inline SVG icons, constant inline scripts) and SHALL NOT be used with any value that originates from the database, a request or an AI response. The deprecated `hiccup.core` namespace, which does not escape, SHALL NOT be used.
+
+#### Scenario: User content is escaped
+- **GIVEN** an entry whose note is `<img src=x onerror=alert(1)>`
+- **WHEN** the feed renders that entry
+- **THEN** the HTML contains the escaped text `&lt;img src=x onerror=alert(1)&gt;`
+- **AND** the DOM contains no live `img` element
+
+#### Scenario: AI content is escaped
+- **GIVEN** an AI response whose message is `<script>alert(1)</script>`
+- **WHEN** the AI section is rendered
+- **THEN** the HTML contains the escaped text
+- **AND** no `script` element with that content exists
+
+#### Scenario: raw is used only for static assets
+- **WHEN** `hiccup2.core/raw` is used in `src/`
+- **THEN** its argument is a classpath resource or a constant string
+- **AND** contains no value from the database, the request or an AI response
+
+#### Scenario: Attribute contexts are escaped
+- **WHEN** a user-supplied string is rendered into `href`, `hx-vals` or another attribute
+- **THEN** the value is escaped or JSON-encoded
+- **AND** a `javascript:` URL supplied by the user does not execute
+
+### Requirement: Подписи и порядок пунктов мобильной навигации
+
+Мобильная навигация SHALL содержать ровно 5 пунктов в порядке: Лента, Инсайты, Запись, Мед, Настройки. Подписи SHALL быть локализованы: RU — «Лента», «Инсайты», «Запись», «Мед», «Настройки»; EN — «Feed», «Insights», «Entry», «Meds», «Settings». Подписи SHALL быть достаточно короткими, чтобы все 5 пунктов помещались в один ряд на viewport шириной 412px без переноса строк.
+
+#### Scenario: Порядок и подписи при рендере
+
+- **WHEN** мобильная навигация отрендерена в RU-локали
+- **THEN** пункты идут в порядке: Лента, Инсайты, Запись, Мед, Настройки
+- **AND** пункт «Запись» ведёт на `/check-in`
+
+#### Scenario: Один ряд на Nothing Phone 1
+
+- **GIVEN** viewport 412×915 и RU-локаль
+- **WHEN** страница открыта на мобильной ширине
+- **THEN** все подписи пунктов отрисованы без переноса на вторую строку
+- **AND** высота панели навигации соответствует одному ряду пунктов

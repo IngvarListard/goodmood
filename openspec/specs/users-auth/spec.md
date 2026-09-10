@@ -97,13 +97,27 @@ attacks using ring-anti-forgery.
 - **AND** ring-anti-forgery accepts the request
 
 ### Requirement: Session expiration
-The session cookie SHALL expire after 1 hour of inactivity.
+The session SHALL expire 1 hour after it was issued; successful activity SHALL refresh it by re-issuing the cookie with a new issuance timestamp. Expiration SHALL be enforced by the server, not by the browser alone: the session payload SHALL carry an issuance timestamp, and the server SHALL reject a session whose timestamp is older than 1 hour even if the cookie itself is still presented. Logging out SHALL invalidate the session: after `POST /logout` the previously issued session cookie SHALL NOT authenticate any request.
 
 #### Scenario: Session expires after inactivity
 - **WHEN** a session cookie is set with a 1-hour max-age
 - **AND** 1 hour has elapsed
 - **THEN** the browser no longer sends the cookie
 - **AND** the next request returns 302 /login
+
+#### Scenario: Expired session is rejected by the server
+- **GIVEN** a session issued more than 1 hour ago
+- **WHEN** a request is made with that cookie
+- **THEN** the server rejects the session
+- **AND** the response is HTTP 302 to `/login`
+- **AND** no protected content is returned
+
+#### Scenario: Logout invalidates the session
+- **GIVEN** an authenticated session
+- **WHEN** `POST /logout` is sent with a valid CSRF token
+- **THEN** the server responds with HTTP 302 to `/login`
+- **AND** `gm-session` is cleared with `Max-Age=0`
+- **AND** a subsequent request that replays the previous cookie value is redirected to `/login`
 
 ### Requirement: Admin seed at startup
 The system SHALL create an admin user on startup whenever no users exist (first start or after the database was deleted/recreated), using fixed credentials from environment variables for email and password.
@@ -191,4 +205,61 @@ The system SHALL attach authenticated user identity to the request map under `:i
 #### Scenario: No identity for unauthenticated request
 - **WHEN** a request is made without a session
 - **THEN** `(:identity request)` is nil
+
+### Requirement: Session cookie attributes
+The system SHALL set the session cookie `gm-session` with `HttpOnly`, `Secure` and `SameSite=Lax` attributes, `Path=/` and `Max-Age` matching the session lifetime. `Secure` SHALL be set in all environments: the application is served over HTTPS everywhere except local development, and browsers treat `http://localhost` as a secure context, so local login keeps working. The session cookie SHALL NOT be readable from JavaScript.
+
+#### Scenario: Set-Cookie carries all flags
+- **WHEN** `POST /login` succeeds
+- **THEN** the `Set-Cookie` header for `gm-session` contains `HttpOnly`
+- **AND** contains `Secure`
+- **AND** contains `SameSite=Lax`
+- **AND** contains `Path=/`
+
+#### Scenario: Cookie is not readable from JavaScript
+- **WHEN** an authenticated page is loaded
+- **THEN** `document.cookie` does not contain `gm-session`
+
+#### Scenario: Browser does not send cookie over plain HTTP
+- **GIVEN** an authenticated session on a non-localhost host
+- **WHEN** the client makes a request to the `http://` version of the host
+- **THEN** the browser does not send `gm-session` (guaranteed by the `Secure` attribute)
+
+### Requirement: Login throttling
+The system SHALL limit authentication attempts: after 5 consecutive failed attempts for the same account or from the same client within a 15-minute window, further attempts SHALL be rejected or delayed for a cooldown period. Every failed attempt SHALL be recorded in the application log with the email and the client identifier; the password SHALL NOT be logged. A throttled attempt SHALL be indistinguishable from an ordinary failed login.
+
+#### Scenario: Brute force is stopped
+- **WHEN** more than 5 failed `POST /login` requests are made for the same email
+- **THEN** subsequent attempts return the same response as an ordinary failed login
+- **AND** attempts beyond the limit are rejected or delayed
+
+#### Scenario: Failed attempt is logged
+- **WHEN** `POST /login` fails
+- **THEN** the log contains the email and the client identifier
+- **AND** the log does not contain the password
+
+#### Scenario: Throttled response does not reveal the reason
+- **WHEN** a throttled `POST /login` is made with a correct password
+- **THEN** the response is HTTP 200 with the same error message as a wrong password
+- **AND** no session cookie is set
+
+### Requirement: Redirect target validation
+The system SHALL redirect to a request-supplied target (the `next` parameter or the preserved URI) only when that target is a local path. A target SHALL be accepted only if it starts with a single `/` followed by a character that is neither `/` nor `\`; anything else SHALL fall back to the default destination. Both `//host` and `/\host` SHALL be rejected, because browsers normalize `\` to `/` and treat `//host` as a protocol-relative URL.
+
+#### Scenario: Protocol-relative target rejected
+- **WHEN** `GET /login?next=//evil.com` is requested and the user logs in
+- **THEN** the server responds with HTTP 302 to `/`
+- **AND** the `Location` header does not point to `evil.com`
+
+#### Scenario: Backslash form rejected
+- **WHEN** `GET /login?next=/\evil.com` is requested and the user logs in
+- **THEN** the server responds with HTTP 302 to `/`
+
+#### Scenario: Absolute URL rejected
+- **WHEN** `GET /login?next=https://evil.com` is requested and the user logs in
+- **THEN** the server responds with HTTP 302 to `/`
+
+#### Scenario: Local path accepted
+- **WHEN** `POST /login?next=/dashboard` is sent with valid credentials
+- **THEN** the server responds with HTTP 302 redirect to `/dashboard`
 

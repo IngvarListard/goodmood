@@ -118,3 +118,21 @@ The system SHALL NOT use notification frequency or content to pressure the user 
 - **WHEN** наступает вечерний слот
 - **THEN** уведомление содержит инсайт/совет, а не «вы не заполнили дневник» `[ref: A2-q3]`
 
+### Requirement: Notification settings data scoping
+Per-user notification settings (time slots, summary flags, "already shown" markers) SHALL be stored and read with the `user_id` taken from the authenticated identity. No operation SHALL read or modify the settings of another user, and a missing row SHALL fall back to that user's own defaults.
+
+#### Scenario: Settings belong to one user
+- **WHEN** an authenticated user saves notification slot settings
+- **THEN** the row is stored with the authenticated user's id
+- **AND** is returned only to that user
+
+#### Scenario: Another user's settings are not visible
+- **GIVEN** user A has custom slot settings
+- **WHEN** user B requests `GET /settings`
+- **THEN** user B sees their own settings or the defaults
+- **AND** does not see any value saved by user A
+
+#### Scenario: Shown markers are per user
+- **WHEN** a notification slot is marked as shown for user A
+- **THEN** the marker does not affect the banner state for user B
+

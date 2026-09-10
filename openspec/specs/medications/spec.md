@@ -135,3 +135,33 @@ The system SHALL consider medication context when matching insights to the curre
 - **WHEN** система работает в Фазе 1
 - **THEN** medication-aware insight matching не выполняется
 - **AND** данные готовы для Фазы 5 `[ref: A3-q5]`
+
+### Requirement: Medication data scoping
+Every medication, intake log entry and dose change SHALL belong to exactly one user via `user_id`. All read, update and delete operations SHALL filter by the `user_id` taken from the authenticated identity, never from request parameters. An operation on another user's medication id SHALL NOT return or modify that medication.
+
+#### Scenario: Listing returns only own medications
+- **GIVEN** user A (id=1) and user B (id=2) each have medications
+- **WHEN** user A requests `GET /medications`
+- **THEN** the response contains only medications with `user_id = 1`
+
+#### Scenario: Another user's medication is not readable by id
+- **GIVEN** medication with id 1 belongs to user 1
+- **WHEN** user 2 requests `GET /medications/1/edit`
+- **THEN** the medication is not returned
+- **AND** no data of user 1 is disclosed
+
+#### Scenario: Another user's medication is not modified
+- **GIVEN** medication with id 1 belongs to user 1
+- **WHEN** user 2 sends `POST /medications/1/deactivate`
+- **THEN** the medication keeps its previous state
+- **AND** no rows are updated
+
+#### Scenario: user_id comes from the session
+- **WHEN** an authenticated user creates a medication
+- **THEN** the record is saved with the authenticated user's id
+- **AND** a `user_id` supplied in the request body is ignored
+
+#### Scenario: Intake logs are scoped
+- **GIVEN** medication with id 1 belongs to user 1
+- **WHEN** user 2 requests the intake log for medication 1
+- **THEN** no log entries are returned

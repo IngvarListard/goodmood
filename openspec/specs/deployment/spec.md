@@ -58,3 +58,36 @@ The system SHALL be recoverable to the previous version by re-running the previo
 - **WHEN** database files are restored from a pre-deploy backup while the container is stopped
 - **THEN** the application starts against the restored data
 
+### Requirement: Backup confidentiality
+Database backups created by the deploy pipeline contain special-category data (mood entries, notes, medications, episode history) and SHALL be readable only by the application owner. The backup directory SHALL have mode `0700`, and backup files SHALL NOT be readable by group or others. Encryption of backups at rest SHALL be applied when the backup leaves the NAS; the existing retention of the 10 most recent backups SHALL be preserved.
+
+#### Scenario: Backup directory is private
+- **WHEN** `bin/deploy.sh` creates a backup
+- **THEN** the backup directory has mode `0700`
+- **AND** the copied `goodmood.db*` files are not readable by group or others
+
+#### Scenario: Backup retention preserved
+- **WHEN** a deploy creates a backup and more than 10 backups exist
+- **THEN** the oldest backups are deleted so that exactly 10 remain
+
+#### Scenario: Backups stay out of the image and the repository
+- **WHEN** the Docker image is built
+- **THEN** no backup file is present in the image
+- **AND** no backup file is tracked by git
+
+### Requirement: Container network binding
+The application container SHALL NOT be directly reachable from the local network. The published port SHALL be bound to `127.0.0.1`, so that all traffic from outside arrives through the TLS-terminating reverse proxy and no plaintext HTTP endpoint is exposed to the LAN.
+
+#### Scenario: Published port is bound to loopback
+- **WHEN** the compose stack is started
+- **THEN** the published port listens on `127.0.0.1` only
+- **AND** is not bound to `0.0.0.0`
+
+#### Scenario: Direct request to the LAN address is refused
+- **WHEN** a request is made to `http://<nas-lan-ip>:<published-port>`
+- **THEN** the connection is refused
+
+#### Scenario: Application reachable through the reverse proxy
+- **WHEN** a request is made through the reverse proxy
+- **THEN** the application responds with HTTP 200
+

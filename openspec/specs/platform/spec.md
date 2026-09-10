@@ -137,3 +137,54 @@ The resource `migrations` directory SHALL contain a single baseline migration `0
 - **WHEN** migratus down/rollback is invoked for `001-init`
 - **THEN** all baseline tables are dropped
 
+### Requirement: HTTP security headers
+The system SHALL send security headers on HTML responses: `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY` (or an equivalent CSP `frame-ancestors 'none'`), `Referrer-Policy: no-referrer`, a `Content-Security-Policy` that restricts script and style sources to self and the explicitly used CDNs, and `Strict-Transport-Security` on HTTPS traffic. Every authenticated response SHALL carry `Cache-Control: no-store, private`, because it contains special-category data. The response SHALL NOT disclose the exact HTTP server version.
+
+#### Scenario: Headers present on an authenticated page
+- **WHEN** `GET /feed` is requested with a valid session
+- **THEN** the response contains `X-Content-Type-Options: nosniff`
+- **AND** contains `X-Frame-Options: DENY` or a CSP with `frame-ancestors 'none'`
+- **AND** contains `Referrer-Policy`
+- **AND** contains `Content-Security-Policy`
+- **AND** contains `Strict-Transport-Security`
+
+#### Scenario: Authenticated page is not stored by caches
+- **WHEN** `GET /feed` is requested with a valid session
+- **THEN** the response contains `Cache-Control: no-store`
+
+#### Scenario: Server version is not disclosed
+- **WHEN** any request is made
+- **THEN** the `Server` header does not contain the Jetty version
+
+### Requirement: Dependency currency
+Runtime dependencies with published advisories affecting the exposed attack surface SHALL be updated to a version that fixes them; the HTTP server in particular SHALL NOT run a version carrying an open advisory of CVSS 7.0 or higher. The version chosen SHALL be the latest available at the moment of the update.
+
+#### Scenario: No open high-severity advisory on the HTTP server
+- **WHEN** the application starts
+- **THEN** the Jetty version resolved from `deps.edn` has no open advisory with CVSS ≥ 7.0
+
+#### Scenario: JSON library has no open high-severity advisory
+- **WHEN** the application starts
+- **THEN** the `jackson-databind` version resolved transitively has no open advisory with CVSS ≥ 7.0
+
+### Requirement: Log hygiene
+Application logs SHALL NOT contain special-category data or credentials. Query strings SHALL NOT be written to the request log verbatim; passwords, tokens and API keys SHALL NOT be logged; stack traces SHALL be written only when debug logging is explicitly enabled. Log output SHALL be rotated with an explicit size and file-count limit.
+
+#### Scenario: Query string is not logged
+- **WHEN** `GET /insights/new?state_label=anxiety&entry_id=5` is requested
+- **THEN** the log line contains the path `/insights/new`
+- **AND** does not contain `state_label=anxiety`
+
+#### Scenario: Password is not logged
+- **WHEN** `POST /login` is submitted
+- **THEN** the log does not contain the submitted password
+
+#### Scenario: Stack trace is suppressed by default
+- **WHEN** an unhandled exception occurs during a request
+- **THEN** the log contains the exception type and message
+- **AND** does not contain a stack trace unless debug logging is enabled
+
+#### Scenario: Log rotation is configured
+- **WHEN** the compose stack is started
+- **THEN** a log driver is configured with a maximum file size and a maximum number of files
+

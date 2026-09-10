@@ -656,3 +656,22 @@ The system SHALL allow entries to be optionally linked to an active state period
 - **WHEN** у пользователя активен период «подъём» и он создаёт новую запись
 - **THEN** запись сохраняется с `state_period_id` = id активного периода
 - **AND** фильтр «показать записи из периода X» доступен в ретроспективе
+
+### Requirement: State period data scoping
+Every state period SHALL belong to exactly one user via `user_id`. Starting, reading, listing and closing a period SHALL filter by the `user_id` taken from the authenticated identity. Closing or reading another user's period by id SHALL NOT succeed and SHALL NOT disclose that period.
+
+#### Scenario: Listing returns only own periods
+- **GIVEN** user A (id=1) and user B (id=2) each have periods
+- **WHEN** user A requests the list of periods
+- **THEN** only periods with `user_id = 1` are returned
+
+#### Scenario: Another user's period is not closed
+- **GIVEN** an open period with id 2 belongs to user 1
+- **WHEN** user 2 sends `POST /periods/2/end`
+- **THEN** the period remains open
+- **AND** no rows are updated
+
+#### Scenario: user_id comes from the session
+- **WHEN** an authenticated user starts a period
+- **THEN** the period is saved with the authenticated user's id
+- **AND** a `user_id` supplied in the request is ignored

@@ -15,7 +15,5 @@
         elapsed (- (System/currentTimeMillis) start-time)]
     (alter-var-root #'system (constantly sys))
     (println (str "Server started in " elapsed "ms"))
-    (when (> elapsed 3000)
-      (println "WARNING: Server startup exceeded 3 seconds!"))
     (.addShutdownHook (Runtime/getRuntime)
                       (Thread. #(system/stop-system sys)))))

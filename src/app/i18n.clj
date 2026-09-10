@@ -102,7 +102,3 @@
   ([key x & more]
    (apply translate *locale* key x more)))
 
-(defn t-for
-  "Перевести ключ для явно указанной локали."
-  [locale key & args]
-  (apply translate locale key args))

@@ -18,17 +18,9 @@
       (jdbc/execute! conn ["PRAGMA busy_timeout=5000"]))
     ds))
 
-(defmethod ig/halt-key! :db/connection
-  [_ _]
-  nil)
-
 (defmethod ig/init-key :db/migrate
   [_ {:keys [connection]}]
   (db.migrate/migrate! connection)
-  nil)
-
-(defmethod ig/halt-key! :db/migrate
-  [_ _]
   nil)
 
 (defmethod ig/init-key :db/seed
@@ -36,18 +28,10 @@
   (db.seed/seed! connection)
   nil)
 
-(defmethod ig/halt-key! :db/seed
-  [_ _]
-  nil)
-
 (defmethod ig/init-key :app.core/secret
   [_ _]
   (or (env/env "GOODMOOD_SESSION_SECRET")
       (throw (ex-info "GOODMOOD_SESSION_SECRET env variable is required" {}))))
-
-(defmethod ig/halt-key! :app.core/secret
-  [_ _]
-  nil)
 
 (defmethod ig/init-key :app.core/server
   [_ {:keys [port connection session-secret]}]

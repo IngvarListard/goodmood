@@ -381,13 +381,6 @@
   (and (seq (insights/get-insights ds user-id))
        (empty? (list-advice ds user-id))))
 
-(defn all-findings
-  "Все не скрытые находки пользователя (для /feed)."
-  [ds user-id]
-  (concat (list-correlations ds user-id)
-          (list-labels ds user-id)
-          (list-advice ds user-id)))
-
 ;; ──────────────────────────────────────────────────────────────
 ;; Настройки AI
 ;; ──────────────────────────────────────────────────────────────
@@ -545,11 +538,9 @@
   (db/save-message! ds {:user-id user-id :role role :content content}))
 
 (defn chat-history
-  "Последние n сообщений чата пользователя в хронологическом порядке."
-  ([ds user-id]
-   (db/get-messages ds user-id 8))
-  ([ds user-id n]
-   (db/get-messages ds user-id n)))
+  "Последние 8 сообщений чата пользователя в хронологическом порядке."
+  [ds user-id]
+  (db/get-messages ds user-id 8))
 
 (defn- rose-line
   "Компактная строка розы ветров последней записи."

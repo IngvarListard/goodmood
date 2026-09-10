@@ -27,15 +27,6 @@
                 :where [:= :email email]})
    default-opts))
 
-(defn get-user-by-id
-  [ds id]
-  (jdbc/execute-one!
-   ds
-   (sql/format {:select [:*]
-                :from [:users]
-                :where [:= :id id]})
-   default-opts))
-
 (defn count-users
   [ds]
   (:count

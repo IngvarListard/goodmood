@@ -3,7 +3,7 @@
             [app.routes.app :as routes]
             [clojure.string :as str]
             [clojure.test :refer [deftest is testing use-fixtures]]
-            [jsonista.core :as json]
+            [cheshire.core :as json]
             [migratus.core :as migratus]
             [next.jdbc :as jdbc]
             [ring.middleware.session.cookie :as session.cookie]
@@ -91,7 +91,7 @@
                   "accept" "text/html"
                   "hx-request" "true"}
         :body (java.io.ByteArrayInputStream.
-               (.getBytes (json/write-value-as-string
+               (.getBytes (json/generate-string
                            (assoc payload "__anti-forgery-token" csrf-token))))}
        (authed (or identity test-identity)))))
 

@@ -1,6 +1,6 @@
 (ns app.db.insights-test
   (:require [app.db.insights :as db]
-            [clojure.data.json :as json]
+            [cheshire.core :as json]
             [clojure.test :refer [deftest is testing use-fixtures]]
             [migratus.core :as migratus]
             [next.jdbc :as jdbc]
@@ -77,7 +77,7 @@
                {:builder-fn rs/as-unqualified-maps})]
       (is (string? (:advice_to_self raw)))
       (is (= ["дыхание 4-7-8" "текст близкому"]
-             (json/read-str (:advice_to_self raw)))))))
+             (json/parse-string (:advice_to_self raw)))))))
 
 (deftest test-get-insight
   (testing "достать инсайт по id для своего user"

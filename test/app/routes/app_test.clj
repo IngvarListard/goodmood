@@ -5,7 +5,7 @@
             [app.routes.app :as routes]
             [clojure.string :as str]
             [clojure.test :refer [deftest is testing use-fixtures]]
-            [jsonista.core :as json]
+            [cheshire.core :as json]
             [migratus.core :as migratus]
             [next.jdbc :as jdbc]
             [ring.middleware.session.cookie :as session.cookie]
@@ -69,7 +69,7 @@
 
 (defn- json-body
   [body]
-  (json/write-value-as-string body))
+  (json/generate-string body))
 
 (defn- post-entries
   [payload]
@@ -143,12 +143,9 @@
   (or (get-in response [:headers "content-type"])
       (get-in response [:headers "Content-Type"])))
 
-(def ^:private keyword-keys
-  (json/object-mapper {:decode-key-fn true}))
-
 (defn- response-body
   [response]
-  (json/read-value (:body response) keyword-keys))
+  (json/parse-string (slurp (:body response)) true))
 
 (deftest create-entry-returns-201
   (testing "POST /entries with valid body returns 201 and created entry"

@@ -3,7 +3,7 @@
             [app.routes.app :as routes]
             [clojure.string :as str]
             [clojure.test :refer [deftest is testing use-fixtures]]
-            [jsonista.core :as json]
+            [cheshire.core :as json]
             [migratus.core :as migratus]
             [next.jdbc :as jdbc]
             [next.jdbc.result-set :as rs]
@@ -80,7 +80,7 @@
                   "accept" "text/html"
                   "hx-request" "true"}
         :body (java.io.ByteArrayInputStream.
-               (.getBytes (json/write-value-as-string
+               (.getBytes (json/generate-string
                            (assoc payload "__anti-forgery-token" csrf-token))))}
        (authed (or identity test-identity)))))
 
@@ -94,7 +94,7 @@
                       "accept" "application/json"
                       "x-csrf-token" csrf-token}
             :body (java.io.ByteArrayInputStream.
-                   (.getBytes (json/write-value-as-string payload)))}
+                   (.getBytes (json/generate-string payload)))}
            test-identity)))
 
 (defn- get-html

@@ -1,5 +1,5 @@
 (ns app.db.insights
-  (:require [clojure.data.json :as json]
+  (:require [cheshire.core :as json]
             [clojure.string :as str]
             [honey.sql :as sql]
             [next.jdbc :as jdbc]
@@ -12,13 +12,13 @@
   "Распарсить JSON-строку advice_to_self в вектор строк, пустой вектор при ошибке."
   [s]
   (try
-    (vec (json/read-str (or s "[]")))
+    (vec (json/parse-string (or s "[]")))
     (catch Exception _ [])))
 
 (defn- serialize-advice
   "Сериализовать вектор строк в JSON для хранения в БД."
   [advice]
-  (json/write-str (vec advice)))
+  (json/generate-string (vec advice)))
 
 (defn- decorate-row
   "Преобразовать строку из БД: распарсить advice_to_self из JSON в вектор."

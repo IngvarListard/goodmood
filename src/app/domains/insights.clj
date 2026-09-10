@@ -1,6 +1,6 @@
 (ns app.domains.insights
   (:require [app.db.insights :as db]
-            [clojure.data.json :as json]
+            [cheshire.core :as json]
             [clojure.string :as str]
             [malli.core :as mc]
             [malli.error :as me]))
@@ -37,7 +37,7 @@
   (when advice
     (let [raw (if (and (string? advice)
                        (str/starts-with? (str/trim advice) "["))
-                (try (vec (json/read-str advice))
+                (try (vec (json/parse-string advice))
                      (catch Exception _ [advice]))
                 (if (string? advice) [advice] advice))]
       (->> raw

@@ -1,5 +1,5 @@
 (ns app.db.medications
-  (:require [clojure.data.json :as json]
+  (:require [cheshire.core :as json]
             [clojure.string :as str]
             [honey.sql :as sql]
             [next.jdbc :as jdbc]
@@ -12,13 +12,13 @@
   "Распарсить JSON-строку расписания в вектор строк времени, пустой вектор при ошибке."
   [s]
   (try
-    (vec (json/read-str (or s "[]")))
+    (vec (json/parse-string (or s "[]")))
     (catch Exception _ [])))
 
 (defn serialize-schedule
   "Сериализовать вектор строк времени в JSON-строку для хранения в БД."
   [times]
-  (json/write-str (vec times)))
+  (json/generate-string (vec times)))
 
 (defn create-medication!
   [ds {:keys [user-id name dose dose-unit schedule sensitive notes]}]

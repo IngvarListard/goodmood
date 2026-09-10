@@ -3,7 +3,7 @@
             [app.routes.app :as routes]
             [clojure.string :as str]
             [clojure.test :refer [deftest is testing use-fixtures]]
-            [jsonista.core :as json]
+            [cheshire.core :as json]
             [migratus.core :as migratus]
             [next.jdbc :as jdbc]
             [next.jdbc.result-set :as rs]
@@ -66,7 +66,7 @@
 
 (defn- json-body
   [body]
-  (json/write-value-as-string body))
+  (json/generate-string body))
 
 (defn- body-text
   [response]

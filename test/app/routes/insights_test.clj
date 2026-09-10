@@ -3,7 +3,7 @@
             [app.routes.app :as routes]
             [clojure.string :as str]
             [clojure.test :refer [deftest is testing use-fixtures]]
-            [jsonista.core :as json]
+            [cheshire.core :as json]
             [migratus.core :as migratus]
             [next.jdbc :as jdbc]
             [next.jdbc.result-set :as rs]
@@ -69,7 +69,7 @@
 
 (defn- json-body
   [body]
-  (json/write-value-as-string body))
+  (json/generate-string body))
 
 (defn- body-text
   [response]
@@ -222,7 +222,7 @@
           rows (when id (jdbc/execute! @ds-atom ["SELECT advice_to_self FROM insights WHERE id = ?" id]
                                        {:builder-fn rs/as-unqualified-maps}))]
       (is (= 201 (:status response)))
-      (is (= ["дыхание 4-7-8"] (json/read-value (:advice_to_self (first rows))))))))
+      (is (= ["дыхание 4-7-8"] (json/parse-string (:advice_to_self (first rows))))))))
 
 (deftest show-insight-page
   (testing "GET /insights/:id shows full insight"
@@ -284,7 +284,7 @@
       (is (str/includes? body "новый совет"))
       (let [rows (first (jdbc/execute! @ds-atom ["SELECT advice_to_self FROM insights WHERE id = ?" id]
                                        {:builder-fn rs/as-unqualified-maps}))
-            advice (json/read-value (:advice_to_self rows))]
+            advice (json/parse-string (:advice_to_self rows))]
         (is (= ["новый совет" "второй"] advice))))))
 
 (deftest delete-insight

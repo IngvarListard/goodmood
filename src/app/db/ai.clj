@@ -1,5 +1,5 @@
 (ns app.db.ai
-  (:require [clojure.data.json :as json]
+  (:require [cheshire.core :as json]
             [honey.sql :as sql]
             [next.jdbc :as jdbc]
             [next.jdbc.result-set :as rs]))
@@ -8,12 +8,14 @@
   {:builder-fn rs/as-unqualified-kebab-maps})
 
 (defn- parse-json
-  "Распарсить JSON-строку в Clojure-данные (keywords-keys map/vector).
-   nil и ошибка → nil."
+  "Распарсить JSON-строку в Clojure-данные (keyword-keys map, вектор для
+   массивов). nil и ошибка → nil."
   [s]
   (when s
     (try
-      (json/read-str s :key-fn keyword)
+      (let [parsed (json/parse-string s true)]
+        ;; cheshire отдаёт массивы как LazySeq — как data.json, массив → вектор
+        (if (seq? parsed) (vec parsed) parsed))
       (catch Exception _ nil))))
 
 (defn- decorate-row
@@ -34,9 +36,9 @@
        (sql/format {:insert-into :ai_findings
                     :values [{:user_id user-id
                               :type type
-                              :content (json/write-str content)
+                              :content (json/generate-string content)
                               :confidence confidence
-                              :source_refs (json/write-str (vec source-refs))}]
+                              :source_refs (json/generate-string (vec source-refs))}]
                     :returning [:*]})
        default-opts)
       decorate-row))
@@ -63,9 +65,9 @@
   (-> (jdbc/execute-one!
        ds
        (sql/format {:update :ai_findings
-                    :set     {:feedback feedback
-                              :hidden   1}
-                    :where   [:and [:= :id id] [:= :user_id user-id]]
+                    :set {:feedback feedback
+                          :hidden 1}
+                    :where [:and [:= :id id] [:= :user_id user-id]]
                     :returning [:*]})
        default-opts)
       decorate-row))
@@ -74,12 +76,12 @@
   "Настройки AI по умолчанию (все функции включены, novel advice и
    предупреждения эпизодов выключены — opt-in Фазы 7)."
   [user-id]
-  {:user-id               user-id
-   :master-enabled        1
-   :correlations-enabled  1
-   :labels-enabled        1
-   :advice-enabled        1
-   :allow-novel-advice    0
+  {:user-id user-id
+   :master-enabled 1
+   :correlations-enabled 1
+   :labels-enabled 1
+   :advice-enabled 1
+   :allow-novel-advice 0
    :episode-warning-enabled 0})
 
 (defn get-ai-settings
@@ -88,8 +90,8 @@
   (jdbc/execute-one!
    ds
    (sql/format {:select [:*]
-                :from   [:user_ai_settings]
-                :where  [:= :user_id user-id]})
+                :from [:user_ai_settings]
+                :where [:= :user_id user-id]})
    default-opts))
 
 (defn set-ai-settings!
@@ -103,19 +105,19 @@
     (jdbc/execute-one!
      ds
      (sql/format {:insert-into :user_ai_settings
-                  :values     [{:user_id               user-id
-                                :master_enabled        (flag master-enabled)
-                                :correlations_enabled  (flag correlations-enabled)
-                                :labels_enabled        (flag labels-enabled)
-                                :advice_enabled        (flag advice-enabled)
-                                :allow_novel_advice    (flag allow-novel-advice)
-                                :episode_warning_enabled (flag episode-warning-enabled)}]
+                  :values [{:user_id user-id
+                            :master_enabled (flag master-enabled)
+                            :correlations_enabled (flag correlations-enabled)
+                            :labels_enabled (flag labels-enabled)
+                            :advice_enabled (flag advice-enabled)
+                            :allow_novel_advice (flag allow-novel-advice)
+                            :episode_warning_enabled (flag episode-warning-enabled)}]
                   :on-conflict :user-id
-                  :do-update-set {:master_enabled        (flag master-enabled)
-                                  :correlations_enabled  (flag correlations-enabled)
-                                  :labels_enabled        (flag labels-enabled)
-                                  :advice_enabled        (flag advice-enabled)
-                                  :allow_novel_advice    (flag allow-novel-advice)
+                  :do-update-set {:master_enabled (flag master-enabled)
+                                  :correlations_enabled (flag correlations-enabled)
+                                  :labels_enabled (flag labels-enabled)
+                                  :advice_enabled (flag advice-enabled)
+                                  :allow_novel_advice (flag allow-novel-advice)
                                   :episode_warning_enabled (flag episode-warning-enabled)}
                   :returning [:*]})
      default-opts)))
@@ -133,11 +135,11 @@
   (jdbc/execute-one!
    ds
    (sql/format {:insert-into :episode_warnings
-                :values     [{:user_id             user-id
-                              :type                type
-                              :pattern_description pattern-description
-                              :confidence          confidence
-                              :dismissed           (or dismissed 0)}]
+                :values [{:user_id user-id
+                          :type type
+                          :pattern_description pattern-description
+                          :confidence confidence
+                          :dismissed (or dismissed 0)}]
                 :returning [:*]})
    default-opts))
 
@@ -147,9 +149,9 @@
   (jdbc/execute!
    ds
    (sql/format {:select [:*]
-                :from   [:episode_warnings]
-                :where  [:and [:= :user_id user-id]
-                         [:= :dismissed 0]]
+                :from [:episode_warnings]
+                :where [:and [:= :user_id user-id]
+                        [:= :dismissed 0]]
                 :order-by [[:id :desc]]})
    default-opts))
 
@@ -160,9 +162,9 @@
   (jdbc/execute-one!
    ds
    (sql/format {:update :episode_warnings
-                :set    {:feedback  feedback
-                         :dismissed 1}
-                :where  [:and [:= :id id] [:= :user_id user-id]]
+                :set {:feedback feedback
+                      :dismissed 1}
+                :where [:and [:= :id id] [:= :user_id user-id]]
                 :returning [:*]})
    default-opts))
 
@@ -173,8 +175,8 @@
   (jdbc/execute-one!
    ds
    (sql/format {:update :episode_warnings
-                :set    {:dismissed 1}
-                :where  [:and [:= :id id] [:= :user_id user-id]]
+                :set {:dismissed 1}
+                :where [:and [:= :id id] [:= :user_id user-id]]
                 :returning [:*]})
    default-opts))
 

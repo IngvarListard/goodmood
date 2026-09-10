@@ -52,9 +52,9 @@
         (icons/svg "home")
         (is (= 1 @call-count)))))
 
-  (testing "throws on unknown variant"
+  (testing "throws on unknown variant (load-svg: icon not found)"
     (is (thrown-with-msg? clojure.lang.ExceptionInfo
-                          #"Unknown variant"
+                          #"Icon not found"
                           (icons/svg "home" {:variant :unknown}))))
 
   (testing "throws on missing icon"

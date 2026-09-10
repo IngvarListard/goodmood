@@ -32,5 +32,7 @@
                    :main-opts ["-m" "nrepl.cmdline"]}
            :build {:deps {io.github.clojure/tools.build {:mvn/version "0.10.14"}}
                    :ns-default build}
-           :test {:extra-paths ["test"]
-                  :main-opts ["-e" "(require '[clojure.test :as t] '[app.db.ai-test] '[app.db.entries-test] '[app.db.insights-test] '[app.db.medications-test] '[app.db.notification-settings-test] '[app.domains.ai-test] '[app.domains.insights-test] '[app.domains.notification-settings-test] '[app.domains.state-periods-test] '[app.routes.ai-test] '[app.routes.app-test] '[app.routes.auth-test] '[app.routes.insights-test] '[app.routes.medications-test] '[app.routes.notifications-test] '[app.routes.state-periods-test] '[app.domains.users-test] '[app.views.layout-test] '[app.views.navigation-test] '[app.icons-test])(t/run-tests 'app.db.ai-test 'app.db.entries-test 'app.db.insights-test 'app.db.medications-test 'app.db.notification-settings-test 'app.domains.ai-test 'app.domains.insights-test 'app.domains.notification-settings-test 'app.domains.state-periods-test 'app.routes.ai-test 'app.routes.app-test 'app.routes.auth-test 'app.routes.insights-test 'app.routes.medications-test 'app.routes.notifications-test 'app.routes.state-periods-test 'app.domains.users-test 'app.views.layout-test 'app.views.navigation-test 'app.icons-test)"]}}}
+            ;; В test/ только тесты — грузим все *_test.clj из каталога test/
+            ;; (запуск из корня репо) и прогоняем автоматически, без списка ns.
+            :test {:extra-paths ["test"]
+                   :main-opts ["-e" "(require 'clojure.java.io 'clojure.string 'clojure.test)(doseq [f (sort (file-seq (clojure.java.io/file \"test\"))) :when (and (.isFile f) (clojure.string/ends-with? (.getName f) \"_test.clj\"))] (load-file (str f)))(clojure.test/run-all-tests)"]}}}

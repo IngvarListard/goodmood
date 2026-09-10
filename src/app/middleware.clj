@@ -101,10 +101,6 @@
         (get-in request [:headers "x-csrf-token"])
         (get-in request [:headers "x-xsrf-token"]))))
 
-(defn- local-redirect
-  [location]
-  (response/redirect location))
-
 (defn require-auth
   "Защитить все маршруты, не помеченные :auth/public в данных reitit-роута.
    Неаутентифицированные запросы перенаправляются на /login?next=<uri>.
@@ -122,16 +118,12 @@
         (handler request)
 
         (nil? identity)
-        (local-redirect (str "/login?next=" (:uri request)))
+        (response/redirect (str "/login?next=" (:uri request)))
 
         (and (seq required-roles)
              (not (contains? (set required-roles) role)))
-        (if (reitit/match-by-name router :login)
-          (response/status (response/response (str "Forbidden: role " role))
-                           403)
-          {:status 403
-           :headers {"Content-Type" "text/plain; charset=utf-8"}
-           :body (str "Forbidden: role " role)})
+        (response/status (response/response (str "Forbidden: role " role))
+                         403)
 
         :else
         (handler request)))))

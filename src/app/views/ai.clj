@@ -385,16 +385,27 @@
              :class "mx-auto mt-2 mb-1 h-1.5 w-12 rounded-full bg-base-content/25 shrink-0"
              :aria-label (i18n/t :ai/chat-close)
              :_ "on click call #assistant-modal.close()"}]
-   [:div {:class "flex items-start justify-between px-5 pb-3 border-b border-base-300 shrink-0"}
-    [:div
-     [:h2 {:class "text-xl font-bold"} (i18n/t :ai/assistant-title)]
-     [:p {:class "text-xs text-base-content/60 mt-0.5"}
-      (i18n/t :ai/assistant-subtitle)]]
-    [:button {:type "button"
-              :class "btn btn-ghost btn-circle btn-sm"
-              :aria-label (i18n/t :ai/chat-close)
-              :_ "on click call #assistant-modal.close()"}
-     (icons/svg "x-mark")]]
+    [:div {:class "flex items-start justify-between px-5 pb-3 border-b border-base-300 shrink-0"}
+     [:div
+      [:h2 {:class "text-xl font-bold"} (i18n/t :ai/assistant-title)]
+      [:p {:class "text-xs text-base-content/60 mt-0.5"}
+       (i18n/t :ai/assistant-subtitle)]]
+     [:div {:class "flex items-center gap-1"}
+      [:button {:type "button"
+                :class "btn btn-ghost btn-circle btn-sm"
+                :title (i18n/t :ai/chat-new)
+                :aria-label (i18n/t :ai/chat-new)
+                :hx-post "/ai/chat/new"
+                :hx-ext "json-enc"
+                :hx-vals (str "{\"__anti-forgery-token\": \"" csrf-token "\"}")
+                :hx-target "#assistant-body"
+                :hx-swap "outerHTML"}
+       (icons/svg "plus")]
+      [:button {:type "button"
+                :class "btn btn-ghost btn-circle btn-sm"
+                :aria-label (i18n/t :ai/chat-close)
+                :_ "on click call #assistant-modal.close()"}
+       (icons/svg "x-mark")]]]
    [:div {:class "flex-1 overflow-y-auto px-4 py-3 min-h-0"}
     (chat-response {:messages messages})]
    [:p {:class "text-[10px] text-center text-base-content/50 px-6 pt-1 pb-2 shrink-0"}

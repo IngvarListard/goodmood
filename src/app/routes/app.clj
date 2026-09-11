@@ -222,6 +222,8 @@
     ["/ai/chat"
      {:get {:handler (partial ai-routes/chat-panel ds)}
       :post {:handler (partial ai-routes/chat-send ds)}}]
+    ["/ai/chat/new"
+     {:post {:handler (partial ai-routes/chat-new ds)}}]
     ["/ai/chat/disclaimer"
      {:post {:handler (partial ai-routes/chat-disclaimer ds)}}]
     ["/ai/novel-advice"
@@ -247,7 +249,7 @@
   [session-secret]
   {:store (session.cookie/cookie-store {:key (mw/secret-key session-secret)})
    :cookie-name "gm-session"
-   :cookie-attrs {:http-only true :same-site :lax :max-age 3600}})
+   :cookie-attrs {:http-only true :same-site :lax :max-age 7776000}})
 
 (defn ->app
   "Создать Ring-приложение: роутер, стэк middleware и конфигурацию сессий."

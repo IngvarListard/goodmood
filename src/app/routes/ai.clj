@@ -162,6 +162,15 @@
                                                  :error? (nil? reply)
                                                  :messages (ai/chat-history ds uid)}))))))
 
+(defn chat-new
+  "POST /ai/chat/new — начать новую сессию чата (design D3): domain
+   фиксирует следующую сессию (старые сообщения не трогаются), ответ —
+   свежая панель ассистента с пустой историей (outerHTML #assistant-body)."
+  [ds request]
+  (let [uid (user-id request)]
+    (ai/start-new-session! ds uid)
+    (html-response 200 (views/chat-panel (csrf-token request) false []))))
+
 (defn chat-disclaimer
   "POST /ai/chat/disclaimer — подтвердить disclaimer (пометить в сессии) и
    вернуть панель чата без него."

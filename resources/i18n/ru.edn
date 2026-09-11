@@ -222,6 +222,7 @@
        :novel-title "Новые идеи от AI"
        :novel-note "не из твоих записей"
        :chat-open "Чат"
+       :chat-new "Новый чат"
        :chat-title "Чат с ассистентом"
        :assistant-open "Открыть ассистента"
        :assistant-title "Ассистент"

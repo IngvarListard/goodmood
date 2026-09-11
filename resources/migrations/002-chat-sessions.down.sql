@@ -1,0 +1,1 @@
+ALTER TABLE ai_chat_messages DROP COLUMN session_id;

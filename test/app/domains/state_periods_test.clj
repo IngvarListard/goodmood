@@ -34,8 +34,9 @@
 
 (deftest test-ai-chat-messages-migration-schema
   (testing "миграция 012 создаёт ai_chat_messages (кэш чата) с role user/assistant"
-    (is (= ["id" "user_id" "role" "content" "created_at"]
-           (columns-of "ai_chat_messages")))
+    (is (= ["id" "user_id" "role" "content" "created_at" "session_id"]
+           (columns-of "ai_chat_messages"))
+        "миграция 002 добавила session_id (сессии чата)")
     (is (thrown? java.sql.SQLException
                  (jdbc/execute! @ds-atom
                                 ["INSERT INTO ai_chat_messages (user_id, role, content) VALUES (?,?,?)"

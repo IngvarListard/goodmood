@@ -191,26 +191,59 @@
 ;; ──────────────────────────────────────────────────────────────
 
 (defn save-message!
-  "Сохранить сообщение чата (role: user|assistant). Возвращает строку."
-  [ds {:keys [user-id role content]}]
+  "Сохранить сообщение чата (role: user|assistant) в сессию session_id
+   (change add-chat-sessions). Возвращает строку."
+  [ds {:keys [user-id session-id role content]}]
   (jdbc/execute-one!
    ds
    (sql/format {:insert-into :ai_chat_messages
-                :values [{:user_id user-id :role role :content content}]
+                :values [{:user_id user-id
+                          :session_id session-id
+                          :role role
+                          :content content}]
                 :returning [:*]})
    default-opts))
 
 (defn get-messages
-  "Последние limit сообщений чата пользователя в хронологическом порядке
-   (самое старое — первое). Пусто, если сообщений нет."
-  [ds user-id limit]
+  "Все сообщения чата пользователя в одной сессии (design D2, без cap) в
+   хронологическом порядке (самое старое — первое). Пусто, если сообщений
+   в сессии нет. Маркер-строки сессий (content '') не показываются."
+  [ds user-id session-id]
   (->> (jdbc/execute!
         ds
         (sql/format {:select [:*]
                      :from [:ai_chat_messages]
-                     :where [:= :user_id user-id]
-                     :order-by [[:id :desc]]
-                     :limit limit})
+                     :where [:and [:= :user_id user-id]
+                             [:= :session_id session-id]
+                             [:<> :content ""]]
+                     :order-by [[:id :asc]]})
         default-opts)
-       reverse
        vec))
+
+(defn current-session-id
+  "Текущая сессия чата пользователя = MAX(session_id) (design D1, указатель
+   не хранится); без сообщений — 1 (DEFAULT миграции)."
+  [ds user-id]
+  (or (-> (jdbc/execute-one!
+           ds
+           (sql/format {:select [[[:max :session_id] :sid]]
+                        :from [:ai_chat_messages]
+                        :where [:= :user_id user-id]})
+           default-opts)
+          :sid)
+      1))
+
+(defn next-session-id!
+  "Новая сессия чата = MAX(session_id)+1 (строки-сессии не создаются)."
+  [ds user-id]
+  (inc (current-session-id ds user-id)))
+
+(defn create-session!
+  "Зафиксировать новую сессию чата (design D1: текущая = MAX(session_id),
+   указатель не хранится). Пустая сессия без строк невидима для MAX,
+   поэтому сессия закрепляется маркер-строкой с пустым content —
+   get-messages её не показывает. Возвращает id сессии."
+  [ds user-id]
+  (let [sid (next-session-id! ds user-id)]
+    (save-message! ds {:user-id user-id :session-id sid :role "user" :content ""})
+    sid))

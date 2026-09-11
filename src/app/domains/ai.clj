@@ -532,14 +532,24 @@
       (boolean (some #(str/includes? lower %) crisis-keywords)))))
 
 (defn save-chat-message!
-  "Сохранить сообщение чата (role: user|assistant)."
+  "Сохранить сообщение чата (role: user|assistant) в текущую сессию."
   [ds user-id role content]
-  (db/save-message! ds {:user-id user-id :role role :content content}))
+  (db/save-message! ds {:user-id user-id
+                        :session-id (db/current-session-id ds user-id)
+                        :role role
+                        :content content}))
 
 (defn chat-history
-  "Последние 8 сообщений чата пользователя в хронологическом порядке."
+  "Все сообщения текущей сессии чата (design D2, без cap) в
+   хронологическом порядке."
   [ds user-id]
-  (db/get-messages ds user-id 8))
+  (db/get-messages ds user-id (db/current-session-id ds user-id)))
+
+(defn start-new-session!
+  "Начать новую сессию чата (MAX+1, design D1/D3): старые сообщения не
+   трогаются, следующее сообщение попадёт в новую сессию. Возвращает id."
+  [ds user-id]
+  (db/create-session! ds user-id))
 
 (defn- rose-line
   "Компактная строка розы ветров последней записи."

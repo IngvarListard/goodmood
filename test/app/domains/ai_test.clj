@@ -286,6 +286,38 @@
       (is (= 2 (count history)))
       (is (= ["user" "assistant"] (mapv :role history)) "сообщения в порядке записи"))))
 
+(deftest test-chat-sessions-not-mixed
+  (testing "сообщения разных сессий не смешиваются (current = MAX session_id)"
+    (domains/save-chat-message! @ds-atom user-id "user" "сессия 1")
+    (domains/start-new-session! @ds-atom user-id)
+    (domains/save-chat-message! @ds-atom user-id "user" "сессия 2")
+    (let [history (domains/chat-history @ds-atom user-id)]
+      (is (= 1 (count history)) "в текущей сессии только её сообщения")
+      (is (= "сессия 2" (:content (first history))))))
+  (testing "start-new-session переключает текущую, старые строки на месте"
+    (domains/start-new-session! @ds-atom user-id)
+    (domains/save-chat-message! @ds-atom user-id "user" "сессия 3")
+    (is (= 1 (count (domains/chat-history @ds-atom user-id))) "новая сессия пуста кроме нового сообщения")
+    (is (= ["сессия 1" "сессия 2" "сессия 3"]
+           (->> (jdbc/execute! @ds-atom
+                               ["SELECT content FROM ai_chat_messages
+                                 WHERE user_id=? AND content<>'' ORDER BY id" user-id]
+                               {:builder-fn rs/as-unqualified-maps})
+                (mapv :content)))
+        "маркер-строки сессий (content='') не в истории, реальные сообщения целы")))
+
+(deftest test-chat-full-session-context
+  (testing "полный список сессии (>8 сообщений) уходит модели"
+    (dotimes [i 10]
+      (domains/save-chat-message! @ds-atom user-id "user" (str "вопрос " i)))
+    (let [history (domains/chat-history @ds-atom user-id)]
+      (is (= 10 (count history)) "история сессии без cap на 8")
+      (with-redefs [domains/call-chat
+                    (fn [_ msgs]
+                      (count (filter #(str/starts-with? (str (:content %)) "вопрос") msgs)))]
+        (is (= 11 (domains/chat-reply @ds-atom user-id history "вопрос 10"))
+            "chat-reply передаёт всю историю сессии (10) + новое сообщение = 11")))))
+
 (deftest test-chat-reply-normal-message
   (testing "обычное сообщение получает ответ чата (AI с контекстом)"
     (with-redefs [domains/call-chat (fn [_ _] "спокойное дыхание поможет")]

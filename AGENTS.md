@@ -128,6 +128,7 @@ curl http://localhost:3000/
 | `GOODMOOD_PORT` | нет | Порт HTTP-сервера (default `3000`) |
 | `GOODMOOD_DB_PATH` | нет | Путь к SQLite-файлу (default `resources/goodmood.db`, в контейнере `/data/goodmood.db`) |
 | `OPENROUTER_API_KEY` | нет | Ключ OpenRouter для AI-функций. Без него все AI-функции возвращают nil (graceful degradation) |
+| `GOODMOOD_VAPID_PUBLIC_KEY` / `GOODMOOD_VAPID_PRIVATE_KEY` | нет | Пара VAPID-ключей для web push (генерация: `clj -M dev/gen_vapid_keys.clj`). Без них секция «Push-уведомления» скрыта, шедулер пушей не работает |
 
 # Деплой
 
@@ -148,6 +149,12 @@ NAS_HOST=ssh://<ssh-user>@<nas-lan-ip>:37132 ./bin/deploy.sh
   `http://localhost:32710` (порт выбран случайно, слушает только localhost).
 - Секреты прода — `/volume1/docker/goodmood/.env` (chmod 600), локальная копия
   — `deploy/nas.env` (gitignored).
+- Пуш-уведомления (change add-pwa-push): в NAS `.env` добавить пару
+  `GOODMOOD_VAPID_PUBLIC_KEY` / `GOODMOOD_VAPID_PRIVATE_KEY` (генерация:
+  `clj -M dev/gen_vapid_keys.clj`) — секция «Push-уведомления» и шедулер
+  без них скрыты/no-op. Первый деплой после изменения `system.clj`
+  (компонент `:push/scheduler`) требует рестарт контейнера — обычный
+  deploy.sh это делает сам.
 - Откат кода: `NAS_HOST=ssh://<ssh-user>@<nas-lan-ip>:37132 ./bin/rollback.sh <тег>`
   (без аргумента — покажет теги; с `--data` — ещё и restore БД из бэкапа тега).
 - Откат данных: остановить контейнер → restore `goodmood.db*` из последнего
@@ -164,6 +171,7 @@ NAS_HOST=ssh://<ssh-user>@<nas-lan-ip>:37132 ./bin/deploy.sh
 - **insights** (`routes/insights.clj`) — инсайты: контекст + советы себе, привязка к state-меткам
 - **state periods** (`routes/state_periods.clj`) — marking эпизодов, группировка записей
 - **notifications** (`routes/notifications.clj`) — 3 слота (утро/день/вечер), баннеры
+- **push** (`routes/push.clj`, `domains/push.clj`) — подписки на web push (PWA), шедулер слот-пушей (компонент `:push/scheduler` в `system.clj`)
 - **ai** (`routes/ai.clj`, `domains/ai.clj`) — корреляции, ярлыки, советы, чат, предупреждения об эпизодах
 - **settings** (через `routes/app.clj`) — настройки уведомлений и AI
 

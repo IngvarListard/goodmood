@@ -5,6 +5,7 @@
             [app.db.migrate :as db.migrate]
             [app.db.seed :as db.seed]
             [app.env :as env]
+            [app.domains.push :as push]
             [app.domains.users :as users]
             [app.routes.app :as routes]))
 
@@ -42,6 +43,34 @@
   [_ server]
   (.stop server))
 
+;; Фоновый поток-шедулер: тик раз в минуту (design D4). Тик отправляет пуши
+;; по слотам и следит за дублированием через общий sentinel last_slot_shown.
+;; Без VAPID-ключей тик — no-op (graceful degradation как у AI).
+(def tick-interval-ms 60000)
+
+(defmethod ig/init-key :push/scheduler
+  [_ {:keys [connection]}]
+  (let [stopped (atom false)
+        thread (Thread. (fn []
+                          (while (not @stopped)
+                            (try
+                              (push/tick! connection)
+                              (catch Exception e
+                                (println (str "push scheduler tick failed: "
+                                              (.getMessage e)))))
+                            (Thread/sleep tick-interval-ms))))]
+    (doto thread
+      (.setName "push-scheduler")
+      (.setDaemon true)
+      (.start))
+    {:thread thread :stopped stopped}))
+
+(defmethod ig/halt-key! :push/scheduler
+  [_ {:keys [thread stopped]}]
+  (reset! stopped true)
+  (.interrupt thread)
+  (.join thread 1000))
+
 (def system-config
   {:db/connection {:path (env/env "GOODMOOD_DB_PATH" "resources/goodmood.db")}
    :db/migrate {:connection (ig/ref :db/connection)}
@@ -50,7 +79,9 @@
    :app.core/secret {}
    :app.core/server {:port (or (some-> (env/env "GOODMOOD_PORT") parse-long) 3000)
                      :connection (ig/ref :db/connection)
-                     :session-secret (ig/ref :app.core/secret)}})
+                     :session-secret (ig/ref :app.core/secret)}
+   ;; Пуш-шедулер: рестарт процесса нужен после добавления компонента
+   :push/scheduler {:connection (ig/ref :db/connection)}})
 
 (defn start-system []
   (ig/init system-config))

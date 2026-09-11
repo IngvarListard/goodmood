@@ -17,6 +17,9 @@
         ring/ring-anti-forgery {:mvn/version "1.4.0"}
         cheshire/cheshire {:mvn/version "5.13.0"}
         clj-http/clj-http {:mvn/version "3.13.1"}
+        ;; Web Push (VAPID + aes128gcm); BouncyCastle берёт из classpath
+        ;; (bcprov-jdk18on через buddy), собственная 15on помечена optional
+        nl.martijndwars/web-push {:mvn/version "5.1.2"}
         com.lambdaisland/dotenv {:mvn/version "0.2.5"}}
 
  :aliases {:run {:main-opts ["-m" "app.core"]}

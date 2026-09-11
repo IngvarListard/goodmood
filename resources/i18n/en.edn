@@ -192,6 +192,17 @@
                   :save "Save"
                   :saved "Saved"
                   :error "Check the time — use HH:MM format"}
+  :push {:title "Push notifications"
+         :subtitle "A nudge arrives at your slot time, even with the tab closed."
+         :enable "Enable notifications"
+         :disable "Disable"
+         :status-enabled "Notifications are on"
+         :unavailable "Notifications unavailable: server keys are not configured."
+         :denied "Notification permission was not granted."
+         :error "Could not enable notifications. Please try again."
+         :slot-morning "The morning has begun. Check in with yourself"
+         :slot-midday "How is the day going?"
+         :slot-evening "Tomorrow's summary is ready"}
   :ai {:correlations-title "Possible connections"
        :finding-correlation "Possible link"
        :dismiss "Dismiss"

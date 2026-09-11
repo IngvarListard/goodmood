@@ -1,5 +1,6 @@
 (ns app.views.layout
-  (:require [app.i18n :as i18n]
+  (:require [app.env :as env]
+            [app.i18n :as i18n]
             [app.views.assistant :as assistant]
             [app.views.navigation :as navigation]
             [app.views.user-menu :as user-menu]
@@ -14,6 +15,9 @@
 (def chart-js-src "https://cdn.jsdelivr.net/npm/chart.js@4.5.1/dist/chart.umd.js")
 (def tailwind-src "https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4")
 (def daisyui-href "https://cdn.jsdelivr.net/npm/daisyui@5.7.15/daisyui.css")
+
+;; PWA (change add-pwa-push): тема должна совпадать с manifest.webmanifest
+(def theme-color "#5b5bea")
 
 (defn html-attrs
   "Атрибуты <html>: язык и тема. Для :system атрибут data-theme не ставится —
@@ -54,6 +58,15 @@
    ;; defer сохраняет порядок: radar.js видит window.Chart
    [:script {:defer true :src chart-js-src}]
    [:script {:defer true :src "/js/radar.js"}]
+   ;; push.js регистрирует service worker на каждой странице (installability)
+   [:script {:defer true :src "/js/push.js"}]
+   ;; PWA: манифест + цвет статус-бара Android; VAPID-ключ приезжает в meta
+   ;; (публичный по определению) только когда ключи настроены на сервере
+   [:link {:rel "manifest" :href "/manifest.webmanifest"}]
+   [:meta {:name "theme-color" :content theme-color}]
+   (when (env/env "GOODMOOD_VAPID_PUBLIC_KEY")
+     [:meta {:name "vapid-public-key"
+             :content (env/env "GOODMOOD_VAPID_PUBLIC_KEY")}])
    ;; Палитры тем: скоупленный plain CSS вместо @theme (Tailwind-CDN не
    ;; обрабатывает @theme без type=\"text/tailwindcss\", а переменные на :root
    ;; перекрываются темой на html). Тёмная — усреднение трёх макетов design/;

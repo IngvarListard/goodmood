@@ -17,10 +17,13 @@
             [app.routes.html :refer [html-response]]
             [hiccup2.core :refer [html]]
             [app.middleware :as mw]
+            [app.db.push :as push-db]
+            [app.domains.ai :as ai-domains]
             [app.domains.entries :as domains]
             [app.domains.insights :as insights-domains]
             [app.domains.medications :as med-domains]
-            [app.domains.ai :as ai-domains]
+            [app.domains.notification-settings :as notif-domains]
+            [app.domains.push :as push-domains]
             [app.routes.ai :as ai-routes]
             [app.routes.auth :as auth]
             [app.routes.check-in :as check-in]
@@ -29,8 +32,8 @@
             [app.routes.insights :as insights]
             [app.routes.medications :as med-routes]
             [app.routes.notifications :as notifications]
+            [app.routes.push :as push-routes]
             [app.routes.state-periods :as period-routes]
-            [app.domains.notification-settings :as notif-domains]
             [app.views.entries :as views]
             [app.views.settings :as settings]))
 
@@ -106,8 +109,10 @@
   [ds request]
   (let [uid (get-in request [:identity :id])
         notif-settings (notif-domains/get-settings ds uid)
-        ai-settings (ai-domains/get-settings ds uid)]
-    (html-response 200 (settings/page request notif-settings ai-settings))))
+        ai-settings (ai-domains/get-settings ds uid)
+        push-state {:configured? (push-domains/vapid-configured?)
+                    :subscribed? (boolean (seq (push-db/get-subscriptions ds uid)))}]
+    (html-response 200 (settings/page request notif-settings ai-settings push-state))))
 
 (defn- anti-forgery-error-handler
   [_]
@@ -209,6 +214,10 @@
      {:post {:handler (partial notifications/settings-update ds)}}]
     ["/settings/ai"
      {:post {:handler (partial ai-routes/settings-update ds)}}]
+    ["/push/subscribe"
+     {:post {:handler (partial push-routes/subscribe ds)}}]
+    ["/push/unsubscribe"
+     {:post {:handler (partial push-routes/unsubscribe ds)}}]
     ["/ai/correlations"
      {:post {:handler (partial ai-routes/correlations-fragment ds)}}]
     ["/ai/label"

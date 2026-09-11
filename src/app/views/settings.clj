@@ -75,19 +75,50 @@
       [:button {:type "submit" :class "btn btn-error btn-outline w-full"}
        (i18n/t :auth/logout)]]]))
 
+(defn push-section
+  "Секция «Push-уведомления» (change add-pwa-push): статус и кнопка.
+   configured? — VAPID-ключи на сервере; subscribed? — есть подписка в БД.
+   Тексты и состояние рендерит сервер; push.js — тупой исполнитель (D6):
+   читает data-атрибуты секции, возвращает свежий фрагмент после POST."
+  [configured? subscribed?]
+  [:div {:id "push-section"
+         :data-msg-denied (i18n/t :push/denied)
+         :data-msg-error (i18n/t :push/error)
+         :class "mb-6"}
+   [:h2 {:class "text-sm font-medium text-base-content/60 mb-1 uppercase tracking-wide"}
+    (i18n/t :push/title)]
+   [:p {:class "text-xs text-base-content/60 mb-3"}
+    (i18n/t :push/subtitle)]
+   (if-not configured?
+     [:div {:class "card bg-base-200 border border-base-300 p-4"}
+      [:p {:class "text-sm opacity-70"} (i18n/t :push/unavailable)]]
+     [:div {:class "card bg-base-200 border border-base-300 p-4"}
+      (if subscribed?
+        [:div {:class "flex items-center justify-between gap-3"}
+         [:span {:class "text-sm"} (i18n/t :push/status-enabled)]
+         [:button {:type "button"
+                   :class "btn btn-outline btn-sm"
+                   :_ "on click call window.GMPush.disable(me)"}
+          (i18n/t :push/disable)]]
+        [:button {:type "button"
+                  :class "btn btn-primary w-full"
+                  :_ "on click call window.GMPush.enable(me)"}
+         (i18n/t :push/enable)])])])
+
 (defn page
   "Страница настроек: информация о пользователе, переключатель языка, выход
-   и секции настроек уведомлений и AI-помощника.
+   и секции настроек уведомлений, AI-помощника и push.
    request: ring-запрос; notif-slots: вектор строк из user_notification_settings;
-   ai-settings: map настроек AI."
-  [request notif-slots & [ai-settings]]
+   ai-settings: map настроек AI; push-state: {:configured? :subscribed?}."
+  [request notif-slots & [ai-settings {:keys [configured? subscribed?] :as _push-state}]]
   (let [identity (:identity request)
         csrf (:anti-forgery-token request)
         content [:div {}
                  [:h1 {:class "text-2xl font-bold mb-4"} (i18n/t :nav/settings)]
                  (user-card identity request)
                  (when ai-settings (ai/ai-settings-section csrf ai-settings))
-                 (notifications/settings-section csrf notif-slots)]]
+                 (notifications/settings-section csrf notif-slots)
+                 (push-section (boolean configured?) (boolean subscribed?))]]
     (layout/layout {:title (i18n/t :nav/settings)
                     :active :settings
                     :request request}

@@ -91,3 +91,20 @@
                 :set {:last_slot_shown date}
                 :where [:and [:= :user_id user-id] [:= :slot slot]]})
    default-opts))
+
+(defn due-slots
+  "Слоты, по которым пора отправить уведомление: включённые, время слота
+   уже прошло (текущее локальное now >= time, строковое сравнение HH:MM
+   корректно для нулевых часов/минут), sentinel last_slot_shown не сегодня.
+   Используется push-шедулером (domains/push)."
+  [ds today now]
+  (jdbc/execute!
+   ds
+   (sql/format {:select [:user_id :slot]
+                :from [:user_notification_settings]
+                :where [:and
+                        [:= :enabled 1]
+                        [:<= :time now]
+                        [:or [:is :last_slot_shown nil]
+                         [:<> :last_slot_shown today]]]})
+   default-opts))

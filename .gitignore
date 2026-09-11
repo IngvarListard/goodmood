@@ -1,7 +1,8 @@
 .cline
 .clinerules
 .continue
-.opencode
+.opencode/*
+!.opencode/agents/
 .qwen
 .cpcache
 *.db

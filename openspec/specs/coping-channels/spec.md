@@ -4,7 +4,7 @@
 TBD - created by archiving change add-coping-channels. Update Purpose after archive.
 ## Requirements
 ### Requirement: In-app scheduled notifications via polling (variant C)
-The system SHALL surface scheduled insights at configurable times (default: morning / midday / evening) as in-app notifications while the app is open, using htmx polling every 60 seconds. Full PWA push (service worker + Push API + server-side web-push) SHALL NOT be implemented in this phase (variant C); it is a future change. A missed notification while the tab is closed SHALL be recoverable as a «since you were away» banner on next /feed open (computed from existing data, not a stored notification event).
+The system SHALL surface scheduled insights at configurable times (default: morning / midday / evening) as in-app notifications while the app is open, using htmx polling every 60 seconds. For users subscribed to push (`pwa` capability), slot delivery SHALL be done by the server-side push scheduler at slot time and the shared sentinel `last_slot_shown` SHALL prevent duplicate in-app banners; users without a subscription SHALL keep the in-app behavior unchanged. A missed notification while the tab is closed SHALL be recoverable as a «since you were away» banner on next /feed open (computed from existing data, not a stored notification event) — only for users without push delivery of that slot.
 
 #### Scenario: Morning notification delivered in-app
 - **GIVEN** у пользователя есть инсайт с контекстом, близким к утреннему состоянию
@@ -25,11 +25,16 @@ The system SHALL surface scheduled insights at configurable times (default: morn
 - **THEN** видит баннер «пока тебя не было, был утренний инсайт»
 - **AND** контент вычисляется из существующих данных (последняя запись → state_label → инсайт), не из таблицы событий `[ref: design.md Decision 14.2]`
 
-#### Scenario: Full PWA push is deferred
-- **GIVEN** Фаза 4 реализована с in-app polling
-- **WHEN** рассматривается доставка уведомлений при закрытом приложении
-- **THEN** это отдельный future change, не Фаза 4
-- **AND** никаких серверных web-push зависимостей в этом change `[ref: design.md Decision 14]`
+#### Scenario: Subscribed user gets push, not the away banner
+- **GIVEN** юзер подписан на push и включил утренний слот
+- **WHEN** слот наступает, а потом юзер открывает /feed
+- **THEN** утренний пуш доставлен шедулером в момент слота
+- **AND** away-баннер за утренний слот не показывается (sentinel общий)
+
+#### Scenario: Unsubscribed user keeps polling behavior
+- **GIVEN** юзер не подписан на push
+- **WHEN** слоты наступают при открытой или закрытой вкладке
+- **THEN** in-app поведение прежнее: polling-баннер при открытой вкладке, away-баннер при открытой позже
 
 ### In-form toast hint after save
 The system SHALL surface a relevant hint after the user saves an entry on /check-in, based on the resulting `state_label`. The hint SHALL be delivered as a dismissible `alert-info` toast on /feed via hx-swap-oob (the existing redirect /check-in → /feed is preserved). It SHALL be non-blocking and SHALL NOT block entry submission.

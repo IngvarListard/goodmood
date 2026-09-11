@@ -97,27 +97,28 @@ attacks using ring-anti-forgery.
 - **AND** ring-anti-forgery accepts the request
 
 ### Requirement: Session expiration
-The session SHALL expire 1 hour after it was issued; successful activity SHALL refresh it by re-issuing the cookie with a new issuance timestamp. Expiration SHALL be enforced by the server, not by the browser alone: the session payload SHALL carry an issuance timestamp, and the server SHALL reject a session whose timestamp is older than 1 hour even if the cookie itself is still presented. Logging out SHALL invalidate the session: after `POST /logout` the previously issued session cookie SHALL NOT authenticate any request.
 
-#### Scenario: Session expires after inactivity
-- **WHEN** a session cookie is set with a 1-hour max-age
-- **AND** 1 hour has elapsed
-- **THEN** the browser no longer sends the cookie
-- **AND** the next request returns 302 /login
+The session SHALL be valid for 90 days from issuance. Expiration SHALL be enforced by the browser through the `Max-Age` cookie attribute; the server does not track session issuance time (cookie-store is stateless). Сессия не продлевается активностью: отсчёт идёт от выпуска куки при логине; ring перезаписывает куку только при изменении session-данных. Logging out SHALL clear the session cookie: after `POST /logout` the browser stops sending the cookie.
 
-#### Scenario: Expired session is rejected by the server
-- **GIVEN** a session issued more than 1 hour ago
-- **WHEN** a request is made with that cookie
-- **THEN** the server rejects the session
-- **AND** the response is HTTP 302 to `/login`
-- **AND** no protected content is returned
+#### Scenario: Session valid for 90 days
 
-#### Scenario: Logout invalidates the session
+- **WHEN** `POST /login` succeeds
+- **THEN** the `Set-Cookie` header for `gm-session` carries `Max-Age=7776000`
+- **AND** the browser keeps sending the cookie for 90 days without re-login
+
+#### Scenario: Logout clears the session cookie
+
 - **GIVEN** an authenticated session
 - **WHEN** `POST /logout` is sent with a valid CSRF token
 - **THEN** the server responds with HTTP 302 to `/login`
 - **AND** `gm-session` is cleared with `Max-Age=0`
-- **AND** a subsequent request that replays the previous cookie value is redirected to `/login`
+
+#### Scenario: Expired cookie stops authenticating
+
+- **GIVEN** a session cookie issued more than 90 days ago
+- **WHEN** the browser makes a request
+- **THEN** the cookie is no longer sent (browser Max-Age enforcement)
+- **AND** the next request returns 302 /login
 
 ### Requirement: Admin seed at startup
 The system SHALL create an admin user on startup whenever no users exist (first start or after the database was deleted/recreated), using fixed credentials from environment variables for email and password.

@@ -140,6 +140,7 @@
     ["/theme" {:post {:handler auth/theme-post-handler}
                :auth/public true}]
     ["/feed" {:get {:handler (partial feed/page ds)}}]
+    ["/feed/radar" {:get {:handler (partial feed/radar ds)}}]
     ["/check-in" {:get {:handler (partial check-in/page ds)}}]
     ["/settings" {:get {:handler (partial settings-page-handler ds)}}]
     ["/entries"

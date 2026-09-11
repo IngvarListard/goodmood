@@ -4,6 +4,7 @@
             [app.domains.insights :as insights]
             [app.domains.notification-settings :as notif-domains]
             [app.domains.state-periods :as periods]
+            [app.views.rose :as rose]
             [app.views.feed :as views]
             [clojure.string :as str]
             [app.routes.html :refer [html-response]]))
@@ -92,6 +93,21 @@
       (future (try (ai/analyze-episode-trend ds user-id)
                    (catch Exception e
                      (println "Background episode trend analysis failed:" (.getMessage e))))))))
+
+(defn radar
+  "GET /feed/radar?period=day|week|month — фрагмент радара периода для
+   hero-карточки /feed. Невалидный period трактуется как день (design D3)."
+  [ds request]
+  (let [uid (get-in request [:identity :id])
+        period (case (get-in request [:query-params "period"])
+                 "week" :week
+                 "month" :month
+                 :day)
+        entries (entries/list-entries ds uid)
+        empty? (not (some (comp (entries/period-dates period) :date) entries))]
+    (html-response 200 (rose/period-radar
+                        (entries/period-axes entries period)
+                        period empty?))))
 
 (defn page
   "Показать ленту записей («мой день») для аутентифицированного пользователя.

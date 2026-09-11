@@ -229,13 +229,14 @@
      (metric-chip :entries/focus "eye" "--gm-metric-focus" (:focus entry))]]])
 
 (defn- hero-card
-  "Hero-карточка последней записи сегодня: SVG-радар 200×200 + метаданные."
-  [{:keys [sleep-hours note created-at] :as entry}]
+  "Hero-карточка последней записи сегодня: радар периода (контейнер
+   #radar-period, дефолт — день) + метаданные записи.
+   radar — готовый фрагмент app.views.rose/period-radar."
+  [{:keys [sleep-hours note created-at] :as entry} radar]
   [:article {:class "card bg-base-200 shadow-md"}
    [:div {:class "card-body p-4"}
     [:div {:class "flex flex-col sm:flex-row gap-4 items-start"}
-     [:div {:class "shrink-0 mx-auto"}
-      (rose/radar (select-keys entry [:energy :anxiety :focus :mood-score]))]
+     radar
      [:div {:class "flex-1 min-w-0 w-full"}
       [:div {:class "flex items-center justify-between"}
        [:span {:class (str (state-badge-class entry) " text-[13px]")}
@@ -296,9 +297,10 @@
    карточки остальных записей дня, или онбординг при отсутствии записей.
    state-label: текущий state_label последней записи сегодня (для виджета).
    insight: 1 релевантный инсайт или nil.
+   radar: фрагмент радара периода (rose/period-radar).
    В мягком состоянии (low/mixed) виджет поднимается выше hero — акцент
    на совете, не на фиксации боли (Decision 14.4)."
-  [today-entries state-label insight & [ai-advice]]
+  [today-entries state-label insight radar & [ai-advice]]
   (let [soft? (and state-label (contains? #{"low" "mixed"} state-label))]
     [:section {:class "mb-6"}
      [:h2 {:class "text-sm font-medium text-base-content/60 mb-2 uppercase tracking-wide"}
@@ -307,8 +309,8 @@
        (let [latest (first today-entries)
              rest-entries (rest today-entries)
              soft-order? (list (insights/feed-widget state-label insight ai-advice)
-                               (hero-card latest))
-             normal-order? (list (hero-card latest)
+                               (hero-card latest radar))
+             normal-order? (list (hero-card latest radar)
                                  (insights/feed-widget state-label insight ai-advice))]
          [:div
           (if soft?
@@ -356,8 +358,9 @@
 
 (defn page
   "Отрендерить страницу /feed: лента записей, сгруппированных по дням.
-   Последняя запись сегодня — hero-карточка с розой; прошедшие дни —
-   timeline-секции с точками состояния и чипами метрик.
+   Последняя запись сегодня — hero-карточка с радаром периода (день по
+   умолчанию); прошедшие дни — timeline-секции с точками состояния и
+   чипами метрик.
    Под hero — виджет инсайтов (state-label, insight).
    request: ring-запрос; entries: вектор записей (date desc, created_at desc).
    opts: map с ключами :toast-insight (toast после сохранения),
@@ -368,6 +371,9 @@
   (let [grouped (group-by :date entries)
         today (str (java.time.LocalDate/now))
         today-entries (get grouped today)
+        ;; Радар периода (дефолт — день): пустой период в hero невозможен —
+        ;; hero рендерится только при записях сегодня, а окно дня = [сегодня].
+        radar (rose/period-radar (domains/period-axes entries :day) :day)
         past-dates (remove #{today} (keys grouped))
         content [:div {}
                  (when toast-insight
@@ -388,10 +394,10 @@
 
                  (when period
                    (period-banner period))
-                 (when ai
-                   (today-section today-entries state-label insight
-                                  {:csrf (:csrf ai)
-                                   :findings (:advice ai)}))
+                  (when ai
+                    (today-section today-entries state-label insight radar
+                                   {:csrf (:csrf ai)
+                                    :findings (:advice ai)}))
                  (when ai
                    (week-chart-section entries))
                  (when (and ai (seq (:label ai)))
@@ -400,8 +406,8 @@
                    (ai/ai-correlations (:csrf ai) (:correlations ai)))
                  (when (and ai (seq (:novel ai)))
                    (ai/ai-novel-advice (:csrf ai) (:novel ai)))
-                 (when-not ai
-                   (today-section today-entries state-label insight))
+                  (when-not ai
+                    (today-section today-entries state-label insight radar))
                  (when period
                    (sp/period-list (:list period)))
                  (past-day-section past-dates grouped)]]

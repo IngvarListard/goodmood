@@ -1,6 +1,7 @@
 (ns app.domains.entries
   (:require [app.db.entries :as db]
             [app.db.state-periods :as periods]
+            [clojure.math :as math]
             [clojure.string :as str]))
 
 (def create-entry-schema
@@ -37,6 +38,69 @@
 
 (defn- today []
   (str (java.time.LocalDate/now)))
+
+;; ──────────────────────────────────────────────────────────────
+;; Радар периода (change add-period-radar, design D1/D2):
+;; среднее непустых значений оси за каждый день окна → взвешенное
+;; среднее дней с весами свежести w = 0.5^(возраст/полураспад).
+;; ──────────────────────────────────────────────────────────────
+
+(def ^:private period-sizes
+  "Размер скользящего окна периода в днях (D2): день / неделя (7) /
+   скользящие 30 дней."
+  {:day 1 :week 7 :month 30})
+
+(defn period-dates
+  "Даты окна периода (строки ISO, включая сегодня): 1/7/30 последних
+   дней. Невалидный period трактуется как день."
+  ([period] (period-dates period (java.time.LocalDate/now)))
+  ([period today]
+   (set (map #(str (.minusDays today %))
+             (range (get period-sizes period 1))))))
+
+(defn- mean-non-nil
+  "Среднее непустых значений или nil (непустых нет)."
+  [vs]
+  (when-let [xs (seq (remove nil? vs))]
+    (/ (reduce + xs) (double (count xs)))))
+
+(defn- axis-value
+  "Значение одной оси за период: per-day mean непустых значений →
+   взвешенное среднее дней (вес 0.5^(возраст/полураспад), полураспад =
+   период/3). Дней со значениями нет → 0. Возраст считается в днях
+   между датой дня и today."
+  [by-date axis dates today half-life]
+  (or (let [days (keep (fn [d]
+                         (when-let [m (mean-non-nil (map axis (get by-date d)))]
+                           [m (math/pow 0.5 (/ (.between java.time.temporal.ChronoUnit/DAYS
+                                                (java.time.LocalDate/parse d)
+                                                today)
+                                              half-life))]))
+                       dates)]
+        (when-let [xs (seq days)]
+          (let [wsum (reduce + (map second xs))]
+            (/ (reduce + (map (fn [[v w]] (* v w)) xs)) wsum))))
+      0))
+
+(defn period-axes
+  "Агрегат осей розы ветров за период (design D1): среднее по дням →
+   взвешивание свежести. День с одной и с пятью записями весит одинаково
+   (per-day mean непустых значений); старые дни весят меньше свежих
+   (полураспад = период/3; у дня окно из одного дня — веса равны).
+   Возвращает {:energy :anxiety :focus :mood-score} (двойные, 0 при
+   отсутствии значений). Записи с датой вне окна (в т.ч. из будущего)
+   исключаются. today — LocalDate для детерминизма в тестах."
+  ([entries period] (period-axes entries period (java.time.LocalDate/now)))
+  ([entries period today]
+   (let [dates (period-dates period today)
+         by-date (->> entries
+                      (filter #(contains? dates (:date %)))
+                      (group-by :date))
+         half-life (/ (get period-sizes period 1) 3.0)]
+     {:energy (axis-value by-date :energy dates today half-life)
+      :anxiety (axis-value by-date :anxiety dates today half-life)
+      :focus (axis-value by-date :focus dates today half-life)
+      :mood-score (axis-value by-date :mood-score dates today half-life)})))
 
 (defn- non-nil-str
   "Вернуть пустую строку вместо nil для полей с NOT NULL в схеме БД."

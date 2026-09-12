@@ -97,8 +97,11 @@
         (let [data (ex-data e)]
           (if (= :reitit.coercion/request-coercion (:type data))
             (let [errors (me/humanize (select-keys data [:errors :value]) {:wrap :message})]
+;; htmx-ветка отдаёт 200: htmx 2.x не свапает 4xx-ответы, фрагмент с
+;; ошибкой доезжает до hx-target только как 2xx (как validation-error-fragment
+;; в insights). JSON API сохраняет честный 400.
               (if (entries/htmx-request? request)
-                {:status 400
+                {:status 200
                  :headers {"Content-Type" "text/html; charset=utf-8"}
                  :body (str (html (views/error-fragment (flatten-errors errors))))}
                 {:status 400

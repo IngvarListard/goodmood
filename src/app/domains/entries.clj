@@ -4,8 +4,29 @@
             [clojure.math :as math]
             [clojure.string :as str]))
 
+(def max-backfill-days
+  "Максимальная глубина бэкфилла даты записи в днях назад от сегодня."
+  30)
+
+(defn- valid-backfill-date?
+  "ISO-дата в диапазоне [сегодня − max-backfill-days; сегодня] (серверные
+   часы). nil — валидно (домен подставит today)."
+  [v]
+  (or (nil? v)
+      (and (string? v)
+           (re-matches #"\d{4}-\d{2}-\d{2}" v)
+           (try
+             (let [d (java.time.LocalDate/parse v)
+                   today (java.time.LocalDate/now)
+                   earliest (.minusDays today max-backfill-days)]
+               (and (not (.isAfter d today))
+                    (not (.isBefore d earliest))))
+             (catch java.time.format.DateTimeParseException _ false)))))
+
 (def create-entry-schema
   [:map
+   [:date {:optional true}
+    [:maybe [:and :string [:fn valid-backfill-date?]]]]
    [:mood_score [:int {:min 0 :max 10}]]
    [:energy [:int {:min 0 :max 10}]]
    [:anxiety [:int {:min 0 :max 10}]]
@@ -73,9 +94,9 @@
   (or (let [days (keep (fn [d]
                          (when-let [m (mean-non-nil (map axis (get by-date d)))]
                            [m (math/pow 0.5 (/ (.between java.time.temporal.ChronoUnit/DAYS
-                                                (java.time.LocalDate/parse d)
-                                                today)
-                                              half-life))]))
+                                                         (java.time.LocalDate/parse d)
+                                                         today)
+                                               half-life))]))
                        dates)]
         (when-let [xs (seq days)]
           (let [wsum (reduce + (map second xs))]
@@ -108,13 +129,17 @@
   (or v ""))
 
 (defn create-entry
-  [ds user-id {:keys [activity effect mood_score energy anxiety focus
+  "Создать запись владельца. date — ISO-дата из формы (бэкфилл) или nil →
+   сегодня (серверные часы). Период для привязки (если state_period_id не
+   задан явно): период, накрывающий дату записи, иначе активный."
+  [ds user-id {:keys [date activity effect mood_score energy anxiety focus
                       sleep_hours note template state_label state_period_id]}]
-  ;; При создании записи, если активен период состояния и не передан явный
-  ;; state_period_id — привязать запись к активному периоду (Decision 6.1).
-  (let [sp-id (or state_period_id (periods/get-active-period-id ds user-id))]
+  (let [entry-date (or date (today))
+        sp-id (or state_period_id
+                  (some-> (periods/get-period-covering-date ds user-id entry-date) :id)
+                  (periods/get-active-period-id ds user-id))]
     (db/create-entry! ds {:user-id user-id
-                          :date (today)
+                          :date entry-date
                           :activity (non-nil-str activity)
                           :effect (non-nil-str effect)
                           :mood-score mood_score

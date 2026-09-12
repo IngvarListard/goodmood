@@ -18,13 +18,14 @@ const OPENROUTER_API_KEY =
 
 export default defineConfig({
   testDir: './tests',
+  globalSetup: './global-setup.ts',
   outputDir: path.join(projectRoot, '.opencode', 'artifacts', 'e2e'),
   fullyParallel: false,
-  // workers: 2 пробовали (изоляция юзеров уже есть, helpers.workerUser):
-  // SQLite сериализует записи, воркеры начинают ждать друг друга по
-  // busy_timeout — полный прогон ЗАМЕДЛЯЕТСЯ с 2.5 до 6.5 мин. Вернуть
-  // имеет смысл только вместе с распараллеливанием записи (или PG).
-  workers: 1,
+  // workers: 2 — WAL + busy_timeout (59e9306) сняли SQLITE_BUSY при
+  // параллельной записи; изоляция юзеров по воркерам есть (workerUser).
+  // Старый вывод про 6.5 мин написан до WAL. Если снова замедлится —
+  // вернуть 1.
+  workers: 2,
   timeout: 30000,
   expect: { timeout: 10000 },
   reporter: [

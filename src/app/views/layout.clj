@@ -19,6 +19,37 @@
 ;; PWA (change add-pwa-push): тема должна совпадать с manifest.webmanifest
 (def theme-color "#5b5bea")
 
+(defn- euro-date
+  "ISO «YYYY-MM-DD» → «DD.MM.YYYY»; невалидное значение — как есть."
+  [iso]
+  (if-let [[_ y m d] (and iso (re-matches #"(\d{4})-(\d{2})-(\d{2})" (str iso)))]
+    (str d "." m "." y)
+    (str iso)))
+
+(defn date-field
+  "Поле даты «DD.MM.YYYY»: нативный date-пикер прозрачен и лежит поверх
+   текста (формат показа пикера задаётся локалью браузера и со страницы
+   не управляется — Chromium рисует MM/DD/YYYY даже при lang=ru), скрытый
+   input держит ISO для сабмита. Opts: :min/:max (ISO), :disabled?."
+  [{:keys [name value id min max disabled?]}]
+  [:div {:class "relative"}
+   [:span {:id (str id "-display")
+           :class "input input-bordered w-full flex items-center px-3 cursor-pointer"}
+    (if (seq (str value)) (euro-date value) "")]
+   [:input {:type "hidden" :name name :id (str id "-iso") :value value
+            :disabled disabled?}]
+   [:input (cond-> {:id id :type "date" :value value :min min :max max
+                    :class "absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                    :aria-label id
+                    :_ (str "on click js(me) { try { me.showPicker() } catch (e) {} } end
+                              on input
+                              set #" id "-iso.value to my value
+                              if my value == ''
+                                set #" id "-display.innerHTML to ''
+                              else
+                                set #" id "-display.innerHTML to (my value).split('-').reverse().join('.')")}
+             disabled? (assoc :disabled true))]])
+
 (defn html-attrs
   "Атрибуты <html>: язык и тема. Для :system атрибут data-theme не ставится —
    его установит inline-скрипт из head по prefers-color-scheme."

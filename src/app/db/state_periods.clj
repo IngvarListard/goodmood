@@ -44,6 +44,24 @@
   [ds user-id]
   (:id (get-active-period ds user-id)))
 
+(defn get-period-covering-date
+  "Период пользователя, накрывающий дату записи (YYYY-MM-DD), или nil.
+   Сравнение через date(): started_at/ended_at — datetime-строки, запись
+   датой «02.09» цепляется к периоду, начавшемуся 02.09 в любое время."
+  [ds user-id date]
+  (first (jdbc/execute!
+          ds
+          (sql/format {:select [:*]
+                       :from [:state_periods]
+                       :where [:and
+                               [:= :user_id user-id]
+                               [:<= [:date :started_at] date]
+                               [:or [:is :ended_at nil]
+                                [:>= [:date :ended_at] date]]]
+                       :order-by [[:started_at :desc]]
+                       :limit 1})
+          default-opts)))
+
 (defn get-period
   "Период по id+user_id или nil (чужой/несуществующий)."
   [ds user-id id]

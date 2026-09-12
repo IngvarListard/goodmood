@@ -4,11 +4,12 @@
             [cheshire.core :as json]))
 
 (defn- format-date
-  "Дата «YYYY-MM-DD» из SQLite datetime (обрезаем время)."
+  "Дата «DD.MM.YYYY» из SQLite datetime (обрезаем время, меняем формат)."
   [date]
   (when date
-    (let [s (str date)]
-      (if (>= (count s) 10) (subs s 0 10) s))))
+    (let [s (subs (str date) 0 (min 10 (count (str date))))
+          [_ y m d] (re-matches #"(\d{4})-(\d{2})-(\d{2})" s)]
+      (if y (str d "." m "." y) s))))
 
 (defn- start-period-modal
   "Модалка начала периода: пресеты ярлыков (быстрый старт) + свободный ввод

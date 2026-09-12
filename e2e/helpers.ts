@@ -1,5 +1,6 @@
 import { execSync } from 'node:child_process';
 import path from 'node:path';
+import fs from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { Page, expect } from '@playwright/test';
 
@@ -8,6 +9,14 @@ const __dirname = path.dirname(__filename);
 
 // Корень проекта (родитель e2e/)
 export const projectRoot = path.resolve(__dirname, '..');
+
+// Кэш storageState: логин ~1-2 сек, чтение cookie-файла ~мс. gm-session
+// живёт 90 дней — кэш в .auth/ переиспользуется между прогонами.
+const authDir = path.join(projectRoot, 'e2e', '.auth');
+
+export function storageStateFor(email: string): string {
+  return path.join(authDir, `${email.replace(/[^a-z0-9@.-]/gi, '_')}.json`);
+}
 
 // Учётные данные отдельного e2e-юзера (совпадают с dev/seed_e2e_user.clj)
 export const E2E_USER_EMAIL = process.env.E2E_USER_EMAIL ?? 'e2e@goodmood.test';
@@ -41,14 +50,34 @@ export function ensureE2EUser() {
   }
 }
 
-// Войти в приложение через форму на /login. После успеха — редирект на "/feed".
-// По умолчанию — юзер текущего воркера (изоляция параллельных прогонов).
+// Войти в приложение через форму на /login (или переиспользовать кэш
+// storageState: после первого логина юзера сессия восстанавливается из
+// cookie-файла — goto/fill/click не выполняются). После успеха — /feed.
 export async function login(page: Page, email = workerUser().email, password = E2E_USER_PASSWORD) {
+  const stateFile = storageStateFor(email);
+  if (fs.existsSync(stateFile)) {
+    const { cookies } = JSON.parse(fs.readFileSync(stateFile, 'utf8'));
+    await page.context().addCookies(cookies);
+    await page.goto('/feed');
+    // Кэш протух (сессия сброшена рестартом сервера с другим секретом) —
+    // логинимся начисто и перезаписываем кэш.
+    if (page.url().includes('/login')) {
+      await loginFresh(page, email, password);
+    }
+    return;
+  }
+  await loginFresh(page, email, password);
+}
+
+async function loginFresh(page: Page, email: string, password: string) {
   await page.goto('/login');
   await page.fill('input[name="email"]', email);
   await page.fill('input[name="password"]', password);
   await page.click('form[action="/login"] button[type="submit"]');
   await page.waitForURL('**/feed');
+  const stateFile = storageStateFor(email);
+  fs.mkdirSync(authDir, { recursive: true });
+  fs.writeFileSync(stateFile, JSON.stringify({ cookies: await page.context().cookies() }));
 }
 
 // Создать запись настроения через htmx-форму на /check-in.

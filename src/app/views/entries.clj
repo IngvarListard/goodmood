@@ -87,6 +87,14 @@
       (when (>= (count parts) 2)
         (subs (second parts) 0 5)))))
 
+(defn- format-date
+  "Дата «DD.MM.YYYY» из ISO-даты или SQLite datetime (обрезаем время)."
+  [date]
+  (when date
+    (let [s (subs (str date) 0 (min 10 (count (str date))))
+          [_ y m d] (re-matches #"(\d{4})-(\d{2})-(\d{2})" s)]
+      (if y (str d "." m "." y) s))))
+
 (defn- month-name
   "Русское/английское название месяца по номеру (1-12)."
   [month-num]
@@ -233,8 +241,8 @@
        [:label {:class "label px-0 pb-1"}
         [:span {:class "label-text text-base font-medium"}
          (i18n/t :entries/date-label)]]
-       [:input {:type "date" :name "date" :value (:date entry)
-                :class "input input-bordered w-full"}]]
+       (layout/date-field {:name "date" :id (str "entry-date-" id)
+                           :value (:date entry)})]
       [:div {:class "form-control mb-4"}
        [:label {:class "label px-0 pb-1"}
         [:span {:class "label-text text-base font-medium"}
@@ -280,7 +288,7 @@
        [:span {:class "text-sm text-base-content/60 tabular-nums"}
         (or (format-time (:created-at entry)) "")]]
       [:span {:class "text-sm text-base-content/60 tabular-nums"}
-       (str (i18n/t :entries/date-label) ": " (:date entry))]]
+       (format-date (:date entry))]]
      [:p {:class "text-lg font-semibold mt-3"}
       (i18n/t :entries/mood-label {:score (or (:mood-score entry) "-")})]
      [:p {:class "text-sm text-base-content/85"} (axes-line entry)]

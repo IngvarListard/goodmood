@@ -1,5 +1,6 @@
 (ns app.views.check-in
-  (:require [app.i18n :as i18n]
+  (:require [app.domains.entries :as entries]
+            [app.i18n :as i18n]
             [app.views.layout :as layout]
             [app.views.navigation :as navigation]))
 
@@ -61,19 +62,21 @@
    [:input {:type "hidden" :name "template" :id "template-value" :value "morning"}]])
 
 (defn- optional-block
-  "Отрендерить опциональный коллапс-блок: чекбокс-переключатель, заголовок и контент."
-  [label field-id content]
+  "Отрендерить опциональный коллапс-блок: чекбокс-переключатель, заголовок
+   и контент. Toggle включает/выключает все input внутри блока (полей
+   может быть больше одного, напр. date-field)."
+  [label content]
   ;; Аккордеон по макету (design.md Decision 3): bg-base-300 rounded-xl
   [:div {:class "collapse collapse-arrow bg-base-300 rounded-xl mb-2.5"}
    [:input {:type "checkbox"
             ;; set disabled вместо remove/add [disabled]: синтаксис
             ;; remove [attr] from X падает в hyperscript 0.9.93 на этой
             ;; странице (баг был и до редизайна, см. отчёт задачи 3)
-            :_ (str "on change
-                       if me.checked
-                         set #" field-id ".disabled to false
-                       else
-                         set #" field-id ".disabled to true")}]
+            :_ "on change
+                  if me.checked
+                    set the disabled of <input, textarea/> in the closest .collapse to false
+                  else
+                    set the disabled of <input, textarea/> in the closest .collapse to true"}]
 
    [:div {:class "collapse-title text-sm font-medium min-h-0 py-3.5"} label]
    [:div {:class "collapse-content"} content]])
@@ -95,18 +98,18 @@
    [:div {:class "border-t border-base-300 pt-4 mt-2"}
     [:p {:class "text-[10px] uppercase font-bold tracking-wider text-base-content/50 mb-4"}
      (i18n/t :entries/optional)]
-    (optional-block (i18n/t :entries/sleep) "sleep_hours"
+    (optional-block (i18n/t :entries/sleep)
                     [:input {:type "number" :name "sleep_hours" :id "sleep_hours"
                              :data-optional true :disabled true
                              :step "0.1" :min "0" :max "24"
                              :placeholder "7.5"
                              :class "input input-bordered w-full"}])
-    (optional-block (i18n/t :entries/note) "note"
+    (optional-block (i18n/t :entries/note)
                     [:textarea {:name "note" :id "note" :rows "3" :maxlength "500"
                                 :data-optional true :disabled true
                                 :placeholder "..."
                                 :class "textarea textarea-bordered w-full"}])
-    (optional-block (i18n/t :entries/activity) "activity"
+    (optional-block (i18n/t :entries/activity)
                     [:input {:type "text" :name "activity" :id "activity"
                              :data-optional true :disabled true
                              :placeholder "..."
@@ -142,6 +145,19 @@
                 :_ "on click remove .hidden from #soft-targets"}
        (i18n/t :check-in/soft-mode-decline)]]]]])
 
+(defn- date-block
+  "Опциональный блок выбора даты записи (бэкфилл): показ DD.MM.YYYY,
+   по умолчанию свёрнут и disabled — не сабмитится, сервер ставит today.
+   Границы [сегодня − 30; сегодня] продублированы в валидации домена."
+  []
+  (let [today (java.time.LocalDate/now)]
+    (optional-block (i18n/t :entries/date-label)
+                    (layout/date-field {:name "date" :id "date-picker"
+                                        :value (str today)
+                                        :min (str (.minusDays today app.domains.entries/max-backfill-days))
+                                        :max (str today)
+                                        :disabled? true}))))
+
 (defn form
   "Сформировать HTMX-форму создания записи. При успехе — редирект на /feed?saved=1.
    soft? — показывать баннер мягкого режима (последняя запись low/mixed)."
@@ -159,8 +175,7 @@
                  end"
            :class "card bg-base-200 p-4"}
     [:input {:type "hidden" :name "__anti-forgery-token" :value csrf-token}]
-    (template-tabs)
-    [:div {:id "form-error" :class "mb-3"}]
+    (template-tabs) (date-block) [:div {:id "form-error" :class "mb-3"}]
     (mood-range)
     (soft-fields)
     ;; Save-кнопка по макету design/otmetka.html: gradient + glow-тень

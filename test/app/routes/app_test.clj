@@ -202,13 +202,29 @@
       (is (str/includes? body "Как ты сегодня?"))
       (is (str/includes? body "href=\"/check-in\"")))))
 
-(deftest feed-page-hero-card-with-radar
-  (testing "GET /feed with today's entries shows hero card with SVG radar"
+(deftest feed-page-hero-card-with-chart
+  (testing "GET /feed with entries on 2 days shows hero card with time-series chart"
+    (post-entries {:mood_score 5 :energy 8 :anxiety 7 :focus 3})
+    (db/create-entry! @ds-atom
+                      {:user-id 1
+                       :date (str (.minusDays (java.time.LocalDate/now) 1))
+                       :activity "" :effect ""
+                       :mood-score 6 :energy 6 :anxiety 4
+                       :created-at (str (.minusDays (java.time.LocalDate/now) 1)
+                                        " 12:00:00")})
+    (let [body (body-text (get-html-page "/feed"))]
+      (is (str/includes? body "data-gm-chart"))
+      (is (str/includes? body "<canvas"))
+      (is (not (str/includes? body "Роза ветров")))
+      (is (str/includes? body ">смешанное<")))))
+
+(deftest feed-page-hero-chart-fallback-with-one-day
+  (testing "GET /feed with a single day of data shows chart fallback, not canvas"
     (post-entries {:mood_score 5 :energy 8 :anxiety 7 :focus 3})
     (let [body (body-text (get-html-page "/feed"))]
-      (is (str/includes? body "<svg"))
-      (is (str/includes? body "Роза ветров"))
-      (is (str/includes? body ">смешанное<")))))
+      (is (str/includes? body "id=\"feed-chart\""))
+      (is (not (str/includes? body "data-gm-chart")))
+      (is (str/includes? body "Недостаточно данных")))))
 
 (deftest feed-page-groups-past-days
   (testing "GET /feed groups past-day entries under date headers"

@@ -11,8 +11,8 @@
 (def json-enc-src "https://unpkg.com/htmx.org@2.0.10/dist/ext/json-enc.js")
 (def hyperscript-src "https://unpkg.com/hyperscript.org@0.9.93/dist/_hyperscript.min.js")
 
-;; Chart.js (UMD, pinned): рисует радар «роза ветров» на /feed;
-;; сам рендерер — локальный статик /js/radar.js (resources/public/js)
+;; Chart.js (UMD, pinned): рисует линейный график состояния на /feed;
+;; сам рендерер — локальный статик /js/feed-chart.js (resources/public/js)
 (def chart-js-src "https://cdn.jsdelivr.net/npm/chart.js@4.5.1/dist/chart.umd.js")
 (def tailwind-src "https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4")
 (def daisyui-href "https://cdn.jsdelivr.net/npm/daisyui@5.7.15/daisyui.css")
@@ -126,9 +126,9 @@
    [:script {:src htmx-src}]
    [:script {:src json-enc-src}]
    [:script {:src hyperscript-src}]
-   ;; defer сохраняет порядок: radar.js видит window.Chart
+   ;; defer сохраняет порядок: feed-chart.js видит window.Chart
    [:script {:defer true :src chart-js-src}]
-   [:script {:defer true :src "/js/radar.js"}]
+   [:script {:defer true :src "/js/feed-chart.js"}]
    ;; push.js регистрирует service worker на каждой странице (installability)
    [:script {:defer true :src "/js/push.js"}]
    ;; PWA: манифест + цвет статус-бара Android; VAPID-ключ приезжает в meta
@@ -170,8 +170,8 @@
       --color-base-200: #f1ede5;
       --color-base-300: #e6e0d5;
       --color-base-content: #4a4238;
-      /* Явные hex (не oklch от daisyUI): radar.js дописывает hex-альфу
-         к --color-primary/--color-secondary для градиента радара */
+      /* Явные hex (не oklch от daisyUI): feed-chart.js читает
+         --color-primary/--color-secondary через getComputedStyle */
       --color-primary: #5b5bea;
       --color-secondary: #7c5ce0;
     }

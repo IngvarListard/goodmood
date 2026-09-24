@@ -9,8 +9,8 @@ import {
 
 test.beforeAll(ensureE2EUser);
 
-// /feed — лента записей с розой ветров (Фаза 2). Регрессионный кейс:
-// старые записи с незаполненными осями (energy/anxiety nil) не должны
+// /feed — лента записей с линейным графиком состояния (Фаза 2). Регрессионный
+// кейс: старые записи с незаполненными осями (energy/anxiety nil) не должны
 // ронять страницу 500.
 
 test.describe('feed', () => {
@@ -21,11 +21,11 @@ test.describe('feed', () => {
     await expect(page.getByRole('link', { name: /Создать запись|Create entry/ })).toBeVisible();
   });
 
-  test('entry created via /check-in appears as hero card with radar on /feed', async ({ page }) => {
+  test('entry created via /check-in appears as hero card with chart on /feed', async ({ page }) => {
     await login(page);
     await submitEntry(page, { mood: 8, energy: 8, anxiety: 2 });
-    // hero-карточка последней записи сегодня: радар + ярлык "подъём"/elevated
-    await expect(page.locator('article canvas[role="img"][aria-label*="Роза ветров"]').first()).toBeVisible();
+    // hero-карточка последней записи сегодня: график (#feed-chart) + ярлык
+    await expect(page.locator('#feed-chart').first()).toBeVisible();
     // Ярлык состояния ищем внутри hero-карточки: тот же текст есть в
     // свёрнутом теле summary-баннера (скрытом по умолчанию).
     await expect(page.locator('article').getByText(/подъём|elevated/, { exact: false }).first()).toBeVisible();

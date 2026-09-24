@@ -7,8 +7,8 @@
             [app.views.layout :as layout]
             [app.views.navigation :as navigation]
             [app.views.notifications :as notifications]
-            [app.views.rose :as rose]
             [app.views.state-periods :as sp]
+            [cheshire.core :as json]
             [clojure.math :as math]
             [clojure.string :as str]))
 
@@ -129,14 +129,15 @@
   [v]
   (math/round (- 30 (* (/ v 10.0) 24))))
 
-(defn- mood-fill-class
-  "Класс заливки точки по порогам задачи 5: ≤3 — fill-success,
-   4–6 — fill-warning, ≥7 — fill-error."
+(defn- mood-fill-style
+  "Inline-заливка точки по порогам задачи 5: ≤3 — success, 4–6 — warning,
+   ≥7 — error. Явные CSS-переменные вместо daisyUI fill-* (их не генерирует
+   Tailwind browser CDN — точки рендерились чёрными, design D9)."
   [v]
   (cond
-    (<= v 3) "fill-success"
-    (<= v 6) "fill-warning"
-    :else "fill-error"))
+    (<= v 3) {:fill "var(--color-success)"}
+    (<= v 6) {:fill "var(--color-warning)"}
+    :else {:fill "var(--color-error)"}))
 
 (defn- week-range-label
   "Диапазон недели слева от графика (как в макете «9 — 15 мая»); при
@@ -177,13 +178,13 @@
           [:svg {:xmlns "http://www.w3.org/2000/svg"
                  :viewBox "0 0 300 34" :class "w-full h-[34px]"}
            [:polyline {:points pts-str
-                       :class "stroke-primary"
+                       :style {:stroke "var(--color-primary)"}
                        :fill "none" :stroke-width 2}]
            (map-indexed (fn [i v]
                           (if (some? v)
                             [:circle {:cx (chart-point-x i)
                                       :cy (mood-point-y v) :r 6
-                                      :class (mood-fill-class v)}]
+                                      :style (mood-fill-style v)}]
                             [:circle {:cx (chart-point-x i)
                                       :cy chart-mid-y :r 6
                                       :class "fill-none stroke-base-content/40 stroke-2"}]))
@@ -230,15 +231,80 @@
      (metric-chip :entries/aggression "hand-raised"
                   "--gm-metric-aggression" (:aggression entry))]]])
 
+(def ^:private chart-datasets
+  "Датасеты графика: оси + составной последним (design D4/D8)."
+  [{:key :mood-score :label-kw :entries/mood :color-var "--color-secondary"}
+   {:key :energy :label-kw :entries/energy :color-var "--gm-metric-energy"}
+   {:key :anxiety :label-kw :entries/anxiety :color-var "--gm-metric-anxiety"}
+   {:key :focus :label-kw :entries/focus :color-var "--gm-metric-focus"}
+   {:key :aggression :label-kw :entries/aggression
+    :color-var "--gm-metric-aggression"}
+   {:key :composite :label-kw :feed/overall-mood :color-var "--color-primary"}])
+
+(defn- chart-payload
+  "JSON-полезная нагрузка canvas: labels + datasets (составной последний)."
+  [{:keys [dates axes composite]}]
+  {:labels dates
+   :datasets (mapv (fn [{:keys [key label-kw color-var]}]
+                     {:key (name key)
+                      :label (i18n/t label-kw)
+                      :values (if (= key :composite) composite (get axes key))
+                      :colorVar color-var})
+                   chart-datasets)})
+
+(defn- data-day-count
+  "Число дней окна, где есть хотя бы одно значение любой оси."
+  [{:keys [composite]}]
+  (count (filter some? composite)))
+
+(defn- chart-period-btn
+  "Кнопка-переключатель периода графика: hx-get /feed/chart?period=…
+   свапает контейнер #feed-chart (outerHTML); активная подсвечена и
+   помечена aria-pressed."
+  [current p label-kw]
+  [:button {:class (if (= current p)
+                     "btn btn-xs btn-primary"
+                     "btn btn-xs btn-ghost")
+            ;; строкой: hiccup рендерит boolean true как голый атрибут
+            :aria-pressed (if (= current p) "true" "false")
+            :hx-get (str "/feed/chart?period=" (name p))
+            :hx-target "#feed-chart"
+            :hx-swap "outerHTML"}
+   (i18n/t label-kw)])
+
+(defn- chart-period-switcher
+  "Переключатель 3 дня / неделя / месяц (дефолт — неделя, design D5/D6)."
+  [period]
+  [:div {:class "flex justify-center gap-1 mt-1"}
+   (chart-period-btn period :3d :feed/period-3d)
+   (chart-period-btn period :week :feed/period-week)
+   (chart-period-btn period :month :feed/period-month)])
+
+(defn chart-fragment
+  "Фрагмент линейного графика для hero-карточки /feed (design D3/D6/D10):
+   canvas[data-gm-chart] 200×200 с кнопками периода или приглушённый
+   fallback-текст при < 2 днях данных. series — daily-axis-series;
+   period — :3d/:week/:month."
+  [series period]
+  [:div {:id "feed-chart" :class "shrink-0 mx-auto"}
+   (if (< (data-day-count series) 2)
+     [:div {:class "w-[200px] h-[200px] flex items-center justify-center px-3 text-center"}
+      [:p {:class "text-[13px] text-base-content/60"}
+       (i18n/t :feed/chart-no-data)]]
+     [:canvas {:width 200 :height 200
+               :role "img"
+               :aria-label (i18n/t :feed/chart-aria)
+               :data-gm-chart (json/generate-string (chart-payload series))}])
+   (chart-period-switcher period)])
+
 (defn- hero-card
-  "Hero-карточка последней записи сегодня: радар периода (контейнер
-   #radar-period, дефолт — день) + метаданные записи.
-   radar — готовый фрагмент app.views.rose/period-radar."
-  [{:keys [sleep-hours note created-at] :as entry} radar]
+  "Hero-карточка последней записи сегодня: график периода (контейнер
+   #feed-chart) + метаданные записи. chart — фрагмент feed/chart-fragment."
+  [{:keys [sleep-hours note created-at] :as entry} chart]
   [:article {:class "card bg-base-200 shadow-md"}
    [:div {:class "card-body p-4"}
     [:div {:class "flex flex-col sm:flex-row gap-4 items-start"}
-     radar
+     chart
      [:div {:class "flex-1 min-w-0 w-full"}
       [:div {:class "flex items-center justify-between"}
        [:span {:class (str (state-badge-class entry) " text-[13px]")}
@@ -298,10 +364,10 @@
    карточки остальных записей дня, или онбординг при отсутствии записей.
    state-label: текущий state_label последней записи сегодня (для виджета).
    insight: 1 релевантный инсайт или nil.
-   radar: фрагмент радара периода (rose/period-radar).
+   chart: фрагмент линейного графика периода (feed/chart-fragment).
    В мягком состоянии (low/mixed) виджет поднимается выше hero — акцент
    на совете, не на фиксации боли (Decision 14.4)."
-  [today-entries state-label insight radar & [ai-advice]]
+  [today-entries state-label insight chart & [ai-advice]]
   (let [soft? (and state-label (contains? #{"low" "mixed"} state-label))]
     [:section {:class "mb-6"}
      [:h2 {:class "text-sm font-medium text-base-content/60 mb-2 uppercase tracking-wide"}
@@ -310,8 +376,8 @@
        (let [latest (first today-entries)
              rest-entries (rest today-entries)
              soft-order? (list (insights/feed-widget state-label insight ai-advice)
-                               (hero-card latest radar))
-             normal-order? (list (hero-card latest radar)
+                               (hero-card latest chart))
+             normal-order? (list (hero-card latest chart)
                                  (insights/feed-widget state-label insight ai-advice))]
          [:div
           (if soft?
@@ -359,22 +425,20 @@
 
 (defn page
   "Отрендерить страницу /feed: лента записей, сгруппированных по дням.
-   Последняя запись сегодня — hero-карточка с радаром периода (день по
-   умолчанию); прошедшие дни — timeline-секции с точками состояния и
-   чипами метрик.
+   Последняя запись сегодня — hero-карточка с линейным графиком периода
+   (неделя по умолчанию); прошедшие дни — timeline-секции с точками
+   состояния и чипами метрик.
    Под hero — виджет инсайтов (state-label, insight).
    request: ring-запрос; entries: вектор записей (date desc, created_at desc).
    opts: map с ключами :toast-insight (toast после сохранения),
    :summary (map {:show :csrf :state-label :insight} для вечерней сводки),
-   :period (map {:active :list :csrf} для секции периода) и
+   :period (map {:active :list :csrf} для секции периода),
+   :chart (фрагмент feed/chart-fragment для hero) и
    :ai (map {:csrf :correlations :label :advice :novel} для секций AI)."
-  [request entries state-label insight & [{:keys [toast-insight summary period ai csrf episode]}]]
+  [request entries state-label insight & [{:keys [toast-insight summary period ai csrf episode chart]}]]
   (let [grouped (group-by :date entries)
         today (str (java.time.LocalDate/now))
         today-entries (get grouped today)
-        ;; Радар периода (дефолт — день): пустой период в hero невозможен —
-        ;; hero рендерится только при записях сегодня, а окно дня = [сегодня].
-        radar (rose/period-radar (domains/period-axes entries :day) :day)
         past-dates (remove #{today} (keys grouped))
         content [:div {}
                  (when toast-insight
@@ -396,7 +460,7 @@
                  (when period
                    (period-banner period))
                  (when ai
-                   (today-section today-entries state-label insight radar
+                   (today-section today-entries state-label insight chart
                                   {:csrf (:csrf ai)
                                    :findings (:advice ai)}))
                  (when ai
@@ -408,7 +472,7 @@
                  (when (and ai (seq (:novel ai)))
                    (ai/ai-novel-advice (:csrf ai) (:novel ai)))
                  (when-not ai
-                   (today-section today-entries state-label insight radar))
+                   (today-section today-entries state-label insight chart))
                  (when period
                    (sp/period-list (:list period)))
                  (past-day-section past-dates grouped)]]

@@ -4,7 +4,6 @@
             [app.domains.insights :as insights]
             [app.domains.notification-settings :as notif-domains]
             [app.domains.state-periods :as periods]
-            [app.views.rose :as rose]
             [app.views.feed :as views]
             [clojure.string :as str]
             [app.routes.html :refer [html-response]]))
@@ -24,11 +23,11 @@
           novel (when (ai/novel-advice-enabled? ds user-id)
                   (ai/list-novel-advice ds user-id))]
       (when (or (seq correlations) (seq label) (seq advice) (seq novel))
-        {:csrf         csrf-token
+        {:csrf csrf-token
          :correlations correlations
-         :label        label
-         :advice       advice
-         :novel        novel}))))
+         :label label
+         :advice advice
+         :novel novel}))))
 
 (defn- raw-state-label
   "Вернуть raw state_label строки (без префикса :state/), если он задан;
@@ -94,20 +93,18 @@
                    (catch Exception e
                      (println "Background episode trend analysis failed:" (.getMessage e))))))))
 
-(defn radar
-  "GET /feed/radar?period=day|week|month — фрагмент радара периода для
-   hero-карточки /feed. Невалидный period трактуется как день (design D3)."
+(defn chart
+  "GET /feed/chart?period=3d|week|month — фрагмент линейного графика для
+   hero-карточки /feed. Невалидный period трактуется как неделя (design D5)."
   [ds request]
   (let [uid (get-in request [:identity :id])
         period (case (get-in request [:query-params "period"])
-                 "week" :week
+                 "3d" :3d
                  "month" :month
-                 :day)
-        entries (entries/list-entries ds uid)
-        empty? (not (some (comp (entries/period-dates period) :date) entries))]
-    (html-response 200 (rose/period-radar
-                        (entries/period-axes entries period)
-                        period empty?))))
+                 :week)]
+    (html-response 200 (views/chart-fragment
+                        (entries/daily-axis-series ds uid period)
+                        period))))
 
 (defn page
   "Показать ленту записей («мой день») для аутентифицированного пользователя.
@@ -138,11 +135,14 @@
         periods-list (periods/list-periods ds user-id)
         period {:active active-period
                 :list periods-list
-                :csrf (get-in request [:anti-forgery-token])}]
+                :csrf (get-in request [:anti-forgery-token])}
+        chart (views/chart-fragment (entries/daily-axis-series ds user-id :week)
+                                    :week)]
     (html-response 200 (views/page request entries state-label insight
                                    {:toast-insight toast-insight
                                     :csrf (get-in request [:anti-forgery-token])
                                     :episode episode
+                                    :chart chart
                                     :summary {:show summary?
                                               :csrf (get-in request [:anti-forgery-token])
                                               :state-label state-label

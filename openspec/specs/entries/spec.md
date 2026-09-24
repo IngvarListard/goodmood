@@ -417,62 +417,6 @@ The system SHALL keep the entries page readable and functional on a mobile viewp
 - **THEN** each range slider track has height ≥ 2rem (32px)
 - **AND** the label + slider combination creates a touch target ≥ 44px tall
 
-### Requirement: Feed page renders entries with rose-of-winds
-
-The system SHALL render a `/feed` page as the landing page after login, displaying the user's entries grouped by date. The latest entry of the current day SHALL be rendered as a hero card with a 200×200px radar chart rendered client-side (canvas + Chart.js, see "Read-only radar chart renders rose-of-winds"). Other entries SHALL be rendered as compact cards with a state-label badge, timestamp, and axis values as text. In low/mixed states the insights widget SHALL be rendered above the hero card (emphasis on advice over state fixation). The page SHALL render an evening summary banner at the top (before the «Лента» heading) when local time is ≥ 18:00, today has entries, and the summary has not been shown today: тонкий однострочный баннер с тёмным фоном, левой акцентной полосой и крестиком закрытия — без сплошной цветной заливки (`alert-info` не используется) и без встроенной карточки инсайта (совет для состояния живёт только в отдельной карточке совета, см. feed-timeline). Страница не содержит инлайн-чата.
-
-#### Scenario: Feed shows hero card with radar
-- **GIVEN** the user is logged in and has entries today
-- **WHEN** they open `/feed`
-- **THEN** the latest entry today is rendered as a hero card
-- **AND** the hero card contains a 200×200px canvas radar
-- **AND** the hero card shows the state-label badge and timestamp
-- **AND** the radar polygon reflects the entry's axis values
-
-#### Scenario: Feed shows compact cards for other entries
-- **GIVEN** the user has 3 entries today
-- **WHEN** they open `/feed`
-- **THEN** the latest entry is the hero card with radar
-- **AND** the other 2 entries are compact cards (no radar)
-- **AND** each compact card shows: «состояние» label, state badge, timestamp, and «энергия X · тревога Y · фокус Z» text
-
-#### Scenario: Feed groups past days under date headers
-- **GIVEN** the user has entries on 2026-08-21 and 2026-08-20
-- **WHEN** they open `/feed`
-- **THEN** past-day entries appear under date headers («21 августа», «20 августа»)
-- **AND** past-day cards use `bg-base-300` (more compact than today's `bg-base-200`)
-
-#### Scenario: Feed empty state
-- **GIVEN** the user has no entries today
-- **WHEN** they open `/feed`
-- **THEN** an onboarding message «Как ты? Создай первую запись» is shown
-- **AND** a button linking to `/check-in` is displayed `[ref: A3-q1]`
-
-#### Scenario: Insights widget raised above hero in low state
-- **GIVEN** the latest entry has `state_label='low'` or `mixed`
-- **WHEN** they open `/feed`
-- **THEN** the insights widget is rendered above the hero card (not below it)
-- **AND** the hero card remains visible below the widget `[ref: design.md Decision 14.4]`
-
-#### Scenario: Evening summary banner at top of feed
-- **GIVEN** local time is ≥ 18:00, today has entries, and the summary was not shown today
-- **WHEN** they open `/feed`
-- **THEN** a thin one-line banner «Сводка на завтра готова» is rendered before the «Лента» heading
-- **AND** the banner uses dark surface with a left accent stripe, no solid `alert-info` fill
-- **AND** the banner has a «посмотреть» link and a dismiss cross, dismisses for the day `[ref: A4-q1, OQ6]`
-- **AND** the banner does not embed the advice/insight content (no duplication with the advice card)
-
-#### Scenario: No summary banner before 18:00
-- **GIVEN** local time is before 18:00
-- **WHEN** they open `/feed`
-- **THEN** no evening summary banner is rendered
-- **AND** no empty placeholder is shown
-
-#### Scenario: No inline chat on feed
-- **GIVEN** пользователь на `/feed`
-- **WHEN** страница отрендерена
-- **THEN** в теле ленты нет кнопки «Чат» и инлайн-панели `#ai-chat-open`
-
 ### Requirement: Feed is the landing page after login
 The system SHALL redirect authenticated users from `/` and `/dashboard` to `/feed`.
 
@@ -485,47 +429,6 @@ The system SHALL redirect authenticated users from `/` and `/dashboard` to `/fee
 - **GIVEN** an authenticated user navigates to `/dashboard`
 - **WHEN** the server processes the request
 - **THEN** the user is redirected to `/feed`
-
-### Requirement: Read-only radar chart renders rose-of-winds
-The system SHALL render a read-only radar chart («роза ветров») on the feed page for the latest entry of the current day as a 200×200px `<canvas role="img">` drawn client-side by Chart.js (pinned 4.x via CDN). The server SHALL render the canvas element with: a server-generated `aria-label` containing the axis values («Роза ветров: энергия X, тревога Y, фокус Z»), and a `data-gm-radar` attribute with JSON payload `{labels, values}` where labels are i18n-generated axis names and values are the axis values (0–10, nil allowed for absent). The chart SHALL display 3 mandatory axes (energy, anxiety, focus) and optionally a 4th axis (mood_score), ordered so that energy points up and axes proceed clockwise (θ_i = −π/2 + 2π·i/n). Visual style: radial gradient fill from secondary to primary color, white point markers with primary-color border and soft glow, circular grid rings in low-opacity base-content color, hidden radial ticks (scale 0–10), i18n point labels.
-
-#### Scenario: Radar renders 3-axis polygon
-- **GIVEN** the latest entry today has energy=4, anxiety=7, focus=3, mood_score=nil
-- **WHEN** the feed page renders the hero card
-- **THEN** a canvas of 200×200px is rendered with `role="img"` and server-generated aria-label «Роза ветров: энергия 4, тревога 7, фокус 3»
-- **AND** the `data-gm-radar` attribute contains JSON with 3 i18n labels and values [4,7,3]
-- **AND** Chart.js draws a 3-vertex polygon after page load
-
-#### Scenario: Radar renders 4-axis polygon with mood_score
-- **GIVEN** the latest entry today has energy=4, anxiety=7, focus=3, mood_score=5
-- **WHEN** the feed page renders the hero card
-- **THEN** the `data-gm-radar` payload has 4 labels/values
-- **AND** the polygon has 4 vertices (energy, anxiety, focus, mood_score)
-
-#### Scenario: Radar redraws after htmx navigation
-- **GIVEN** the user navigates via hx-boost links (feed → check-in → feed)
-- **WHEN** the feed body is swapped by htmx
-- **THEN** the new canvas is drawn (initializer listens to DOMContentLoaded and htmx:afterSettle)
-- **AND** canvases are drawn exactly once (`data-gm-drawn` marker prevents redraw loops)
-
-#### Scenario: Radar is read-only
-- **GIVEN** the radar canvas is rendered on the feed page
-- **WHEN** the user interacts with it
-- **THEN** no interactive elements (sliders, inputs) are present within the chart
-- **AND** editing is only possible via the `/check-in` form sliders
-
-#### Scenario: Radar adapts to theme colors
-- **GIVEN** the app uses DaisyUI dark theme (`data-theme="dark"`)
-- **WHEN** the radar is drawn
-- **THEN** fill gradient, point borders and glow use colors read from CSS custom properties (`--color-primary`, `--color-secondary`)
-- **AND** grid and labels use base-content-derived colors
-- **AND** the radar is visible on dark background without hardcoded black/white colors
-
-#### Scenario: Degradation without JavaScript
-- **GIVEN** JavaScript is disabled or the Chart.js CDN is blocked
-- **WHEN** the feed page renders
-- **THEN** the canvas remains empty without runtime errors breaking the page
-- **AND** the axis values remain accessible via the hero card's `axes-line` text and metric chips
 
 ### Requirement: Rule-based state label derivation
 The system SHALL derive a human-readable state label from the energy and anxiety axis values using a deterministic rule-based function (no AI). The function SHALL return one of 6 keywords: `:state/mixed`, `:state/anxiety`, `:state/elevated`, `:state/low`, `:state/balanced`, `:state/neutral`. Rules SHALL be evaluated first-match-wins in specificity-descending order.
@@ -590,18 +493,22 @@ The system SHALL render state labels as localized text (keyword → `i18n/t`) us
 - **AND** no emoji, icon, or color-only indicator is used for the label
 
 ### Requirement: State is not bipolar good/bad
-The system SHALL NOT reduce state to a binary «good mood» vs «bad mood» dimension; the multi-axis radar and the 6-label set reflect the spectral nature of affective instability.
+
+The system SHALL NOT reduce state to a binary «good mood» vs «bad mood» dimension; the multi-axis time-series chart and the 6-label set reflect the spectral nature of affective instability.
 
 #### Scenario: Mixed state logged without forced binary choice
+
 - **GIVEN** a user feels simultaneously high energy and high anxiety
 - **WHEN** they create an entry with energy=8, anxiety=7
 - **THEN** the state label `:state/mixed` is derived
 - **AND** the system does not force the user to choose «good» or «bad» `[ref: A1-q2, A2-q7]`
 
 ### Requirement: AI-proposed state deferred to Phase 5
-The system SHALL NOT propose a state distribution or label via AI in Phase 2. AI-proposed rose and AI-override of user-corrected rose are deferred to Phase 5 (`add-ai-correlations`).
+
+The system SHALL NOT propose a state distribution or label via AI in Phase 2. AI-proposed state and AI-override of a user-corrected state are deferred to Phase 5 (`add-ai-correlations`).
 
 #### Scenario: No AI proposal in Phase 2
+
 - **GIVEN** a user creates an entry in Phase 2
 - **WHEN** the entry is saved and rendered on the feed
 - **THEN** the state label is derived purely from the rule-based function
@@ -807,4 +714,67 @@ The system SHALL support an optional `aggression` axis alongside energy, anxiety
 - **GIVEN** energy=4, anxiety=7, aggression=10
 - **WHEN** the state label is derived
 - **THEN** the result is `:state/anxiety` (aggression is not used in rule evaluation)
+
+### Requirement: Daily axis means for the feed time-series chart
+
+The system SHALL compute, for a bounded period window (3, 7 or 30 days ending today), a per-day mean for each tracked axis (`mood_score`, `energy`, `anxiety`, `focus`, `aggression`) and a composite series. The per-day mean of an axis SHALL be the arithmetic mean of that axis's non-nil values for the day, or nil when the day has no value for that axis. The composite value of a day SHALL be the mean over the available axes of `[mood_score, energy, focus, 10−anxiety, 10−aggression]`. The aggregation SHALL be computed from a database query bounded by the window (`date >= today − (window − 1)`), not from all of the user's entries. A reusable per-day-mean helper SHALL be retained.
+
+#### Scenario: Per-day mean across multiple entries
+
+- **GIVEN** за день две записи с `energy` = 4 и `energy` = 8
+- **WHEN** вычисляется ряд по дням
+- **THEN** значение `energy` за этот день = 6
+- **AND** день с единственной записью даёт значение самой записи
+
+#### Scenario: Missing day is a gap
+
+- **GIVEN** в окне из 7 дней записи есть только в 2 днях
+- **WHEN** строится ряд по дням
+- **THEN** у остальных 5 дней значение соответствующей оси = nil (разрыв линии)
+
+#### Scenario: Composite inverts anxiety and aggression
+
+- **GIVEN** за день `mood_score`=6, `energy`=8, `focus`=6, `anxiety`=2, `aggression`=4
+- **WHEN** вычисляется составной ряд
+- **THEN** значение = среднее [6, 8, 6, 10−2, 10−4] = 6.8
+
+#### Scenario: Window is bounded
+
+- **GIVEN** у пользователя есть записи за последний год
+- **WHEN** запрашивается окно в 3 дня
+- **THEN** в выборку из БД попадают только записи за последние 3 дня
+- **AND** все записи пользователя в память не загружаются
+
+### Requirement: Time-series chart canvas contract
+
+The system SHALL render the feed hero time-series chart as a `<canvas role="img" data-gm-chart="...">` whose JSON payload is `{labels: [ISO dates], datasets: [{key, label, values, colorVar}]}` with one dataset per tracked axis (`mood_score`, `energy`, `anxiety`, `focus`, `aggression`) plus one composite dataset. The composite dataset SHALL be last. `label` SHALL be i18n-generated; `values` SHALL contain numbers or null (nil for a day without data); `colorVar` SHALL name a CSS custom property. The server SHALL generate an i18n `aria-label`. The client renderer SHALL draw a Chart.js line chart with X = days and Y = 0–10, reading each dataset's color from the CSS variable named by `colorVar`, with no hardcoded colors.
+
+#### Scenario: Canvas payload lists axes plus composite last
+
+- **GIVEN** у пользователя есть записи за неделю по всем осям
+- **WHEN** рендерится hero-карточка `/feed`
+- **THEN** canvas содержит `data-gm-chart` с `labels` = 7 ISO-дат
+- **AND** `datasets` содержит `mood_score`, `energy`, `anxiety`, `focus`, `aggression` и составной ряд
+- **AND** составной ряд — последний в массиве `datasets`
+
+#### Scenario: Colors come from CSS variables
+
+- **GIVEN** canvas отрисован
+- **WHEN** Chart.js создаёт линии
+- **THEN** цвет каждой линии берётся из CSS-переменной `colorVar` (например `--gm-metric-energy`, `--gm-metric-anxiety`, `--gm-metric-focus`, `--gm-metric-aggression`, `--color-primary` для составного)
+- **AND** в JS нет хардкода цветов
+
+#### Scenario: Empty day is a gap
+
+- **GIVEN** в окне есть день без значений оси
+- **WHEN** рендерится график
+- **THEN** соответствующее значение в `values` = null
+- **AND** линия разрывается на этом дне (`spanGaps: false`)
+
+#### Scenario: Insufficient data fallback
+
+- **GIVEN** во всём окне меньше 2 дней с любыми данными
+- **WHEN** рендерится hero-карточка
+- **THEN** вместо графика показывается приглушённый fallback-текст
+- **AND** страница не падает с ошибкой
 

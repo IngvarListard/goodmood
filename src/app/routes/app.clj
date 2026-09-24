@@ -148,7 +148,7 @@
     ["/theme" {:post {:handler auth/theme-post-handler}
                :auth/public true}]
     ["/feed" {:get {:handler (partial feed/page ds)}}]
-    ["/feed/radar" {:get {:handler (partial feed/radar ds)}}]
+    ["/feed/chart" {:get {:handler (partial feed/chart ds)}}]
     ["/check-in" {:get {:handler (partial check-in/page ds)}}]
     ["/settings" {:get {:handler (partial settings-page-handler ds)}}]
     ["/entries"
@@ -283,7 +283,7 @@
         params/wrap-params
         mw/wrap-request-log
         ;; Локальные статики: снаружи require-auth — без сессии, как CDN.
-        ;; resources/public/js/radar.js -> /js/radar.js
+        ;; resources/public/js/feed-chart.js -> /js/feed-chart.js
         (resource/wrap-resource "public")
         content-type/wrap-content-type
         not-modified/wrap-not-modified)))

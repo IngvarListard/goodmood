@@ -41,6 +41,18 @@
                 :order-by [[:date :desc] [:created_at :desc]]})
    default-opts))
 
+(defn get-entries-since
+  "Записи пользователя с датой >= since (ISO), по возрастанию даты.
+   Ограниченная выборка для оконной агрегации графика (design D7)."
+  [ds user-id since]
+  (jdbc/execute!
+   ds
+   (sql/format {:select [:*]
+                :from [:entries]
+                :where [:and [:= :user_id user-id] [:>= :date since]]
+                :order-by [[:date :asc] [:created_at :asc]]})
+   default-opts))
+
 (defn get-entry
   "Одна запись пользователя по id (выборка ограничена user-id), или nil."
   [ds user-id id]

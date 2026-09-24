@@ -551,11 +551,11 @@
   [ds user-id]
   (db/create-session! ds user-id))
 
-(defn- rose-line
-  "Компактная строка розы ветров последней записи."
+(defn- recent-axes-line
+  "Компактная строка осей последней записи для контекста чата."
   [entry]
   (when entry
-    (str "Роза ветров последней записи: энергия=" (or (:energy entry) "-")
+    (str "Последняя запись: энергия=" (or (:energy entry) "-")
          " тревога=" (or (:anxiety entry) "-")
          " фокус=" (or (:focus entry) "-")
          " настроение=" (or (:mood-score entry) "-"))))
@@ -576,20 +576,21 @@
   (str (:context insight) " → " (str/join " · " (take 3 (:advice-to-self insight)))))
 
 (defn- chat-context
-  "Собрать текстовый контекст чата: роза + последние записи + свои инсайты."
+  "Собрать текстовый контекст чата: оси последней записи + последние записи
+   + свои инсайты."
   [ds user-id]
   (let [rows (entries/get-entries ds user-id)
         insights-rows (insights/get-insights ds user-id)]
     (str/join "\n"
               (concat
-               [(rose-line (first rows))]
+               [(recent-axes-line (first rows))]
                (map entry-line (take 5 rows))
                [(str "Свои инсайты:\n"
                      (str/join "\n" (map insight-line (take 5 insights-rows))))]))))
 
 (defn chat-messages
-  "Сформировать сообщения модели: system-контекст (роза + записи + инсайты),
-   история и текущее сообщение пользователя."
+  "Сформировать сообщения модели: system-контекст (оси последней записи,
+   записи и инсайты), история и текущее сообщение пользователя."
   [ds user-id history user-message]
   (let [context (chat-context ds user-id)]
     (concat

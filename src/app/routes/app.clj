@@ -149,12 +149,16 @@
                :auth/public true}]
     ["/feed" {:get {:handler (partial feed/page ds)}}]
     ["/feed/chart" {:get {:handler (partial feed/chart ds)}}]
+    ["/feed/older" {:get {:handler (partial feed/older ds)}}]
     ["/check-in" {:get {:handler (partial check-in/page ds)}}]
     ["/settings" {:get {:handler (partial settings-page-handler ds)}}]
     ["/entries"
      {:post {:parameters {:body domains/create-entry-schema}
              :handler (partial entries/create-entry ds)}
       :get {:handler (partial entries/list-page ds)}}]
+    ["/entries/older"
+     {:get {:handler (partial entries/older ds)}
+      :conflicting true}]
     ["/entries/:id"
      {:get {:handler (partial entries/show-page ds)}
       :post {:parameters {:body domains/update-entry-schema}

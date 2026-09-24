@@ -250,3 +250,32 @@
     (is (= :state/neutral (domains/state-label {:energy 5 :anxiety nil})))
     (is (= :state/neutral (domains/state-label {:energy nil :anxiety 5})))
     (is (= :state/neutral (domains/state-label {})))))
+(deftest get-entries-since-includes-boundary
+  (testing "get-entries-since включает границу и сортирует свежие первыми"
+    (add-entry "2026-09-18" "a" 5)
+    (add-entry "2026-09-20" "b" 5)
+    (add-entry "2026-09-17" "c" 5)
+    (is (= ["2026-09-20" "2026-09-18"]
+           (mapv :date (db/get-entries-since @ds-atom user-id "2026-09-18"))))))
+
+(deftest get-entries-before-is-strict
+  (testing "get-entries-before строго раньше и в порядке date desc"
+    (add-entry "2026-09-10" "a" 5)
+    (add-entry "2026-09-12" "b" 5)
+    (add-entry "2026-09-12" "c" 5)
+    (is (= ["2026-09-10"]
+           (mapv :date (db/get-entries-before @ds-atom user-id "2026-09-12"))))))
+
+(deftest count-entries-counts-all
+  (testing "count-entries считает все записи пользователя"
+    (add-entry "2026-09-01" "a" 5)
+    (add-entry "2026-09-02" "b" 5)
+    (is (= 2 (db/count-entries @ds-atom user-id)))
+    (is (= 0 (db/count-entries @ds-atom 999)))))
+
+(deftest get-latest-entry-returns-newest
+  (testing "get-latest-entry возвращает последнюю по дате"
+    (add-entry "2026-09-01" "a" 5)
+    (add-entry "2026-09-05" "b" 5)
+    (is (= "2026-09-05" (:date (db/get-latest-entry @ds-atom user-id))))
+    (is (nil? (db/get-latest-entry @ds-atom 999)))))

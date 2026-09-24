@@ -44,10 +44,24 @@
           parse-long))
 
 (defn list-page
-  "GET /entries — полный список записей пользователя (вместо прежнего
-   редиректа на /feed)."
+  "GET /entries — список записей: стартовое окно 7 дней + sentinel подгрузки
+   старых дней; счётчик — по всей истории (design D1/D7/D8)."
   [ds request]
-  (html-response 200 (views/list-page request (entries/list-entries ds (user-id request)))))
+  (let [uid (user-id request)]
+    (html-response 200 (views/list-page request
+                                        (entries/list-entries-initial ds uid)
+                                        (entries/count-entries ds uid)))))
+
+(defn older
+  "GET /entries/older?before=<ISO> — фрагмент следующих 5 дней списка +
+   свежий sentinel, либо пусто при исчерпании (design D7)."
+  [ds request]
+  (let [uid (user-id request)
+        before (get-in request [:query-params "before"])
+        result (if before
+                 (entries/list-entries-before ds uid before)
+                 {:chunks [] :next-before nil})]
+    (html-response 200 (views/older-fragment result))))
 
 (defn show-page
   "GET /entries/:id — карточка записи с edit/delete. Чужая запись → 404."
@@ -92,7 +106,7 @@
       (and (htmx-request? request)
            (= "feed" (get-in request [:query-params "from"])))
       (let [date (:date deleted)
-            remaining (filter #(= date (:date %)) (entries/list-entries ds uid))]
+            remaining (filter #(= date (:date %)) (entries/entries-on-date ds uid date))]
         (html-response
          200
          (if (empty? remaining)

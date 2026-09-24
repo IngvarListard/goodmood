@@ -24,7 +24,7 @@
 (defn- latest-state-label
   "Вернуть state_label последней записи пользователя (или nil)."
   [ds user-id]
-  (if-let [latest (first (entries/list-entries ds user-id))]
+  (if-let [latest (entries/latest-entry ds user-id)]
     (raw-state-label latest)
     nil))
 

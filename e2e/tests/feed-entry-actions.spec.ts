@@ -7,7 +7,8 @@ import { ensureE2EUser, login } from '../helpers';
 
 test.beforeAll(ensureE2EUser);
 
-const iso = (d: Date) => d.toISOString().slice(0, 10);
+const iso = (d: Date) =>
+  `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 
 async function postEntry(
   page: import('@playwright/test').Page,
@@ -73,7 +74,7 @@ test.describe('feed entry actions', () => {
 
   test('Delete removes card and empty day in-place without reload', async ({ page }) => {
     const past = new Date();
-    past.setDate(past.getDate() - 27);
+    past.setDate(past.getDate() - 6);
     const pastIso = iso(past);
     await postEntry(page, pastIso);
     await page.goto('/feed');

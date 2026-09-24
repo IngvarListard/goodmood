@@ -45,7 +45,7 @@
   (when (and saved? user-id)
     (let [today (str (java.time.LocalDate/now))
           latest (first (filter #(= today (:date %))
-                                (entries/list-entries ds user-id)))]
+                                (entries/list-entries-initial ds user-id)))]
       (when latest
         (let [state-label (raw-state-label latest)]
           (when state-label
@@ -106,6 +106,18 @@
                         (entries/daily-axis-series ds uid period)
                         period))))
 
+(defn older
+  "GET /feed/older?before=<ISO> — фрагмент следующих 5 дней ленты + свежий
+   sentinel, либо пусто при исчерпании (design D6)."
+  [ds request]
+  (let [uid (get-in request [:identity :id])
+        before (get-in request [:query-params "before"])
+        result (if before
+                 (entries/list-entries-before ds uid before)
+                 {:chunks [] :next-before nil})]
+    (html-response 200 (views/older-fragment
+                        (get-in request [:anti-forgery-token]) result))))
+
 (defn page
   "Показать ленту записей («мой день») для аутентифицированного пользователя.
    Под hero-карточкой рендерится виджет инсайтов: 1 релевантный по
@@ -113,7 +125,7 @@
    saved — флаг ?saved=1 из редиректа /check-in (показывает toast-инсайт)."
   [ds request]
   (let [user-id (get-in request [:identity :id])
-        entries (entries/list-entries ds user-id)
+        entries (entries/list-entries-initial ds user-id)
         today (str (java.time.LocalDate/now))
         today-entries (filter #(= today (:date %)) entries)
         latest (first today-entries)

@@ -16,7 +16,7 @@
 (defn- latest-state-label
   "Вернуть state_label последней записи пользователя (raw string) или nil."
   [ds user-id]
-  (when-let [latest (first (entries/list-entries ds user-id))]
+  (when-let [latest (entries/latest-entry ds user-id)]
     (:state-label latest)))
 
 (defn correlations-fragment

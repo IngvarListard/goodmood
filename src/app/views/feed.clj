@@ -440,16 +440,39 @@
    [:div {:class "ml-8 space-y-2"}
     (map #(entry-card csrf %) entries)]])
 
+(defn- older-sentinel
+  "Самозаменяющий sentinel подгрузки старых дней (design D6): при появлении
+   в зоне видимости htmx шлёт GET /feed/older?before=<дата> и заменяет себя
+   фрагментом следующих дней + свежим sentinel."
+  [before]
+  [:div {:id "feed-older"
+         :hx-get (str "/feed/older?before=" before)
+         :hx-trigger "revealed"
+         :hx-swap "outerHTML"}])
+
+(defn older-fragment
+  "Фрагмент подгрузки старых дней ленты (design D6): timeline-секции дней
+   чанка + свежий sentinel, либо nil при исчерпании. Переиспользует
+   timeline-day/entry-card."
+  [csrf {:keys [chunks next-before]}]
+  (when (seq chunks)
+    (concat
+     (map (fn [{:keys [date entries]}] (timeline-day csrf date entries)) chunks)
+     (when next-before [(older-sentinel next-before)]))))
+
 (defn- past-day-section
   "Timeline прошедших дней (макет lenta 127–178): одна вертикальная линия
-   на весь контейнер + секция timeline-day на каждый день.
-   past-dates: последовательность дат; grouped: map дата → записи дня."
-  [csrf past-dates grouped]
-  (when (seq past-dates)
+   на весь контейнер + секция timeline-day на каждый день + sentinel
+   подгрузки старых дней (design D6). past-dates: даты (date desc);
+   grouped: map дата → записи дня; next-before: дата для /feed/older или nil."
+  [csrf past-dates grouped next-before]
+  (when (or (seq past-dates) next-before)
     [:div {:class "relative"}
      [:div {:class "absolute left-[7px] top-2 bottom-0 w-0.5 bg-base-300"}]
      (for [date past-dates]
-       (timeline-day csrf date (get grouped date)))]))
+       (timeline-day csrf date (get grouped date)))
+     (when next-before
+       (older-sentinel next-before))]))
 
 (defn- period-banner
   "Баннер периода: активный — индикатор + «закрыть», иначе — «начать период».
@@ -478,6 +501,10 @@
         today (str (java.time.LocalDate/now))
         today-entries (get grouped today)
         past-dates (remove #{today} (keys grouped))
+        ;; Sentinel подгрузки: самая старая дата окна или сегодня, если окно
+        ;; содержит только сегодня (design D6)
+        next-before (when (seq entries)
+                      (or (last past-dates) today))
         content [:div {}
                  (when toast-insight
                    (notifications/hint-toast toast-insight))
@@ -513,7 +540,7 @@
                    (today-section today-entries state-label insight chart csrf))
                  (when period
                    (sp/period-list (:list period)))
-                 (past-day-section csrf past-dates grouped)]]
+                 (past-day-section csrf past-dates grouped next-before)]]
     (layout/layout {:title (i18n/t :feed/title)
                     :active :feed
                     :request request}

@@ -227,17 +227,50 @@
       (is (str/includes? body "Недостаточно данных")))))
 
 (deftest feed-page-groups-past-days
-  (testing "GET /feed groups past-day entries under date headers"
-    (db/create-entry! @ds-atom {:user-id 1
-                                :date "2026-08-20"
-                                :activity ""
-                                :effect "e"
-                                :mood-score 5
-                                :energy 5
-                                :anxiety 5
-                                :created-at "2026-08-20 12:00:00"})
-    (let [body (body-text (get-html-page "/feed"))]
-      (is (str/includes? body "августа")))))
+  (testing "GET /feed groups recent past-day entries under date headers"
+    (let [date (str (.minusDays (java.time.LocalDate/now) 2))]
+      (db/create-entry! @ds-atom {:user-id 1
+                                  :date date
+                                  :activity ""
+                                  :effect "e"
+                                  :mood-score 5
+                                  :energy 5
+                                  :anxiety 5
+                                  :created-at (str date " 12:00:00")})
+      (let [body (body-text (get-html-page "/feed"))]
+        (is (str/includes? body (str "feed-day-" date)))))))
+
+(deftest feed-older-returns-chunk-and-exhausts
+  (testing "GET /feed/older returns older days + sentinel, then exhausts"
+    (let [today (java.time.LocalDate/now)
+          old (str (.minusDays today 20))]
+      (db/create-entry! @ds-atom {:user-id 1
+                                  :date old
+                                  :activity "" :effect ""
+                                  :mood-score 5 :energy 5 :anxiety 5
+                                  :created-at (str old " 12:00:00")})
+      ;; чанк строго старше today содержит старый день + sentinel
+      (let [body (body-text (get-html-page (str "/feed/older?before=" today)))]
+        (is (str/includes? body (str "feed-day-" old)))
+        (is (str/includes? body "id=\"feed-older\"")))
+      ;; исчерпание: старше старого дня ничего нет
+      (let [body (body-text (get-html-page (str "/feed/older?before=" old)))]
+        (is (not (str/includes? body "id=\"feed-older\"")))))))
+
+(deftest entries-older-returns-chunk-and-exhausts
+  (testing "GET /entries/older returns older days + sentinel, then exhausts"
+    (let [today (java.time.LocalDate/now)
+          old (str (.minusDays today 20))
+          row (db/create-entry! @ds-atom {:user-id 1
+                                          :date old
+                                          :activity "" :effect ""
+                                          :mood-score 5 :energy 5 :anxiety 5
+                                          :created-at (str old " 12:00:00")})]
+      (let [body (body-text (get-html-page (str "/entries/older?before=" today)))]
+        (is (str/includes? body (str "/entries/" (:id row))))
+        (is (str/includes? body "id=\"entries-older\"")))
+      (let [body (body-text (get-html-page (str "/entries/older?before=" old)))]
+        (is (not (str/includes? body "id=\"entries-older\"")))))))
 
 (deftest root-redirects-authenticated-to-feed
   (testing "GET / for authenticated user redirects to /feed"

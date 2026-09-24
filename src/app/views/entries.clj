@@ -158,12 +158,33 @@
    [:p {:class "text-base-content/60"} (i18n/t :entries/empty)]
    [:a {:href "/check-in" :class "btn btn-primary mt-4"} (i18n/t :feed/go-check-in)]])
 
+(defn- older-sentinel
+  "Самозаменяющий sentinel подгрузки старых записей /entries (design D7)."
+  [before]
+  [:div {:id "entries-older"
+         :hx-get (str "/entries/older?before=" before)
+         :hx-trigger "revealed"
+         :hx-swap "outerHTML"}])
+
+(defn older-fragment
+  "Фрагмент подгрузки старых дней /entries (design D7): day-section по дням
+   чанка + свежий sentinel, либо nil при исчерпании."
+  [{:keys [chunks next-before]}]
+  (when (seq chunks)
+    (concat
+     (map (fn [{:keys [date entries]}] (day-section date entries)) chunks)
+     (when next-before [(older-sentinel next-before)]))))
+
 (defn list-page
-  "Страница /entries: все записи пользователя, сгруппированные по дням
-   (свежие сверху — entries приходят date desc, created_at desc)."
-  [request entries]
+  "Страница /entries: записи стартового окна (design D1/D7), сгруппированные
+   по дням (свежие сверху) + sentinel подгрузки старых дней. total — общее
+   число записей по всей истории (счётчик в шапке, design D8)."
+  [request entries total]
   (let [grouped (group-by :date entries)
-        dates (distinct (map :date entries))]
+        dates (distinct (map :date entries))
+        ;; Sentinel подгрузки: самая старая дата окна (design D7)
+        next-before (when (seq entries)
+                      (or (last dates) (str (java.time.LocalDate/now))))]
     (layout/layout
      {:title (i18n/t :entries/list)
       :active :feed
@@ -183,10 +204,11 @@
            [:path {:d "M15 18l-6-6 6-6"}]]]
          [:h1 {:class "text-2xl font-bold"} (i18n/t :entries/list)]
          [:span {:class "text-sm text-base-content/60 ml-auto tabular-nums"}
-          (i18n/t :entries/count-plural {:n (count entries)})]]]]
+          (i18n/t :entries/count-plural {:n total})]]]]
       (if (seq entries)
-        (for [date dates]
-          (day-section date (get grouped date)))
+        (concat
+         (map #(day-section % (get grouped %)) dates)
+         (when next-before [(older-sentinel next-before)]))
         (list-empty))])))
 
 ;; ──────────────────────────────────────────────────────────────

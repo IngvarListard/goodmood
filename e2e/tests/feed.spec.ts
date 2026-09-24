@@ -9,6 +9,28 @@ import {
 
 test.beforeAll(ensureE2EUser);
 
+const iso = (d: Date) =>
+  `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+
+async function postEntry(page: import('@playwright/test').Page, date: string) {
+  const status = await page.evaluate(async (date) => {
+    const token = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') ?? '';
+    const res = await fetch('/entries', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'HX-Request': 'true', 'X-CSRF-Token': token },
+      body: JSON.stringify({
+        '__anti-forgery-token': token,
+        mood_score: 5,
+        energy: 5,
+        anxiety: 5,
+        date,
+      }),
+    });
+    return res.status;
+  }, date);
+  expect(status).toBe(201);
+}
+
 // /feed — лента записей с линейным графиком состояния (Фаза 2). Регрессионный
 // кейс: старые записи с незаполненными осями (energy/anxiety nil) не должны
 // ронять страницу 500.
@@ -62,5 +84,26 @@ test.describe('feed', () => {
     // POST /locale → 302; затем явная навигация на /feed
     await page.goto('/feed');
     await expect(page.getByRole('heading', { name: /Лента/ })).toBeVisible();
+  });
+
+  test('scrolling feed loads older days via infinite scroll and exhausts', async ({ page }) => {
+    await login(page);
+    const today = new Date();
+    const old = new Date(today);
+    old.setDate(old.getDate() - 20);
+    await postEntry(page, iso(today));
+    await postEntry(page, iso(old));
+
+    await page.goto('/feed');
+    // подгружаем чанки, пока sentinel не исчезнет на исчерпании
+    // (net: sentinel может оказаться во вьюпорте сразу — тогда автоподгрузка)
+    for (let i = 0; i < 15; i++) {
+      const sentinel = page.locator('#feed-older');
+      if ((await sentinel.count()) === 0) break;
+      await sentinel.scrollIntoViewIfNeeded();
+      await page.waitForTimeout(300);
+    }
+    await expect(page.locator(`#feed-day-${iso(old)}`)).toBeVisible();
+    await expect(page.locator('#feed-older')).toHaveCount(0, { timeout: 10000 });
   });
 });

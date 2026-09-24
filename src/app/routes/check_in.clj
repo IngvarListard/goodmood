@@ -16,7 +16,7 @@
   "Вернуть true, если последняя запись пользователя в состоянии low/mixed —
    предложить мягкий режим (Decision 14.4)."
   [ds user-id]
-  (if-let [latest (first (entries/list-entries ds user-id))]
+  (if-let [latest (entries/latest-entry ds user-id)]
     (contains? #{"low" "mixed"} (raw-state-label latest))
     false))
 

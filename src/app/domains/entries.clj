@@ -167,6 +167,59 @@
   [ds user-id]
   (db/get-entries ds user-id))
 
+(def initial-window-days
+  "Стартовое окно страниц-списков в днях (design D1): сегодня + 6 предыдущих."
+  7)
+
+(def older-chunk-days
+  "Размер чанка подгрузки старых дней (design D1)."
+  5)
+
+(defn day-chunks
+  "Сгруппировать строки (уже date DESC, created_at DESC) в упорядоченный
+   вектор [{:date … :entries […]} …], сохраняя порядок (design D5)."
+  [rows]
+  (->> rows
+       (partition-by :date)
+       (mapv (fn [day-rows]
+               {:date (:date (first day-rows))
+                :entries (vec day-rows)}))))
+
+(defn list-entries-initial
+  "Записи стартового окна initial-window-days (сегодня − 6 … сегодня)."
+  [ds user-id]
+  (db/get-entries-since ds user-id
+                        (str (.minusDays (java.time.LocalDate/now)
+                                         (dec initial-window-days)))))
+
+(defn list-entries-before
+  "Следующий чанк старых дней (design D5): get-entries-before → day-chunks →
+   первые older-chunk-days дней. Возвращает {:chunks [...] :next-before
+   <самая старая дата чанка или nil>}."
+  [ds user-id before-date]
+  (let [chunks (->> (db/get-entries-before ds user-id before-date)
+                    day-chunks
+                    (take older-chunk-days)
+                    vec)]
+    {:chunks chunks
+     :next-before (:date (last chunks))}))
+
+(defn latest-entry
+  "Последняя запись пользователя или nil (design D9)."
+  [ds user-id]
+  (db/get-latest-entry ds user-id))
+
+(defn count-entries
+  "Общее число записей пользователя (design D8)."
+  [ds user-id]
+  (db/count-entries ds user-id))
+
+(defn entries-on-date
+  "Записи пользователя за конкретную дату (подсчёт остатка дня при удалении
+   с ленты после пагинации)."
+  [ds user-id date]
+  (db/get-entries-on-date ds user-id date))
+
 (def update-entry-schema
   "Схема обновления записи: все поля опциональны — SET строится только из
    переданных ключей. Пустая строка уже превращена в nil коерцией (очистка);

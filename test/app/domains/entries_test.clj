@@ -74,3 +74,23 @@
     (let [s (entries/daily-axis-series @ds-atom user-id :3d)]
       (is (= [nil nil nil] (:composite s)))
       (is (every? nil? (get-in s [:axes :mood-score]))))))
+
+(deftest day-chunks-preserves-order
+  (testing "day-chunks группирует, сохраняя порядок дней и записей"
+    (let [rows [{:date "2026-09-20" :id 1}
+                {:date "2026-09-20" :id 2}
+                {:date "2026-09-18" :id 3}]
+          chunks (entries/day-chunks rows)]
+      (is (= ["2026-09-20" "2026-09-18"] (mapv :date chunks)))
+      (is (= [1 2] (mapv :id (:entries (first chunks))))))))
+
+(deftest list-entries-before-chunks-and-exhausts
+  (testing "list-entries-before отдаёт ≤5 дней и next-before, затем исчерпывается"
+    (dotimes [i 8]
+      (insert! (days-ago (+ 10 i)) :energy 5))
+    (let [r (entries/list-entries-before @ds-atom user-id (days-ago 10))]
+      (is (= 5 (count (:chunks r))))
+      (is (= (days-ago 15) (:next-before r))))
+    (let [r (entries/list-entries-before @ds-atom user-id (days-ago 17))]
+      (is (empty? (:chunks r)))
+      (is (nil? (:next-before r))))))

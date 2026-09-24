@@ -121,7 +121,7 @@
          [:div {:class "mt-1"}
           [:p {:class "text-sm font-medium"} (get-in f [:content :title])]
           (when-let [desc (get-in f [:content :description])]
-            [:p {:class "text-sm opacity-80 line-clamp-3"} desc])]
+            [:p {:class "text-sm opacity-80 line-clamp-3 break-words"} desc])]
          (feedback-buttons csrf-token (:id f) "correlation")])]]))
 
 (defn- label-action-button
@@ -208,7 +208,7 @@
                    :_ "on click remove #ai-advice"}
           (icons/svg "x-mark" {:class "w-4 h-4"})]]
         [:div {:id "ai-advice-text" :class "mt-1 line-clamp-3"}
-         [:p {:class "text-sm leading-relaxed"} message]]
+         [:p {:class "text-sm leading-relaxed break-words"} message]]
         [:button {:type "button"
                   :class "btn btn-ghost btn-xs text-primary px-1"
                   :_ "on click remove .line-clamp-3 from #ai-advice-text then add .hidden to me"}
@@ -318,7 +318,7 @@
         [:span {:class "badge badge-accent badge-outline badge-xs mt-1"}
          (i18n/t :ai/novel-note)]
         [:div {:id "ai-novel-advice-text" :class "mt-1 line-clamp-3"}
-         [:p {:class "text-sm leading-relaxed"} message]
+         [:p {:class "text-sm leading-relaxed break-words"} message]
          (when explanation
            [:p {:class "text-sm text-base-content/70 italic"} explanation])]
         [:button {:type "button"
@@ -342,8 +342,8 @@
        [:div {:class "chat-image-avatar bg-base-300 border border-base-content/10 text-secondary"}
         (icons/svg "light-bulb")])
      [:div {:class (if user?
-                     "chat-bubble chat-bubble-primary gm-gradient border-0 text-sm"
-                     "chat-bubble bg-base-300 text-sm")}
+                     "chat-bubble chat-bubble-primary gm-gradient border-0 text-sm break-words min-w-0"
+                     "chat-bubble bg-base-300 text-sm break-words min-w-0")}
       content]]))
 
 (defn- crisis-alert

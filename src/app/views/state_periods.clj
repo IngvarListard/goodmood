@@ -92,11 +92,11 @@
     [:div {:class "flex items-center justify-between gap-3"}
      ;; градиентная пилюля с state-меткой периода (текст светлый:
      ;; читается на градиенте в обеих темах, как в макете)
-     [:div {:class "gm-gradient flex items-center gap-2 px-4 py-3 rounded-xl text-[15px] font-semibold whitespace-nowrap text-white"}
+     [:div {:class "gm-gradient flex items-center gap-2 px-4 py-3 rounded-xl text-[15px] font-semibold min-w-0 flex-1 text-white"}
       (icons/svg "bolt")
-      (:label period)]
+      [:span {:class "truncate"} (:label period)]]
      [:button {:type "button"
-               :class "btn btn-outline btn-sm rounded-xl h-11 min-h-11 px-4"
+               :class "btn btn-outline btn-sm rounded-xl h-11 min-h-11 px-4 shrink-0"
                :hx-post (str "/periods/" (:id period) "/end")
                :hx-ext "json-enc"
                :hx-target "#period-indicator"
@@ -118,7 +118,7 @@
        (i18n/t :periods/list-title)]
       (for [p periods]
         ^{:key (:id p)}
-        [:p {:class "text-sm mb-1"}
+        [:p {:class "text-sm mb-1 break-words"}
          (str (:label p) " — " (format-date (:started-at p))
               (if-let [ended (:ended-at p)]
                 (str " → " (format-date ended))

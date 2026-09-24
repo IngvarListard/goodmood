@@ -55,12 +55,12 @@
    label-kw — i18n-ключ подписи (:entries/energy и т.п.),
    icon — имя heroicon в app.icons."
   [label-kw icon var-name value]
-  [:div {:class "gm-chip p-2.5 flex items-center gap-2"}
-   [:span {:style {:color (str "var(" var-name ")")}}
+  [:div {:class "gm-chip p-2.5 flex items-center gap-2 min-w-0"}
+   [:span {:class "shrink-0" :style {:color (str "var(" var-name ")")}}
     (icons/svg icon)]
-   [:div
-    [:div {:class "text-[11px] text-base-content/60"} (i18n/t label-kw)]
-    [:div {:class "text-[15px]"} (or value "–")]]])
+   [:div {:class "min-w-0"}
+    [:div {:class "text-[11px] text-base-content/60 truncate"} (i18n/t label-kw)]
+    [:div {:class "text-[15px] truncate"} (or value "–")]]])
 
 (defn- entry-label
   "Вернуть локализованный ярлык состояния записи.
@@ -242,10 +242,10 @@
   [csrf {:keys [created-at id] :as entry}]
   [:div {:id (str "feed-entry-" id) :class "card bg-base-200 shadow-sm"}
    [:div {:class "card-body p-3"}
-    [:div {:class "flex items-center justify-between"}
-     [:span {:class (str (state-badge-class entry) " text-[13px]")}
+    [:div {:class "flex items-center justify-between gap-2"}
+     [:span {:class (str (state-badge-class entry) " min-w-0 flex-1 truncate text-[13px]")}
       (entry-label entry)]
-     [:div {:class "flex items-center gap-3 text-sm text-base-content/60"}
+     [:div {:class "flex items-center gap-3 text-sm text-base-content/60 shrink-0"}
       [:span {:class "tabular-nums"} (format-time created-at)]
       [:div {:class "dropdown dropdown-end"
              :tabindex "0" :role "button"
@@ -341,17 +341,17 @@
     [:div {:class "flex flex-col sm:flex-row gap-4 items-start"}
      chart
      [:div {:class "flex-1 min-w-0 w-full"}
-      [:div {:class "flex items-center justify-between"}
-       [:span {:class (str (state-badge-class entry) " text-[13px]")}
+      [:div {:class "flex items-center justify-between gap-2"}
+       [:span {:class (str (state-badge-class entry) " min-w-0 truncate text-[13px]")}
         (entry-label entry)]
-       [:span {:class "text-sm text-base-content/60 tabular-nums"}
+       [:span {:class "text-sm text-base-content/60 tabular-nums shrink-0"}
         (format-time created-at)]]
-      [:p {:class "text-sm text-base-content/85"} (axes-line entry)]
+      [:p {:class "text-sm text-base-content/85 truncate"} (axes-line entry)]
       (when sleep-hours
         [:p {:class "text-sm text-base-content/60 mt-1"}
          (str (i18n/t :entries/sleep) " " (layout/format-sleep sleep-hours))])
       (when (seq note)
-        [:p {:class "text-sm text-base-content/80 mt-2"} note])]]]])
+        [:p {:class "text-sm text-base-content/80 mt-2 break-words"} note])]]]])
 
 (defn- empty-state
   "Пустая секция «Сегодня» (макет lenta 51–72): SVG-иллюстрация — контур

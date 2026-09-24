@@ -133,14 +133,14 @@
   [:a {:href (str "/entries/" (:id entry))
        :class "block card bg-base-200 shadow-sm hover:border-primary/40 transition-colors"}
    [:div {:class "card-body p-3"}
-    [:div {:class "flex items-center justify-between"}
-     [:span {:class (str (state-badge-class entry) " text-[13px]")}
+    [:div {:class "flex items-center justify-between gap-2"}
+     [:span {:class (str (state-badge-class entry) " min-w-0 flex-1 truncate text-[13px]")}
       (entry-label entry)]
-     [:span {:class "text-sm text-base-content/60 tabular-nums"}
+     [:span {:class "text-sm text-base-content/60 tabular-nums shrink-0"}
       (format-time (:created-at entry))]]
     [:p {:class "text-sm text-base-content/85 mt-1"}
      (i18n/t :entries/mood-label {:score (or (:mood-score entry) "-")})]
-    [:p {:class "text-[13px] text-base-content/60"} (axes-line entry)]]])
+    [:p {:class "text-[13px] text-base-content/60 truncate"} (axes-line entry)]]])
 
 (defn- day-section
   "Один день списка: заголовок дня + карточки записей дня."
@@ -304,24 +304,24 @@
   (let [id (:id entry)]
     [:div {:id (str "entry-read-" id)}
      [:div {:class "flex items-center justify-between flex-wrap gap-2"}
-      [:div {:class "flex items-center gap-2"}
-       [:span {:class (str (state-badge-class entry) " text-[13px]")}
+      [:div {:class "flex items-center gap-2 min-w-0"}
+       [:span {:class (str (state-badge-class entry) " min-w-0 truncate text-[13px]")}
         (entry-label entry)]
-       [:span {:class "text-sm text-base-content/60 tabular-nums"}
+       [:span {:class "text-sm text-base-content/60 tabular-nums shrink-0"}
         (or (format-time (:created-at entry)) "")]]
       [:span {:class "text-sm text-base-content/60 tabular-nums"}
        (format-date (:date entry))]]
      [:p {:class "text-lg font-semibold mt-3"}
       (i18n/t :entries/mood-label {:score (or (:mood-score entry) "-")})]
-     [:p {:class "text-sm text-base-content/85"} (axes-line entry)]
+     [:p {:class "text-sm text-base-content/85 truncate"} (axes-line entry)]
      (when (some? (:sleep-hours entry))
        [:p {:class "text-sm text-base-content/85"}
         (str (i18n/t :entries/sleep-label)
              (layout/format-sleep (:sleep-hours entry)))])
      (when (seq (:note entry))
-       [:p {:class "text-sm text-base-content/80 mt-2"} (:note entry)])
+       [:p {:class "text-sm text-base-content/80 mt-2 break-words"} (:note entry)])
      (when (seq (:activity entry))
-       [:p {:class "text-sm text-base-content/80 mt-2"}
+       [:p {:class "text-sm text-base-content/80 mt-2 break-words"}
         (str (i18n/t :entries/activity-label) (:activity entry))])
      [:div {:class "flex items-center gap-2 mt-4"}
       [:button {:type "button"

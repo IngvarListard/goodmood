@@ -210,26 +210,61 @@
        " · " (i18n/t :entries/anxiety) " " (or anxiety "-")
        " · " (i18n/t :entries/focus) " " (or focus "-")))
 
+(defn- feed-delete-modal
+  "Confirm-модалка удаления карточки ленты (design D2): hx-delete с
+   ?from=feed убирает карточку #feed-entry-<id> in-place (hx-swap delete)."
+  [csrf entry]
+  (let [id (:id entry)]
+    [:dialog {:id (str "del-feed-entry-" id)
+              :class "modal modal-bottom sm:modal-middle"}
+     [:div {:class "modal-box"}
+      [:h3 {:class "text-lg font-bold mb-2"} (i18n/t :entries/delete-confirm)]
+      [:p {:class "text-sm text-base-content/70 mb-4"}
+       (i18n/t :entries/delete-confirm-text)]
+      [:div {:class "modal-action"}
+       [:form {:method "dialog"}
+        [:button {:class "btn btn-ghost h-11 min-h-11"}
+         (i18n/t :entries/cancel)]]
+       [:button {:class "btn btn-error h-11 min-h-11"
+                 :hx-delete (str "/entries/" id "?from=feed")
+                 :hx-headers (str "{\"X-CSRF-Token\": \"" csrf "\"}")
+                 :hx-target (str "#feed-entry-" id)
+                 :hx-swap "delete"}
+        (i18n/t :entries/delete-action)]]]
+     [:form {:method "dialog" :class "modal-backdrop"}
+      [:button "close"]]]))
+
 (defn- entry-card
-  "Карточка записи в timeline (макет lenta 134–144): state-бейдж слева,
-   время и иконка меню справа; ниже — grid-cols-2 чипов метрик (четыре оси),
-   отсутствующее значение — «–»."
-  [{:keys [created-at] :as entry}]
-  [:div {:class "card bg-base-200 shadow-sm"}
+  "Карточка записи в timeline: state-бейдж, время и меню действий справа;
+   ниже — grid-cols-2 чипов метрик (четыре оси), отсутствующее значение — «–».
+   Меню — daisyUI dropdown (правка/удаление, design D1); id #feed-entry-<id> —
+   цель in-place удаления (design D2)."
+  [csrf {:keys [created-at id] :as entry}]
+  [:div {:id (str "feed-entry-" id) :class "card bg-base-200 shadow-sm"}
    [:div {:class "card-body p-3"}
     [:div {:class "flex items-center justify-between"}
      [:span {:class (str (state-badge-class entry) " text-[13px]")}
       (entry-label entry)]
      [:div {:class "flex items-center gap-3 text-sm text-base-content/60"}
       [:span {:class "tabular-nums"} (format-time created-at)]
-      (icons/svg "ellipsis-horizontal" {:class "text-base-content/40"})]]
+      [:div {:class "dropdown dropdown-end"
+             :tabindex "0" :role "button"
+             :aria-label (i18n/t :entries/actions-menu)}
+       (icons/svg "ellipsis-horizontal" {:class "text-base-content/40"})
+       [:ul {:tabindex "0"
+             :class "dropdown-content menu bg-base-100 rounded-box z-[1] w-40 p-2 shadow"}
+        [:li [:a {:href (str "/entries/" id)} (i18n/t :entries/edit)]]
+        [:li [:button {:type "button"
+                       :_ (str "on click call #del-feed-entry-" id ".showModal()")}
+              (i18n/t :entries/delete)]]]]]]
     [:div {:class "grid grid-cols-2 gap-2 mt-3"}
      (metric-chip :entries/energy "bolt" "--gm-metric-energy" (:energy entry))
      (metric-chip :entries/anxiety "fire" "--gm-metric-anxiety"
                   (:anxiety entry))
      (metric-chip :entries/focus "eye" "--gm-metric-focus" (:focus entry))
      (metric-chip :entries/aggression "hand-raised"
-                  "--gm-metric-aggression" (:aggression entry))]]])
+                  "--gm-metric-aggression" (:aggression entry))]]
+   (feed-delete-modal csrf entry)])
 
 (def ^:private chart-datasets
   "Датасеты графика: оси + составной последним (design D4/D8)."
@@ -365,11 +400,13 @@
    state-label: текущий state_label последней записи сегодня (для виджета).
    insight: 1 релевантный инсайт или nil.
    chart: фрагмент линейного графика периода (feed/chart-fragment).
+   csrf: токен для модалок удаления карточек (feed-delete-modal).
    В мягком состоянии (low/mixed) виджет поднимается выше hero — акцент
    на совете, не на фиксации боли (Decision 14.4)."
-  [today-entries state-label insight chart & [ai-advice]]
+  [today-entries state-label insight chart csrf & [ai-advice]]
   (let [soft? (and state-label (contains? #{"low" "mixed"} state-label))]
-    [:section {:class "mb-6"}
+    [:section {:id (str "feed-day-" (java.time.LocalDate/now))
+               :class "mb-6"}
      [:h2 {:class "text-sm font-medium text-base-content/60 mb-2 uppercase tracking-wide"}
       (i18n/t :feed/today)]
      (if (seq today-entries)
@@ -385,33 +422,34 @@
             normal-order?)
           (when (seq rest-entries)
             [:div {:class "space-y-2 mt-2"}
-             (map entry-card rest-entries)])])
+             (map #(entry-card csrf %) rest-entries)])])
        (empty-state))]))
 
 (defn- timeline-day
   "Один день timeline (макет lenta 131–161): дата-заголовок, точка на
    вертикальной линии — цвет по state последней записи дня (Decision 1),
    карточки ml-8. Контейнер relative: точка привязана к нему, линия —
-   к общему контейнеру в past-day-section."
-  [date entries]
-  [:div {:class "relative mt-3"}
+   к общему контейнеру в past-day-section. id #feed-day-<date> — цель
+   OOB-удаления пустого дня (design D4)."
+  [csrf date entries]
+  [:div {:id (str "feed-day-" date) :class "relative mt-3"}
    [:div {:class "text-sm text-base-content/60 mb-2 pl-8"} (day-header date)]
    [:span {:class (str "absolute left-[1px] top-[34px] w-3.5 h-3.5 "
                        "rounded-full border-2 border-base-100 "
                        (day-dot-class (first entries)))}]
    [:div {:class "ml-8 space-y-2"}
-    (map entry-card entries)]])
+    (map #(entry-card csrf %) entries)]])
 
 (defn- past-day-section
   "Timeline прошедших дней (макет lenta 127–178): одна вертикальная линия
    на весь контейнер + секция timeline-day на каждый день.
    past-dates: последовательность дат; grouped: map дата → записи дня."
-  [past-dates grouped]
+  [csrf past-dates grouped]
   (when (seq past-dates)
     [:div {:class "relative"}
      [:div {:class "absolute left-[7px] top-2 bottom-0 w-0.5 bg-base-300"}]
      (for [date past-dates]
-       (timeline-day date (get grouped date)))]))
+       (timeline-day csrf date (get grouped date)))]))
 
 (defn- period-banner
   "Баннер периода: активный — индикатор + «закрыть», иначе — «начать период».
@@ -460,7 +498,7 @@
                  (when period
                    (period-banner period))
                  (when ai
-                   (today-section today-entries state-label insight chart
+                   (today-section today-entries state-label insight chart csrf
                                   {:csrf (:csrf ai)
                                    :findings (:advice ai)}))
                  (when ai
@@ -472,10 +510,10 @@
                  (when (and ai (seq (:novel ai)))
                    (ai/ai-novel-advice (:csrf ai) (:novel ai)))
                  (when-not ai
-                   (today-section today-entries state-label insight chart))
+                   (today-section today-entries state-label insight chart csrf))
                  (when period
                    (sp/period-list (:list period)))
-                 (past-day-section past-dates grouped)]]
+                 (past-day-section csrf past-dates grouped)]]
     (layout/layout {:title (i18n/t :feed/title)
                     :active :feed
                     :request request}

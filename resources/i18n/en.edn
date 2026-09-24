@@ -40,6 +40,7 @@
              :back "Back to feed"
              :back-to-list "Back to entries"
              :edit "Edit"
+             :actions-menu "Entry actions"
              :save-changes "Save"
              :cancel "Cancel"
              :delete "Delete"

@@ -78,13 +78,26 @@
       {:status 200 :body updated})))
 
 (defn delete-entry
-  "DELETE /entries/:id — жёсткое удаление. HTMX → редирект на /entries;
-   чужая запись → 404 (запись не удалена)."
+  "DELETE /entries/:id — жёсткое удаление. HTMX с ?from=feed → 200: карточку
+   убирает hx-swap=delete, а если записей за день не осталось — тело несёт
+   OOB-удаление секции дня (design D3/D4). Прочий HTMX → HX-Redirect /entries;
+   non-htmx → 204. Чужая/несуществующая запись → 404 (не удалена)."
   [ds request]
-  (let [deleted (entries/delete-entry ds (user-id request) (path-id request))]
+  (let [uid (user-id request)
+        deleted (entries/delete-entry ds uid (path-id request))]
     (cond
       (nil? deleted)
       {:status 404 :body "Not found"}
+
+      (and (htmx-request? request)
+           (= "feed" (get-in request [:query-params "from"])))
+      (let [date (:date deleted)
+            remaining (filter #(= date (:date %)) (entries/list-entries ds uid))]
+        (html-response
+         200
+         (if (empty? remaining)
+           [:div {:id (str "feed-day-" date) :hx-swap-oob "delete"}]
+           "")))
 
       (htmx-request? request)
       {:status 200

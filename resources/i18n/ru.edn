@@ -40,6 +40,7 @@
              :back "Назад к ленте"
              :back-to-list "К списку записей"
              :edit "Править"
+             :actions-menu "Действия с записью"
              :save-changes "Сохранить"
              :cancel "Отмена"
              :delete "Удалить"

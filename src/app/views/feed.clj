@@ -211,8 +211,8 @@
 
 (defn- entry-card
   "Карточка записи в timeline (макет lenta 134–144): state-бейдж слева,
-   время и иконка меню справа; ниже — grid-cols-3 чипов метрик
-   (Decision 3), отсутствующее значение — «–»."
+   время и иконка меню справа; ниже — grid-cols-2 чипов метрик (четыре оси),
+   отсутствующее значение — «–»."
   [{:keys [created-at] :as entry}]
   [:div {:class "card bg-base-200 shadow-sm"}
    [:div {:class "card-body p-3"}
@@ -222,11 +222,13 @@
      [:div {:class "flex items-center gap-3 text-sm text-base-content/60"}
       [:span {:class "tabular-nums"} (format-time created-at)]
       (icons/svg "ellipsis-horizontal" {:class "text-base-content/40"})]]
-    [:div {:class "grid grid-cols-3 gap-2 mt-3"}
+    [:div {:class "grid grid-cols-2 gap-2 mt-3"}
      (metric-chip :entries/energy "bolt" "--gm-metric-energy" (:energy entry))
      (metric-chip :entries/anxiety "fire" "--gm-metric-anxiety"
                   (:anxiety entry))
-     (metric-chip :entries/focus "eye" "--gm-metric-focus" (:focus entry))]]])
+     (metric-chip :entries/focus "eye" "--gm-metric-focus" (:focus entry))
+     (metric-chip :entries/aggression "hand-raised"
+                  "--gm-metric-aggression" (:aggression entry))]]])
 
 (defn- hero-card
   "Hero-карточка последней записи сегодня: радар периода (контейнер
@@ -384,19 +386,19 @@
                  (notifications/pending-insight-fragment)
                  (when episode
                    (ai/episode-warning-fragment csrf episode))
-                  [:div {:class "mb-6 flex items-center justify-between"}
-                   [:h1 {:class "text-2xl font-bold"} (i18n/t :feed/title)]
-                   [:a {:href "/entries"
-                        :class "btn btn-ghost btn-sm h-11 min-h-11 px-3"
-                        :aria-label (i18n/t :entries/list)}
-                    (icons/svg "list-bullet" {:class "text-base-content/70"})]]
+                 [:div {:class "mb-6 flex items-center justify-between"}
+                  [:h1 {:class "text-2xl font-bold"} (i18n/t :feed/title)]
+                  [:a {:href "/entries"
+                       :class "btn btn-ghost btn-sm h-11 min-h-11 px-3"
+                       :aria-label (i18n/t :entries/list)}
+                   (icons/svg "list-bullet" {:class "text-base-content/70"})]]
 
                  (when period
                    (period-banner period))
-                  (when ai
-                    (today-section today-entries state-label insight radar
-                                   {:csrf (:csrf ai)
-                                    :findings (:advice ai)}))
+                 (when ai
+                   (today-section today-entries state-label insight radar
+                                  {:csrf (:csrf ai)
+                                   :findings (:advice ai)}))
                  (when ai
                    (week-chart-section entries))
                  (when (and ai (seq (:label ai)))
@@ -405,8 +407,8 @@
                    (ai/ai-correlations (:csrf ai) (:correlations ai)))
                  (when (and ai (seq (:novel ai)))
                    (ai/ai-novel-advice (:csrf ai) (:novel ai)))
-                  (when-not ai
-                    (today-section today-entries state-label insight radar))
+                 (when-not ai
+                   (today-section today-entries state-label insight radar))
                  (when period
                    (sp/period-list (:list period)))
                  (past-day-section past-dates grouped)]]

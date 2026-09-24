@@ -155,6 +155,25 @@
       (is (= 400 (:status response)))
       (is (some? (get-in (response-body response) [:errors :energy]))))))
 
+(deftest create-entry-with-aggression
+  (testing "POST /entries with aggression 7 returns 201 and persists it"
+    (let [response (post-entries {:mood_score 5
+                                  :energy 5
+                                  :anxiety 5
+                                  :aggression 7})]
+      (is (= 201 (:status response)))
+      (is (= 7 (:aggression (response-body response))))
+      (is (= 7 (:aggression (first (db/get-entries @ds-atom 1))))))))
+
+(deftest create-entry-rejects-out-of-range-aggression
+  (testing "POST /entries with aggression 15 returns 400 with validation error"
+    (let [response (post-entries {:mood_score 5
+                                  :energy 5
+                                  :anxiety 5
+                                  :aggression 15})]
+      (is (= 400 (:status response)))
+      (is (some? (get-in (response-body response) [:errors :aggression]))))))
+
 (deftest create-entry-rejects-missing-field
   (testing "POST /entries without required core field returns 400 with validation error"
     (let [response (post-entries {:mood_score 5 :energy 5})]

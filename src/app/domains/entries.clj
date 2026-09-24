@@ -31,6 +31,7 @@
    [:energy [:int {:min 0 :max 10}]]
    [:anxiety [:int {:min 0 :max 10}]]
    [:focus {:optional true} [:maybe [:int {:min 0 :max 10}]]]
+   [:aggression {:optional true} [:maybe [:int {:min 0 :max 10}]]]
    [:sleep_hours {:optional true} [:maybe :double]]
    [:sleep_minutes {:optional true} [:maybe [:int {:min 0 :max 59}]]]
    [:note {:optional true} [:maybe :string]]
@@ -145,8 +146,8 @@
    задан явно): период, накрывающий дату записи, иначе активный.
    sleep_hours + опциональные sleep_minutes собираются в десятичные часы."
   [ds user-id {:keys [date activity effect mood_score energy anxiety focus
-                      sleep_hours sleep_minutes note template state_label
-                      state_period_id]}]
+                      aggression sleep_hours sleep_minutes note template
+                      state_label state_period_id]}]
   (let [entry-date (or date (today))
         sp-id (or state_period_id
                   (some-> (periods/get-period-covering-date ds user-id entry-date) :id)
@@ -159,6 +160,7 @@
                           :energy energy
                           :anxiety anxiety
                           :focus focus
+                          :aggression aggression
                           :sleep-hours (combined-sleep-hours sleep_hours sleep_minutes)
                           :note note
                           :template template
@@ -179,6 +181,7 @@
    [:energy {:optional true} [:maybe [:int {:min 0 :max 10}]]]
    [:anxiety {:optional true} [:maybe [:int {:min 0 :max 10}]]]
    [:focus {:optional true} [:maybe [:int {:min 0 :max 10}]]]
+   [:aggression {:optional true} [:maybe [:int {:min 0 :max 10}]]]
    [:sleep_hours {:optional true} [:maybe :double]]
    [:sleep_minutes {:optional true} [:maybe [:int {:min 0 :max 59}]]]
    [:note {:optional true} [:maybe :string]]
@@ -187,8 +190,8 @@
 
 (def ^:private updatable-fields
   "Редактируемые поля записи (snake, синхронно с update-entry-schema)."
-  [:date :mood_score :energy :anxiety :focus :sleep_hours :note :activity
-   :state_label])
+  [:date :mood_score :energy :anxiety :focus :aggression :sleep_hours :note
+   :activity :state_label])
 
 (def ^:private not-null-fields
   "Редактируемые поля с NOT NULL в БД: nil (очистка) не допускается —

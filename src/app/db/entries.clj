@@ -8,7 +8,8 @@
 
 (defn create-entry!
   [ds {:keys [user-id date activity effect mood-score energy anxiety focus
-              sleep-hours note template state-label state-period-id created-at]}]
+              aggression sleep-hours note template state-label state-period-id
+              created-at]}]
   (jdbc/execute-one!
    ds
    (sql/format {:insert-into :entries
@@ -20,6 +21,7 @@
                                   :energy energy
                                   :anxiety anxiety
                                   :focus focus
+                                  :aggression aggression
                                   :sleep_hours sleep-hours
                                   :note note
                                   :template template

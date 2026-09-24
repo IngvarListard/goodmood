@@ -5,24 +5,26 @@
             [app.views.navigation :as navigation]))
 
 (defn- value-row
-  "Отрендерить подпись значения слайдера: минимум, текущее значение, максимум."
-  [value-id]
+  "Отрендерить подпись значения слайдера: левый якорь, текущее значение,
+   правый якорь. Якоря задаются opts :left/:right, по умолчанию «0»/«10»."
+  [value-id & [{:keys [left right] :or {left "0" right "10"}}]]
   [:div {:class "flex justify-between mt-0.5 px-0.5"}
-   [:span {:class "text-xs text-base-content/60"} "0"]
+   [:span {:class "text-xs text-base-content/60"} left]
    [:span {:id value-id :class "text-base font-bold tabular-nums"} "5"]
-   [:span {:class "text-xs text-base-content/60"} "10"]])
+   [:span {:class "text-xs text-base-content/60"} right]])
 
 (defn- range-field
   "Отрендерить range-поле ядра: label, слайдер с отображением текущего значения.
-   field-id: суффикс id для value-спана, name: имя поля формы."
-  [label field-id name]
+   field-id: суффикс id для value-спана, name: имя поля формы.
+   opts: опциональные краевые подписи :left/:right (по умолчанию «0»/«10»)."
+  [label field-id name & [{:keys [left right] :or {left "0" right "10"}}]]
   [:div {:class "form-control mb-5"}
    [:div {:class "label px-0"}
     [:span {:class "label-text text-base font-medium"} label]]
    [:input {:type "range" :name name :min "0" :max "10" :value "5"
             :class "gm-range"
             :_ (str "on input put my value into #" field-id "-value")}]
-   (value-row (str field-id "-value"))])
+   (value-row (str field-id "-value") {:left left :right right})])
 
 (defn- template-tab
   "Кнопка сегмента segmented control. Классы tab/tab-active — скрытые хуки
@@ -87,13 +89,16 @@
   (range-field (i18n/t :entries/mood) "mood" "mood_score"))
 
 (defn- soft-fields
-  "Энергия/тревога + опциональные блоки. Оборачиваются в #soft-targets,
-   чтобы мягкий режим мог скрыть их одним toggle (Decision 14.4)."
+  "Энергия/тревога/фокус/агрессия + опциональные блоки. Оборачиваются в
+   #soft-targets, чтобы мягкий режим мог скрыть их одним toggle (Decision 14.4)."
   []
   [:div {:id "soft-targets"}
    (range-field (i18n/t :entries/energy) "energy" "energy")
    (range-field (i18n/t :entries/anxiety) "anxiety" "anxiety")
    (range-field (i18n/t :entries/focus) "focus" "focus")
+   (range-field (i18n/t :entries/aggression) "aggression" "aggression"
+                {:left (i18n/t :entries/aggression-left)
+                 :right (i18n/t :entries/aggression-right)})
    ;; Обёртка опциональной секции: разделитель + заголовок uppercase (Decision 6)
    [:div {:class "border-t border-base-300 pt-4 mt-2"}
     [:p {:class "text-[10px] uppercase font-bold tracking-wider text-base-content/50 mb-4"}

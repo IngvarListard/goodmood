@@ -1,31 +1,4 @@
-# entries-crud Specification
-
-## Purpose
-
-TBD - created by syncing change add-entries-crud. Update Purpose after archive.
-## Requirements
-### Requirement: Список записей (страница /entries)
-
-Система SHALL предоставлять страницу `/entries` — полный список записей пользователя, сгруппированных по дате (свежие сверху, как в ленте). Каждая запись в списке SHALL показывать: state-бейдж, время, значения ядра (mood/energy/anxiety/focus) и ведёт на карточку записи `/entries/:id`. Доступ SHALL иметь только владелец (как на остальных роутах: unauthenticated → redirect на /login, чужая запись → 404/403). Страница SHALL использовать общий PageShell (layout, навигация, max-w-lg).
-
-#### Scenario: Список показывает записи по дням
-
-- **GIVEN** пользователь с записями за несколько дней
-- **WHEN** открывает /entries
-- **THEN** записи сгруппированы по датам по убыванию, внутри дня — по created_at по убыванию
-- **AND** каждая карточка ведёт на /entries/:id
-
-#### Scenario: Владение списком
-
-- **GIVEN** unauthenticated-запрос
-- **WHEN** GET /entries
-- **THEN** redirect на /login
-
-#### Scenario: Переход из шапки ленты
-
-- **GIVEN** пользователь на /feed
-- **WHEN** кликает иконку «все записи» в шапке страницы
-- **THEN** открывается /entries
+## MODIFIED Requirements
 
 ### Requirement: Карточка записи с редактированием
 
@@ -75,25 +48,3 @@ TBD - created by syncing change add-entries-crud. Update Purpose after archive.
 
 - **WHEN** в edit-форме передано mood_score вне 0–10
 - **THEN** обновление отклоняется, показывается мягкий alert (как в создании)
-
-### Requirement: Удаление записи
-
-Система SHALL поддерживать удаление записи владельцем: `DELETE /entries/:id` удаляет строку (жёстко); UI — кнопка в карточке записи с confirm-модалкой (daisyUI modal, паттерн удаления инсайтов). После удаления пользователь возвращается на /entries, карточка исчезает. Связи SHALL сохраняться: период состояния не удаляется и не отвязывается от других записей; существующие AI-находки не трогаются.
-
-#### Scenario: Удаление с подтверждением
-
-- **GIVEN** владелец на /entries/:id
-- **WHEN** нажимает «Удалить» и подтверждает в модалке
-- **THEN** запись удалена из БД
-- **AND** происходит переход на /entries
-
-#### Scenario: Отмена удаления
-
-- **WHEN** пользователь закрывает confirm-модалку без подтверждения
-- **THEN** запись остаётся
-
-#### Scenario: Чужую запись не удалить
-
-- **WHEN** DELETE /entries/:id чужой записи
-- **THEN** 404, запись не удалена
-

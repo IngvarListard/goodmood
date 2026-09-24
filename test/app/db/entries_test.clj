@@ -88,6 +88,29 @@
       (is (= "note text" (:note entry)))
       (is (= "morning" (:template entry))))))
 
+(deftest create-entry-with-aggression
+  (testing "create-entry! persists aggression; without it the column is NULL"
+    (db/create-entry! @ds-atom {:user-id user-id
+                                :date "2026-08-10"
+                                :activity "a"
+                                :effect "e"
+                                :mood-score 5
+                                :energy 5
+                                :anxiety 5
+                                :aggression 6})
+    (db/create-entry! @ds-atom {:user-id user-id
+                                :date "2026-08-11"
+                                :activity "b"
+                                :effect "e"
+                                :mood-score 5
+                                :energy 5
+                                :anxiety 5})
+    (let [entries (db/get-entries @ds-atom user-id)
+          with-aggression (first (filter #(= "2026-08-10" (:date %)) entries))
+          without-aggression (first (filter #(= "2026-08-11" (:date %)) entries))]
+      (is (= 6 (:aggression with-aggression)))
+      (is (nil? (:aggression without-aggression))))))
+
 (deftest entries-ordered-by-date-desc
   (testing "get-entries returns entries ordered by date descending"
     (add-entry "2026-08-03" "a" 5)

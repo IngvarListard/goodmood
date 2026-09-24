@@ -111,11 +111,12 @@
       :else (str (.getDayOfMonth date) " " (month-name (.getMonthValue date))))))
 
 (defn- axes-line
-  "Строка «энергия 4 · тревога 7 · фокус 3»."
-  [{:keys [energy anxiety focus]}]
+  "Строка «энергия 4 · тревога 7 · фокус 3 · агрессия 5»."
+  [{:keys [energy anxiety focus aggression]}]
   (str (i18n/t :entries/energy) " " (or energy "-")
        " · " (i18n/t :entries/anxiety) " " (or anxiety "-")
-       " · " (i18n/t :entries/focus) " " (or focus "-")))
+       " · " (i18n/t :entries/focus) " " (or focus "-")
+       " · " (i18n/t :entries/aggression) " " (or aggression "-")))
 
 (def state-labels
   "Список state_label для select (без :state/ префикса — raw ключи)."
@@ -237,6 +238,7 @@
       (range-field (i18n/t :entries/energy) "energy" "energy" (:energy entry))
       (range-field (i18n/t :entries/anxiety) "anxiety" "anxiety" (:anxiety entry))
       (range-field (i18n/t :entries/focus) "focus" "focus" (:focus entry))
+      (range-field (i18n/t :entries/aggression) "aggression" "aggression" (:aggression entry))
       [:div {:class "form-control mb-4"}
        [:label {:class "label px-0 pb-1"}
         [:span {:class "label-text text-base font-medium"}

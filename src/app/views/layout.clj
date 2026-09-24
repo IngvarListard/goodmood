@@ -183,10 +183,11 @@
       --gm-state-danger-text: #ef8a86;
       --gm-state-ok-bg: #1d3d28;
       --gm-state-ok-text: #7fd493;
-      /* Акцентные цвета метрик: чипы энергии/тревоги/фокуса на главной */
+      /* Акцентные цвета метрик: чипы энергии/тревоги/фокуса/агрессии на главной */
       --gm-metric-energy: #f0c22e;
       --gm-metric-anxiety: #e05545;
       --gm-metric-focus: #3b82f6;
+      --gm-metric-aggression: #c0407f;
     }
     /* State-бейджи: подложка+текст из переменных, padding как в макете
        lenta (px-3 py-1.5 = 12px/6px), радиус 12px */

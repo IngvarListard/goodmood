@@ -32,6 +32,7 @@
    [:anxiety [:int {:min 0 :max 10}]]
    [:focus {:optional true} [:maybe [:int {:min 0 :max 10}]]]
    [:sleep_hours {:optional true} [:maybe :double]]
+   [:sleep_minutes {:optional true} [:maybe [:int {:min 0 :max 59}]]]
    [:note {:optional true} [:maybe :string]]
    [:activity {:optional true} [:maybe :string]]
    [:effect {:optional true} [:maybe :string]]
@@ -128,12 +129,24 @@
   [v]
   (or v ""))
 
+(defn- combined-sleep-hours
+  "Длительность сна из формы: часы + опциональные минуты → десятичные часы.
+   Сна нет (nil), если пусты оба поля или часы пусты и минуты = 0 — дефолт
+   select в edit-форме (иначе любое сохранение edit-формы «создавало» бы
+   сон 0ч0м у записи без сна). Одиночный sleep_hours без минут проходит
+   без изменений (обратная совместимость API)."
+  [sleep_hours sleep_minutes]
+  (when (or (some? sleep_hours) (and sleep_minutes (pos? sleep_minutes)))
+    (+ (or sleep_hours 0) (/ (or sleep_minutes 0) 60.0))))
+
 (defn create-entry
   "Создать запись владельца. date — ISO-дата из формы (бэкфилл) или nil →
    сегодня (серверные часы). Период для привязки (если state_period_id не
-   задан явно): период, накрывающий дату записи, иначе активный."
+   задан явно): период, накрывающий дату записи, иначе активный.
+   sleep_hours + опциональные sleep_minutes собираются в десятичные часы."
   [ds user-id {:keys [date activity effect mood_score energy anxiety focus
-                      sleep_hours note template state_label state_period_id]}]
+                      sleep_hours sleep_minutes note template state_label
+                      state_period_id]}]
   (let [entry-date (or date (today))
         sp-id (or state_period_id
                   (some-> (periods/get-period-covering-date ds user-id entry-date) :id)
@@ -146,7 +159,7 @@
                           :energy energy
                           :anxiety anxiety
                           :focus focus
-                          :sleep-hours sleep_hours
+                          :sleep-hours (combined-sleep-hours sleep_hours sleep_minutes)
                           :note note
                           :template template
                           :state-label state_label
@@ -167,6 +180,7 @@
    [:anxiety {:optional true} [:maybe [:int {:min 0 :max 10}]]]
    [:focus {:optional true} [:maybe [:int {:min 0 :max 10}]]]
    [:sleep_hours {:optional true} [:maybe :double]]
+   [:sleep_minutes {:optional true} [:maybe [:int {:min 0 :max 59}]]]
    [:note {:optional true} [:maybe :string]]
    [:activity {:optional true} [:maybe :string]]
    [:state_label {:optional true} [:maybe :string]]])
@@ -190,9 +204,17 @@
   "Обновить запись владельца: SET только переданных ключей (частичное
    обновление, чужая запись → nil). Пустая строка → nil (очистка); activity
    NOT NULL — очистка даёт пустую строку (как в create); ключи NOT NULL
-   с nil отбрасываются из SET."
+   с nil отбрасываются из SET. sleep_minutes, если передан, сливается
+   с sleep_hours в десятичные часы."
   [ds user-id id params]
-  (let [fields (-> params
+  (let [params (if (contains? params :sleep_minutes)
+                 (-> params
+                     (assoc :sleep_hours (combined-sleep-hours
+                                          (blank->nil (:sleep_hours params))
+                                          (blank->nil (:sleep_minutes params))))
+                     (dissoc :sleep_minutes))
+                 params)
+        fields (-> params
                    (select-keys updatable-fields)
                    (update-vals blank->nil))
         fields (if (contains? fields :activity)

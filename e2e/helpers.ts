@@ -85,8 +85,8 @@ async function loginFresh(page: Page, email: string, password: string) {
 // hyperscript редиректит на /feed, где появляется hero-карточка последней записи.
 export async function submitEntry(
   page: Page,
-  { mood = 5, mood_score, energy = 5, anxiety = 5, note = '', sleep_hours }: {
-    mood?: number; mood_score?: number; energy?: number; anxiety?: number; note?: string; sleep_hours?: number;
+  { mood = 5, mood_score, energy = 5, anxiety = 5, note = '', sleep_hours, sleep_minutes }: {
+    mood?: number; mood_score?: number; energy?: number; anxiety?: number; note?: string; sleep_hours?: number; sleep_minutes?: number;
   } = {},
 ) {
   await page.goto('/check-in');
@@ -106,14 +106,20 @@ export async function submitEntry(
   await setRange('energy', energy);
   await setRange('anxiety', anxiety);
   if (sleep_hours !== undefined) {
-    // Раскрыть optional-блок сна, вписать значение.
+    // Раскрыть optional-блок сна, вписать значение. Часы — number, минуты —
+    // select (0/15/30/45); тоггл коллапса снимает disabled с обоих,
+    // removeAttribute — страховка.
     await page.locator('input[name="sleep_hours"]').evaluate((el) => {
       const collapse = el.closest('.collapse');
       const toggle = collapse?.querySelector('input[type="checkbox"]') as HTMLInputElement | null;
       if (toggle && !toggle.checked) toggle.click();
     });
     await page.locator('input[name="sleep_hours"]').evaluate((el) => el.removeAttribute('disabled'));
+    await page.locator('select[name="sleep_minutes"]').evaluate((el) => el.removeAttribute('disabled'));
     await page.fill('input[name="sleep_hours"]', String(sleep_hours));
+    if (sleep_minutes !== undefined) {
+      await page.selectOption('select[name="sleep_minutes"]', String(sleep_minutes));
+    }
   }
   if (note) {
     // Раскрыть optional-блок (DaisyUI collapse → checkbox) и вписать заметку.

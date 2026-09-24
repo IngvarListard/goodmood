@@ -12,7 +12,8 @@
   "Создать новую запись настроения для аутентифицированного пользователя.
    Возвращает HTML-фрагмент для HTMX-запросов или JSON для API."
   [ds request]
-  (let [{:keys [date activity effect mood_score energy anxiety focus sleep_hours note template]}
+  (let [{:keys [date activity effect mood_score energy anxiety focus sleep_hours
+                sleep_minutes note template]}
         (get-in request [:parameters :body])
         user-id (get-in request [:identity :id])
         entry (entries/create-entry ds user-id
@@ -24,6 +25,7 @@
                                      :anxiety anxiety
                                      :focus focus
                                      :sleep_hours sleep_hours
+                                     :sleep_minutes sleep_minutes
                                      :note note
                                      :template template})]
     (if (htmx-request? request)

@@ -246,8 +246,7 @@
       [:p {:class "text-sm text-base-content/85"} (axes-line entry)]
       (when sleep-hours
         [:p {:class "text-sm text-base-content/60 mt-1"}
-         (str (i18n/t :entries/sleep) " "
-              (format "%.1f" (double sleep-hours)) " ч")])
+         (str (i18n/t :entries/sleep) " " (layout/format-sleep sleep-hours))])
       (when (seq note)
         [:p {:class "text-sm text-base-content/80 mt-2"} note])]]]])
 

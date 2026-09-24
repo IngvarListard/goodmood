@@ -48,6 +48,13 @@ test.describe('feed', () => {
     await expect(page.getByRole('heading', { name: /Лента|Feed/ })).toBeVisible();
   });
 
+  test('sleep 7h30m saved via check-in shows as 7ч30м on feed', async ({ page }) => {
+    await login(page);
+    await submitEntry(page, { mood: 6, energy: 6, anxiety: 3, sleep_hours: 7, sleep_minutes: 30 });
+    // Сон хранится десятичными часами (7.5), отображается как «7ч30м»
+    await expect(page.getByText(/7ч30м|7h30m/).first()).toBeVisible();
+  });
+
   test('switch to Russian locale renders feed in Russian', async ({ page }) => {
     await login(page, E2E_EMPTY_USER_EMAIL, E2E_EMPTY_USER_PASSWORD);
     await page.getByRole('button', { name: /E2E Empty/ }).click();

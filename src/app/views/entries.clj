@@ -25,7 +25,7 @@
       [:span (i18n/t :entries/anxiety-label) (str anxiety "/10")])]
    (when (some? sleep-hours)
      [:p [:span {:class "font-medium"} (i18n/t :entries/sleep-label)]
-      (format "%.1f ч" (double sleep-hours))])
+      (layout/format-sleep sleep-hours)])
    (when (seq note)
      [:p {:class "mt-2"} note])
    (when (seq activity)
@@ -247,9 +247,7 @@
        [:label {:class "label px-0 pb-1"}
         [:span {:class "label-text text-base font-medium"}
          (i18n/t :entries/sleep)]]
-       [:input {:type "number" :name "sleep_hours" :step "0.1" :min "0" :max "24"
-                :value (or (some-> entry :sleep-hours str) "")
-                :class "input input-bordered w-full"}]]
+       (layout/sleep-fields {:hours (:sleep-hours entry)})]
       (state-label-field entry)
       [:div {:class "form-control mb-4"}
        [:label {:class "label px-0 pb-1"}
@@ -295,7 +293,7 @@
      (when (some? (:sleep-hours entry))
        [:p {:class "text-sm text-base-content/85"}
         (str (i18n/t :entries/sleep-label)
-             (format "%.1f" (double (:sleep-hours entry))))])
+             (layout/format-sleep (:sleep-hours entry)))])
      (when (seq (:note entry))
        [:p {:class "text-sm text-base-content/80 mt-2"} (:note entry)])
      (when (seq (:activity entry))

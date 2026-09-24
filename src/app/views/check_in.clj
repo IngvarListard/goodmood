@@ -74,9 +74,9 @@
             ;; странице (баг был и до редизайна, см. отчёт задачи 3)
             :_ "on change
                   if me.checked
-                    set the disabled of <input, textarea/> in the closest .collapse to false
+                    set the disabled of <input, select, textarea/> in the closest .collapse to false
                   else
-                    set the disabled of <input, textarea/> in the closest .collapse to true"}]
+                    set the disabled of <input, select, textarea/> in the closest .collapse to true"}]
 
    [:div {:class "collapse-title text-sm font-medium min-h-0 py-3.5"} label]
    [:div {:class "collapse-content"} content]])
@@ -99,11 +99,7 @@
     [:p {:class "text-[10px] uppercase font-bold tracking-wider text-base-content/50 mb-4"}
      (i18n/t :entries/optional)]
     (optional-block (i18n/t :entries/sleep)
-                    [:input {:type "number" :name "sleep_hours" :id "sleep_hours"
-                             :data-optional true :disabled true
-                             :step "0.1" :min "0" :max "24"
-                             :placeholder "7.5"
-                             :class "input input-bordered w-full"}])
+                    (layout/sleep-fields {:disabled? true :id "sleep_hours"}))
     (optional-block (i18n/t :entries/note)
                     [:textarea {:name "note" :id "note" :rows "3" :maxlength "500"
                                 :data-optional true :disabled true

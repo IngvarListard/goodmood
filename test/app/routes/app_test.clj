@@ -289,6 +289,53 @@
         (is (nil? (:sleep-hours entry)))
         (is (nil? (:focus entry)))))))
 
+(deftest sleep-hours-minutes-are-combined
+  (testing "POST /entries: sleep_hours + sleep_minutes сливаются в десятичные часы"
+    ;; 7 ч + 30 мин → 7.5
+    (let [response (post-entries-hx-strings {:mood_score "7"
+                                             :energy "8"
+                                             :anxiety "2"
+                                             :sleep_hours "7"
+                                             :sleep_minutes "30"})]
+      (is (= 201 (:status response)))
+      (is (= 7.5 (:sleep-hours (first (db/get-entries @ds-atom 1))))))
+    ;; минуты без часов → 0.5
+    (let [response (post-entries-hx-strings {:mood_score "6"
+                                             :energy "5"
+                                             :anxiety "3"
+                                             :sleep_hours ""
+                                             :sleep_minutes "30"})]
+      (is (= 201 (:status response)))
+      (is (= 0.5 (:sleep-hours (second (db/get-entries @ds-atom 1))))))
+    ;; одиночный числовой sleep_hours — обратная совместимость (7.2 остаётся 7.2)
+    (let [response (post-entries {:mood_score 6
+                                  :energy 5
+                                  :anxiety 3
+                                  :sleep_hours 7.2})]
+      (is (= 201 (:status response)))
+      (is (= 7.2 (:sleep-hours (last (db/get-entries @ds-atom 1))))))
+    ;; оба пустые в edit-форме → очистка сна (nil)
+    (let [id (:id (last (db/get-entries @ds-atom 1)))
+          response ((app)
+                    (with-csrf-header
+                      (authed {:request-method :post
+                               :uri (str "/entries/" id)
+                               :headers {"content-type" "application/json"}
+                               :body (java.io.ByteArrayInputStream.
+                                      (.getBytes (json-body {:sleep_hours ""
+                                                             :sleep_minutes ""})))})))]
+      (is (= 200 (:status response)))
+      (is (nil? (:sleep-hours (db/get-entry @ds-atom 1 id)))))
+    ;; edit-форма записи без сна: пустые часы + дефолт select 0 мин →
+    ;; сон не должен появиться (0.0)
+    (let [response (post-entries-hx-strings {:mood_score "6"
+                                             :energy "5"
+                                             :anxiety "3"
+                                             :sleep_hours ""
+                                             :sleep_minutes "0"})]
+      (is (= 201 (:status response)))
+      (is (nil? (:sleep-hours (last (db/get-entries @ds-atom 1))))))))
+
 (deftest post-hx-validation-error-returns-html
   (testing "POST /entries with HX-Request and out-of-range mood_score returns 400 HTML fragment"
     (let [response (post-entries-hx {:mood_score 15

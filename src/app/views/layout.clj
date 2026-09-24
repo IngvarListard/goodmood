@@ -4,6 +4,7 @@
             [app.views.assistant :as assistant]
             [app.views.navigation :as navigation]
             [app.views.user-menu :as user-menu]
+            [clojure.math :as math]
             [hiccup2.core :refer [raw]]))
 
 (def htmx-src "https://unpkg.com/htmx.org@2.0.10/dist/htmx.min.js")
@@ -49,6 +50,45 @@
                               else
                                 set #" id "-display.innerHTML to (my value).split('-').reverse().join('.')")}
              disabled? (assoc :disabled true))]])
+
+(defn format-sleep
+  "Длительность сна из десятичных часов в «7ч30м»: целые часы + минуты
+   (остаток × 60, округление до целого; 60 мин перетекают в час). nil → nil —
+   строка сна не рендерится. Legacy-значения с шагом 0.1 отображаются честно:
+   7.2 → «7ч12м»."
+  [hours]
+  (when (some? hours)
+    (let [h (long (math/floor hours))
+          m (math/round (* 60 (- hours h)))
+          [h m] (if (= m 60) [(inc h) 0] [h m])]
+      (str h (i18n/t :entries/h-unit) m (i18n/t :entries/m-unit)))))
+
+(defn sleep-fields
+  "Join-поля длительности сна: часы (number 0–24) + минуты (select с шагом
+   15: 0/15/30/45). hours — десятичные часы из БД для prefill edit-формы
+   (минуты округляются к ближайшим 15: 7.2 → 7ч15м); nil → пустые поля
+   (check-in). disabled? — не сабмитится из свёрнутого опционального
+   коллапса чек-ина; id — id инпута часов."
+  [{:keys [hours disabled? id]}]
+  (let [h (when hours (long (math/floor hours)))
+        m (when hours (long (* 15 (math/round (/ (* 60 (- (double hours) h)) 15)))))
+        base {:disabled (when disabled? true)}]
+    [:div {:class "join w-full"}
+     [:input (cond-> (merge base
+                            {:type "number" :name "sleep_hours" :id (or id "sleep_hours")
+                             :min "0" :max "24" :step "1" :placeholder "7"
+                             :class "input input-bordered join-item grow"})
+               (some? h) (assoc :value h))]
+     [:span {:class "join-item px-1.5 self-center text-sm text-base-content/60"}
+      (i18n/t :entries/h-unit)]
+     [:select (merge base
+                     {:name "sleep_minutes"
+                      :class "select select-bordered join-item w-20"})
+      (for [mm [0 15 30 45]]
+        (cond-> [:option {:value mm} mm]
+          (and m (= mm m)) (assoc-in [1 :selected] true)))]
+     [:span {:class "join-item px-1.5 self-center text-sm text-base-content/60"}
+      (i18n/t :entries/m-unit)]]))
 
 (defn html-attrs
   "Атрибуты <html>: язык и тема. Для :system атрибут data-theme не ставится —

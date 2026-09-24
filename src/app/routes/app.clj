@@ -219,6 +219,8 @@
      {:post {:handler (partial ai-routes/settings-update ds)}}]
     ["/push/subscribe"
      {:post {:handler (partial push-routes/subscribe ds)}}]
+    ["/push/test"
+     {:post {:handler (partial push-routes/test-send ds)}}]
     ["/push/unsubscribe"
      {:post {:handler (partial push-routes/unsubscribe ds)}}]
     ["/ai/correlations"

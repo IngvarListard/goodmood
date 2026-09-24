@@ -125,3 +125,17 @@
                     push/send-push! (fn [& _] (is false "не должен вызываться") 1)]
         (push/tick! ds today "09:00"))
       (is (nil? (sentinel ds "morning"))))))
+
+(deftest test-validate-subscription-ignores-extra-browser-keys
+  (testing "реалистичный PushSubscription.toJSON() с :expirationTime → nil"
+    (is (nil? (push/validate-subscription
+               {:endpoint "https://fcm.example.com/fcm/send/ep-1"
+                :keys {:p256dh valid-p256dh :auth valid-auth}
+                :expirationTime nil}))))
+  (testing "карта без :keys → ошибки"
+    (is (some? (push/validate-subscription
+                {:endpoint "https://fcm.example.com/fcm/send/ep-1"}))))
+  (testing "карта с :keys без :p256dh → ошибки"
+    (is (some? (push/validate-subscription
+                {:endpoint "https://fcm.example.com/fcm/send/ep-1"
+                 :keys {:auth valid-auth}})))))

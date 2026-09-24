@@ -204,7 +204,11 @@
          :error "Could not enable notifications. Please try again."
          :slot-morning "The morning has begun. Check in with yourself"
          :slot-midday "How is the day going?"
-         :slot-evening "Tomorrow's summary is ready"}
+         :slot-evening "Tomorrow's summary is ready"
+         :test-button "Send a test notification"
+         :test-body "Test notification. If you see it, push works."
+         :test-result "Delivered: {count}"
+         :test-error "Could not send: no active subscriptions or the server is unavailable."}
   :ai {:correlations-title "Possible connections"
        :finding-correlation "Possible link"
        :dismiss "Dismiss"

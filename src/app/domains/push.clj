@@ -27,13 +27,25 @@
            [:p256dh :string]
            [:auth :string]]]])
 
-(defn validate-subscription
-  "Валидировать подписку. nil при успехе, map ошибок (humanized) иначе."
+(defn- subscription-subset
+  "Оставить только значимые для отправки поля подписки (design D1):
+   лишние безобидные ключи браузера (expirationTime) не валидируем."
   [sub]
-  (when-not (mc/validate subscription-schema sub)
-    (-> subscription-schema
-        (mc/explain sub)
-        me/humanize)))
+  (when (map? sub)
+    (-> sub
+        (select-keys [:endpoint :keys])
+        (update :keys #(when (map? %)
+                         (select-keys % [:p256dh :auth]))))))
+
+(defn validate-subscription
+  "Валидировать подписку. nil при успехе, map ошибок (humanized) иначе.
+   Валидируется только значимый срез endpoint + keys{p256dh,auth}."
+  [sub]
+  (let [subset (subscription-subset sub)]
+    (when-not (mc/validate subscription-schema subset)
+      (-> subscription-schema
+          (mc/explain subset)
+          me/humanize))))
 
 (defn vapid-keys
   "Пара [public private] VAPID-ключей из окружения или nil."

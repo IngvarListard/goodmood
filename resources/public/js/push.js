@@ -91,10 +91,16 @@
           return;
         }
         var reg = await navigator.serviceWorker.ready;
-        var sub = await reg.pushManager.subscribe({
-          userVisibleOnly: true,
-          applicationServerKey: urlB64ToUint8Array(vapidPublicKey())
-        });
+        // Переиспользуем уже существующую подписку: повторный subscribe
+        // кидает InvalidStateError, а подписка в браузере могла остаться
+        // без строки в БД. Нет подписки — создаём.
+        var sub = await reg.pushManager.getSubscription();
+        if (!sub) {
+          sub = await reg.pushManager.subscribe({
+            userVisibleOnly: true,
+            applicationServerKey: urlB64ToUint8Array(vapidPublicKey())
+          });
+        }
         var res = await postJSON('/push/subscribe', sub.toJSON());
         if (!res.ok) throw new Error('subscribe failed: ' + res.status);
         swapSection(await res.text());

@@ -3,9 +3,7 @@
 ## Purpose
 
 PWA-возможности: установка на домашний экран (web app manifest + service worker без кэширования данных, offline-заглушка «нет сети»), подписка на web push (VAPID, user gesture, CSRF) и серверный шедулер доставки слот-пушей с общим sentinel `last_slot_shown`.
-
 ## Requirements
-
 ### Requirement: Installable standalone app
 
 The system SHALL be installable to the Android home screen: `GET /manifest.webmanifest` (linked from every page) SHALL declare `display: "standalone"`, `start_url: "/feed"`, `scope: "/"`, `theme_color` (#5b5bea), `background_color`, and icons of 192×192 and 512×512 (plus a maskable variant). Every page SHALL include `theme-color` meta (#5b5bea) and a minimal service worker (`GET /sw.js`) with a fetch handler. When launched from the home screen, the app SHALL open in standalone mode without browser chrome (no address bar). The service worker SHALL NOT cache application responses: navigation and API requests SHALL go to the network, and when the network is unavailable the worker SHALL serve a minimal static «нет сети» page instead of the browser error. The service worker SHALL handle `push` and `notificationclick` events (see Push delivery).
@@ -32,7 +30,7 @@ The system SHALL be installable to the Android home screen: `GET /manifest.webma
 
 ### Requirement: Push subscription lifecycle
 
-The system SHALL let the user enable push notifications from the notifications settings section on /settings («Push-уведомления»). Enabling SHALL require a user gesture: `Notification.requestPermission()`, then `pushManager.subscribe` with the server's VAPID public key (delivered via `<meta name="vapid-public-key">`), then `POST /push/subscribe` with the subscription (endpoint, keys p256dh/auth), authenticated and CSRF-protected. Subscriptions SHALL be stored per user in `push_subscriptions` (endpoint unique). The user SHALL be able to disable: `unsubscribe()` + `POST /push/unsubscribe` removes the row. The server SHALL delete a subscription row when the push service reports it gone (404/410). When VAPID env keys are absent the section SHALL show that notifications are unavailable and the server SHALL not send pushes (graceful degradation).
+The system SHALL let the user enable push notifications from the notifications settings section on /settings («Push-уведомления»). Enabling SHALL require a user gesture: `Notification.requestPermission()`, then obtain a `PushSubscription` — reusing an existing one via `pushManager.getSubscription()` when present, otherwise creating it via `pushManager.subscribe` with the server's VAPID public key (delivered via `<meta name="vapid-public-key">`) — then `POST /push/subscribe` with the subscription (endpoint, keys p256dh/auth), authenticated and CSRF-protected. The subscription SHALL be validated against its meaningful subset (endpoint, keys p256dh/auth) only: unknown harmless browser keys such as `expirationTime` SHALL be ignored rather than rejected. Subscriptions SHALL be stored per user in `push_subscriptions` (endpoint unique). The user SHALL be able to disable: `unsubscribe()` + `POST /push/unsubscribe` removes the row. The user SHALL be able to trigger a test notification from the settings section (button visible only while subscribed): the authenticated, CSRF-protected `POST /push/test` SHALL send a notification to the current user's subscriptions through the same delivery path and report the delivered count or an error. The server SHALL delete a subscription row when the push service reports it gone (404/410). When VAPID env keys are absent the section SHALL show that notifications are unavailable and the server SHALL not send pushes (graceful degradation).
 
 #### Scenario: User enables push in settings
 
@@ -40,6 +38,28 @@ The system SHALL let the user enable push notifications from the notifications s
 - **WHEN** пользователь в /settings нажимает «Включить уведомления» и подтверждает разрешение
 - **THEN** подписка сохранена в push_subscriptions с user_id владельца
 - **AND** секция показывает статус «уведомления включены» с кнопкой выключить
+
+#### Scenario: Enabling reuses an existing subscription
+
+- **GIVEN** в браузере уже существует подписка (например, предыдущий POST не сохранил её)
+- **WHEN** пользователь повторно нажимает «Включить уведомления»
+- **THEN** push.js переиспользует существующую подписку и не вызывает pushManager.subscribe повторно
+- **AND** POST /push/subscribe сохраняет строку в push_subscriptions
+- **AND** пользователь не видит ошибки InvalidStateError
+
+#### Scenario: Browser payload with extra keys is accepted
+
+- **GIVEN** push.js отправляет `PushSubscription.toJSON()`, содержащий дополнительный ключ `expirationTime`
+- **WHEN** приходит POST /push/subscribe
+- **THEN** валидация проходит (лишний ключ игнорируется) и отвечает 200
+- **AND** строка подписки появляется в push_subscriptions
+
+#### Scenario: User sends a test notification
+
+- **GIVEN** пользователь подписан на push и VAPID-ключи настроены
+- **WHEN** он нажимает «Отправить тестовое уведомление» в /settings
+- **THEN** POST /push/test отправляет пуш по всем его подпискам через тот же путь доставки
+- **AND** секция показывает результат (число доставок или ошибку)
 
 #### Scenario: Push is unavailable without VAPID keys
 
@@ -85,3 +105,4 @@ The system SHALL deliver push notifications for enabled notification slots: a se
 - **WHEN** приходит вечерний пуш
 - **THEN** текст не упрекает («вы не заполнили дневник» отсутствует)
 - **AND** содержит нейтральный/поддерживающий текст слота
+

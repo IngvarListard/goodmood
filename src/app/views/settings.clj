@@ -76,11 +76,12 @@
        (i18n/t :auth/logout)]]]))
 
 (defn push-section
-  "Секция «Push-уведомления» (change add-pwa-push): статус и кнопка.
+  "Секция «Push-уведомления» (change add-pwa-push): статус и кнопки.
+   csrf-token — токен для hx-headers кнопки тестовой отправки;
    configured? — VAPID-ключи на сервере; subscribed? — есть подписка в БД.
    Тексты и состояние рендерит сервер; push.js — тупой исполнитель (D6):
    читает data-атрибуты секции, возвращает свежий фрагмент после POST."
-  [configured? subscribed?]
+  [csrf-token configured? subscribed?]
   [:div {:id "push-section"
          :data-msg-denied (i18n/t :push/denied)
          :data-msg-error (i18n/t :push/error)
@@ -94,16 +95,31 @@
       [:p {:class "text-sm opacity-70"} (i18n/t :push/unavailable)]]
      [:div {:class "card bg-base-200 border border-base-300 p-4"}
       (if subscribed?
-        [:div {:class "flex items-center justify-between gap-3"}
-         [:span {:class "text-sm"} (i18n/t :push/status-enabled)]
-         [:button {:type "button"
-                   :class "btn btn-outline btn-sm"
-                   :_ "on click call window.GMPush.disable(me)"}
-          (i18n/t :push/disable)]]
+        [:div
+         [:div {:class "flex items-center justify-between gap-3"}
+          [:span {:class "text-sm"} (i18n/t :push/status-enabled)]
+          [:button {:type "button" :class "btn btn-outline btn-sm"
+                    :_ "on click call window.GMPush.disable(me)"}
+           (i18n/t :push/disable)]]
+         [:div {:class "flex items-center gap-3 mt-3"}
+          [:button {:type "button" :class "btn btn-outline btn-sm"
+                    :hx-post "/push/test"
+                    :hx-target "#push-test-result"
+                    :hx-swap "innerHTML"
+                    :hx-headers (str "{\"X-CSRF-Token\": \"" csrf-token "\"}")}
+           (i18n/t :push/test-button)]
+          [:span {:id "push-test-result" :class "text-sm opacity-70"}]]]
         [:button {:type "button"
                   :class "btn btn-primary w-full"
                   :_ "on click call window.GMPush.enable(me)"}
          (i18n/t :push/enable)])])])
+
+(defn push-test-result
+  "Статус тестовой отправки push: nil/0 доставок → ошибка, иначе число."
+  [delivered]
+  (if (and delivered (pos? delivered))
+    [:span {:class "text-sm text-success"} (i18n/t :push/test-result {:count delivered})]
+    [:span {:class "text-sm text-error"} (i18n/t :push/test-error)]))
 
 (defn page
   "Страница настроек: информация о пользователе, переключатель языка, выход
@@ -118,7 +134,7 @@
                  (user-card identity request)
                  (when ai-settings (ai/ai-settings-section csrf ai-settings))
                  (notifications/settings-section csrf notif-slots)
-                 (push-section (boolean configured?) (boolean subscribed?))]]
+                 (push-section csrf (boolean configured?) (boolean subscribed?))]]
     (layout/layout {:title (i18n/t :nav/settings)
                     :active :settings
                     :request request}

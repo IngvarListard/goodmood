@@ -4,6 +4,7 @@
    секции настроек (свап выполняет push.js)."
   (:require [app.db.push :as db]
             [app.domains.push :as push-domains]
+            [app.i18n :as i18n]
             [app.routes.html :refer [html-response]]
             [app.views.settings :as settings]))
 
@@ -20,7 +21,9 @@
   "Свежая секция «Push-уведомления»: сервер рендерит состояние, push.js
    подставляет его вместо текущей секции."
   [request subscribed?]
-  (settings/push-section (push-domains/vapid-configured?) subscribed?))
+  (settings/push-section (:anti-forgery-token request)
+                         (push-domains/vapid-configured?)
+                         subscribed?))
 
 (defn subscribe
   "POST /push/subscribe — сохранить подписку юзера.
@@ -52,3 +55,16 @@
     (when (and (map? body) (string? (:endpoint body)))
       (db/unsubscribe! ds (:endpoint body)))
     (html-response 200 (section-fragment request (subscribed? ds (user-id request))))))
+
+(defn test-send
+  "POST /push/test — отправить тестовое уведомление текущему юзеру.
+   Возвращает HTML-фрагмент со статусом (число доставок или ошибка)."
+  [ds request]
+  (let [uid (user-id request)]
+    (if-not (push-domains/vapid-configured?)
+      (html-response 400 (settings/push-test-result nil))
+      (html-response 200
+                     (settings/push-test-result
+                      (push-domains/send-push! ds uid
+                                               (i18n/t :app/name)
+                                               (i18n/t :push/test-body)))))))

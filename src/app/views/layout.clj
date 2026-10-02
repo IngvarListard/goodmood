@@ -140,7 +140,7 @@
              :content (env/env "GOODMOOD_VAPID_PUBLIC_KEY")}])
    ;; Палитры тем: скоупленный plain CSS вместо @theme (Tailwind-CDN не
    ;; обрабатывает @theme без type=\"text/tailwindcss\", а переменные на :root
-   ;; перекрываются темой на html). Тёмная — усреднение трёх макетов design/;
+   ;; перекрываются темой на html). Тёмная — усреднение трёх макетов;
    ;; светлая — прежняя тёплая. Оттенки /60…/85 выводятся из базового
    ;; цвета через color-mix. Селекторы без кавычек: hiccup эскейпит \", а
    ;; raw-text <style> не декодирует сущности.
@@ -151,7 +151,7 @@
       font-family: Inter, system-ui, sans-serif;
     }
     [data-theme=dark] {
-      /* Тёмная палитра: усреднение макетов design/ (daisyUI-токены) */
+      /* Тёмная палитра: усреднение макетов (daisyUI-токены) */
       --color-base-100: #0c0f17;
       --color-base-200: #151827;
       --color-base-300: #1c2032;

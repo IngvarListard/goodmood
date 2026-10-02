@@ -48,7 +48,7 @@
 
 (defn- template-tabs
   "Отрендерить переключатель шаблонов (утро/день/вечер/событие) — segmented
-   control по макету design/otmetka.html: inset-контейнер, разделители.
+   control по макету отметки: inset-контейнер, разделители.
    gm-segment — хук для CSS-стилизации активного сегмента."
   []
   [:div {:class (str "gm-segment flex bg-base-300 rounded-2xl p-[5px] "
@@ -179,7 +179,7 @@
     (template-tabs) (date-block) [:div {:id "form-error" :class "mb-3"}]
     (mood-range)
     (soft-fields)
-    ;; Save-кнопка по макету design/otmetka.html: gradient + glow-тень
+    ;; Save-кнопка по макету отметки: gradient + glow-тень
     [:button {:type "submit"
               :class (str "btn w-full h-14 rounded-2xl gm-gradient text-white "
                           "font-semibold text-[15px] "

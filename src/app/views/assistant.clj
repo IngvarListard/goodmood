@@ -6,7 +6,7 @@
             [app.icons :as icons]))
 
 (defn- fab-icon
-  "Иконка FAB: чат-пузырь с искрой (по макету design/assistant.html)."
+  "Иконка FAB: чат-пузырь с искрой (по макету)."
   []
   [:span {:class "relative inline-flex items-center justify-center"}
    (icons/svg "chat-bubble-left-ellipsis")

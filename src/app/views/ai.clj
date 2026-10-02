@@ -334,7 +334,7 @@
 
 (defn- chat-bubble
   "Пузырь сообщения чата: assistant слева с аватаром-лампочкой,
-   user справа с градиентным bubble (по макету design/assistant.html)."
+   user справа с градиентным bubble (по макету)."
   [{:keys [id role content]}]
   (let [user? (= role "user")]
     [:div {:class (if user? "chat chat-end" "chat chat-start")}

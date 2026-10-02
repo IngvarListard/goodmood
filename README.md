@@ -2,6 +2,18 @@
 
 Трекер настроения при биполярном расстройстве. Помогает отслеживать состояние, находить паттерны и получать персональные инсайты на основе собственных записей.
 
+## Скриншоты
+
+Мобильный интерфейс; данные — демонстрационная «рыба» из seed-а.
+
+<p align="center">
+  <img src="docs/screenshots/feed.png" width="180" alt="Лента"/>
+  <img src="docs/screenshots/check-in.png" width="180" alt="Отметка (чек-ин)"/>
+  <img src="docs/screenshots/medications.png" width="180" alt="Медикаменты"/>
+  <img src="docs/screenshots/insights.png" width="180" alt="Инсайты"/>
+  <img src="docs/screenshots/settings.png" width="180" alt="Настройки"/>
+</p>
+
 ## Стек
 
 Clojure, deps.edn, Ring + Jetty, reitit, Integrant, Hiccup2, htmx + hyperscript, Tailwind CSS + DaisyUI, SQLite, next.jdbc, HoneySQL, migratus, Malli. AI через OpenRouter API.

@@ -57,7 +57,7 @@ The system SHALL track dose changes over time as first-class events (not just up
 ### Requirement: Optional medication privacy flag
 The system SHALL allow the user to mark medications as especially sensitive, restricting their visibility in any future export or shared view (future-proofing for OQ4 — boundary of intervention).
 
-#### Scenario: User marks medication A as sensitive
+#### Scenario: User marks a medication as sensitive
 - **GIVEN** пользователь добавляет медикамент и отмечает «sensitive»
 - **WHEN** в будущем появляется функция экспорта
 - **THEN** этот медикамент исключается из экспорта по умолчанию

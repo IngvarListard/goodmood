@@ -131,7 +131,6 @@
     [:form {:method "dialog" :class "modal-backdrop"}
      [:button "close"]]]])
 
-
 ;; ──────────────────────────────────────────────────────────────
 ;; 2. Форма добавления/редактирования (содержимое #med-modal-box)
 ;;    Загружается через hx-get /medications/new или /medications/:id/edit
@@ -207,7 +206,6 @@
      [:button {:type "button"
                :class "btn btn-ghost h-12"
                :_ "on click call #med-modal.close()"} "Отмена"]]]])
-
 
 ;; ──────────────────────────────────────────────────────────────
 ;; 3. Empty state (когда med-list пуст — нет медикаментов)
